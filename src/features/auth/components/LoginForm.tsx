@@ -80,9 +80,16 @@ export function LoginForm() {
   const roleError = isUnsupportedRoleError(loginMutation.error) ? loginMutation.error : null
   const apiError =
     !roleError && loginMutation.error ? getApiErrorMessage(loginMutation.error) : null
+  const notice =
+    typeof (location.state as { notice?: unknown } | null)?.notice === 'string'
+      ? (location.state as { notice: string }).notice
+      : null
 
   return (
     <form className="space-y-3.5" onSubmit={handleSubmit} noValidate>
+      {notice ? (
+        <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{notice}</p>
+      ) : null}
       {apiError ? (
         <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">{apiError}</p>
       ) : null}

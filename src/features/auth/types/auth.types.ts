@@ -9,3 +9,13 @@ export type LoginResponse = {
   email: string
   role: string
 }
+
+export type RegisterRole = 'TEACHER' | 'STUDENT'
+
+export type RegisterPayload = {
+  fullName: string
+  email: string
+  password: string
+  confirmPassword: string
+  role: RegisterRole
+}

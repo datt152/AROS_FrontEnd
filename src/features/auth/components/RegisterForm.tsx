@@ -1,5 +1,10 @@
 import { useState } from 'react'
 import { Eye, EyeOff, Lock, Mail, User } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+
+import { getApiErrorMessage } from '../../../lib/apiError'
+import { ROUTES } from '../../../routes/routes.config'
+import { useRegister } from '../hooks/useRegister'
 
 type FieldErrors = {
   fullName?: string
@@ -9,16 +14,17 @@ type FieldErrors = {
 }
 
 export function RegisterForm() {
+  const navigate = useNavigate()
+  const registerMutation = useRegister()
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isTeacher, setIsTeacher] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<FieldErrors>({})
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     const nextErrors: FieldErrors = {}
@@ -50,9 +56,29 @@ export function RegisterForm() {
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
 
-    setLoading(true)
-    window.setTimeout(() => setLoading(false), 1200)
+    try {
+      const message = await registerMutation.mutateAsync({
+        fullName: fullName.trim(),
+        email: email.trim(),
+        password,
+        confirmPassword,
+        role: isTeacher ? 'TEACHER' : 'STUDENT',
+      })
+
+      navigate(ROUTES.login, {
+        replace: true,
+        state: {
+          notice: typeof message === 'string' && message.trim() ? message : 'Account created successfully. Please sign in.',
+        },
+      })
+    } catch {
+      // Error is shown via registerMutation.error
+    }
   }
+
+  const apiError = registerMutation.error
+    ? getApiErrorMessage(registerMutation.error, 'Unable to create your account')
+    : null
 
   const inputClass = (hasError?: string) =>
     `h-10 w-full rounded-xl border bg-slate-50/70 pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:bg-white focus:ring-4 ${
@@ -63,6 +89,10 @@ export function RegisterForm() {
 
   return (
     <form className="space-y-3.5" onSubmit={handleSubmit} noValidate>
+      {apiError ? (
+        <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">{apiError}</p>
+      ) : null}
+
       <div className="space-y-1.5">
         <label htmlFor="fullName" className="text-sm font-medium text-slate-700">
           Full name
@@ -190,24 +220,22 @@ export function RegisterForm() {
           onChange={(event) => setIsTeacher(event.target.checked)}
           className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/30"
         />
-        <span className="text-sm text-slate-600">
-        I am registering as a teacher
-        </span>
+        <span className="text-sm text-slate-600">I am registering as a teacher</span>
       </label>
 
       <button
         type="submit"
-        disabled={loading}
+        disabled={registerMutation.isPending}
         className="h-10 w-full rounded-xl bg-linear-to-r from-blue-600 to-emerald-600 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:from-blue-700 hover:to-emerald-700 focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-70"
       >
-        {loading ? 'Creating account...' : 'Create account'}
+        {registerMutation.isPending ? 'Creating account...' : 'Create account'}
       </button>
 
       <p className="text-center text-sm text-slate-600">
         Already have an account?{' '}
-        <a href="/login" className="font-medium text-blue-600 transition hover:text-blue-700">
+        <Link to={ROUTES.login} className="font-medium text-blue-600 transition hover:text-blue-700">
           Sign in
-        </a>
+        </Link>
       </p>
     </form>
   )

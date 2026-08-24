@@ -1,6 +1,6 @@
 import { apiClient, clearAccessToken, setAccessToken, SKIP_AUTH_REFRESH_HEADER } from '../../../lib/axios'
 import type { Role } from '../../../routes/routes.config'
-import type { LoginPayload, LoginResponse } from '../types/auth.types'
+import type { LoginPayload, LoginResponse, RegisterPayload } from '../types/auth.types'
 
 export class UnsupportedRoleError extends Error {
   readonly receivedRole: string
@@ -41,4 +41,13 @@ export async function login(payload: LoginPayload) {
     ...data,
     role,
   }
+}
+
+export async function register(payload: RegisterPayload) {
+  const response = await apiClient.post<string>(
+    '/v1/auth/register',
+    payload,
+    { headers: { [SKIP_AUTH_REFRESH_HEADER]: '1' } },
+  )
+  return response.data
 }
