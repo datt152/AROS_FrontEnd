@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react'
-import { BookOpen, ChevronRight, ClipboardCheck, FileText, GraduationCap, LogOut, X } from 'lucide-react'
+import { BookOpen, ChevronRight, ClipboardCheck, FileText, GraduationCap, LogOut, PanelRight, X } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 
 import { useLogout } from '../../features/auth/hooks/useLogout'
@@ -107,7 +107,7 @@ export function AppSidebar({
               className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:text-slate-900"
               aria-label="Collapse sidebar"
             >
-              <X className="h-4 w-4" strokeWidth={2} />
+              <PanelRight className="h-4.5 w-4.5" strokeWidth={1.75} />
             </button>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto py-2">
@@ -134,7 +134,7 @@ export function AppSidebar({
             className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:text-slate-900"
             aria-label="Close sidebar"
           >
-            <X className="h-4.5 w-4.5" strokeWidth={1.75} />
+            <PanelRight className="h-4.5 w-4.5" strokeWidth={1.75} />
           </button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto py-2">
