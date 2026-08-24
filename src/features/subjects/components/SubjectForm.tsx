@@ -7,7 +7,9 @@ import type { SubjectFormErrors, SubjectFormValues, SubjectItem } from '../types
 type SubjectFormProps = {
   mode: 'create' | 'edit'
   initialValues?: SubjectItem
-  onSubmit: (values: SubjectFormValues) => void
+  isSubmitting?: boolean
+  submitError?: string | null
+  onSubmit: (values: SubjectFormValues) => void | Promise<void>
   onCancel: () => void
 }
 
@@ -18,7 +20,14 @@ function toFormValues(item?: SubjectItem): SubjectFormValues {
   }
 }
 
-export function SubjectForm({ mode, initialValues, onSubmit, onCancel }: SubjectFormProps) {
+export function SubjectForm({
+  mode,
+  initialValues,
+  isSubmitting = false,
+  submitError = null,
+  onSubmit,
+  onCancel,
+}: SubjectFormProps) {
   const [values, setValues] = useState<SubjectFormValues>(() => toFormValues(initialValues))
   const [errors, setErrors] = useState<SubjectFormErrors>({})
 
@@ -27,7 +36,7 @@ export function SubjectForm({ mode, initialValues, onSubmit, onCancel }: Subject
     if (errors[key]) setErrors((current) => ({ ...current, [key]: undefined }))
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     const nextErrors: SubjectFormErrors = {}
@@ -45,7 +54,7 @@ export function SubjectForm({ mode, initialValues, onSubmit, onCancel }: Subject
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
 
-    onSubmit({
+    await onSubmit({
       subjectName: values.subjectName.trim(),
       description: values.description.trim(),
     })
@@ -53,6 +62,10 @@ export function SubjectForm({ mode, initialValues, onSubmit, onCancel }: Subject
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit} noValidate>
+      {submitError ? (
+        <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">{submitError}</p>
+      ) : null}
+
       <div className="space-y-1.5">
         <label htmlFor="subjectName" className="text-sm font-medium text-slate-700">
           Subject name
@@ -63,6 +76,7 @@ export function SubjectForm({ mode, initialValues, onSubmit, onCancel }: Subject
           value={values.subjectName}
           hasError={Boolean(errors.subjectName)}
           placeholder="e.g. Software Engineering"
+          disabled={isSubmitting}
           onChange={(event) => updateField('subjectName', event.target.value)}
         />
         {errors.subjectName ? <p className="text-sm text-red-500">{errors.subjectName}</p> : null}
@@ -77,9 +91,10 @@ export function SubjectForm({ mode, initialValues, onSubmit, onCancel }: Subject
           name="description"
           rows={4}
           value={values.description}
+          disabled={isSubmitting}
           placeholder="Short description of the subject"
           onChange={(event) => updateField('description', event.target.value)}
-          className={`w-full rounded-xl border bg-slate-50/70 px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:bg-white focus:ring-4 ${
+          className={`w-full rounded-xl border bg-slate-50/70 px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:bg-white focus:ring-4 disabled:opacity-60 ${
             errors.description
               ? 'border-red-400 focus:border-red-400 focus:ring-red-100'
               : 'border-slate-200 focus:border-blue-400 focus:ring-blue-100'
@@ -89,10 +104,18 @@ export function SubjectForm({ mode, initialValues, onSubmit, onCancel }: Subject
       </div>
 
       <div className="flex items-center justify-end gap-2 pt-2">
-        <Button type="button" variant="secondary" onClick={onCancel}>
+        <Button type="button" variant="secondary" onClick={onCancel} disabled={isSubmitting}>
           Cancel
         </Button>
-        <Button type="submit">{mode === 'create' ? 'Create subject' : 'Save changes'}</Button>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting
+            ? mode === 'create'
+              ? 'Creating...'
+              : 'Saving...'
+            : mode === 'create'
+              ? 'Create subject'
+              : 'Save changes'}
+        </Button>
       </div>
     </form>
   )

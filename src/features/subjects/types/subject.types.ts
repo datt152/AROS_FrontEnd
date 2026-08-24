@@ -4,10 +4,12 @@ export type SubjectItem = {
   description: string
 }
 
-export type SubjectFormValues = {
+export type SubjectPayload = {
   subjectName: string
   description: string
 }
+
+export type SubjectFormValues = SubjectPayload
 
 export type SubjectFormErrors = {
   subjectName?: string

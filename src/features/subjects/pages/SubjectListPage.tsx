@@ -1,101 +1,86 @@
-import { Pencil, Plus, Trash2, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Plus, X } from 'lucide-react'
+import { useState } from 'react'
 
 import { Button } from '../../../components/ui/Button'
 import { EmptyState } from '../../../components/ui/EmptyState'
+import { ErrorState } from '../../../components/ui/ErrorState'
 import { Spinner } from '../../../components/ui/Spinner'
+import { getApiErrorMessage } from '../../../lib/apiError'
 import { SubjectForm } from '../components/SubjectForm'
-import type { SubjectFormValues, SubjectItem } from '../types/subject.types'
-
-const MOCK_SUBJECTS: SubjectItem[] = [
-  {
-    id: 1,
-    subjectName: 'Software Engineering',
-    description: 'Software process, requirements, design and testing fundamentals.',
-  },
-  {
-    id: 2,
-    subjectName: 'Database Systems',
-    description: 'Relational modeling, SQL, transactions and indexing.',
-  },
-  {
-    id: 3,
-    subjectName: 'Web Development',
-    description: 'Modern frontend and backend patterns for web applications.',
-  },
-  {
-    id: 4,
-    subjectName: 'Operating Systems',
-    description: 'Processes, memory management, concurrency and file systems.',
-  },
-]
+import { SubjectItem } from '../components/SubjectItem'
+import {
+  useCreateSubject,
+  useDeleteSubject,
+  useSubjects,
+  useUpdateSubject,
+} from '../hooks/useSubjects'
+import type { SubjectFormValues, SubjectItem as SubjectItemType } from '../types/subject.types'
 
 type ModalMode = 'create' | 'edit' | null
 
 export function SubjectListPage() {
-  const [status, setStatus] = useState<'loading' | 'ready'>('loading')
-  const [subjects, setSubjects] = useState<SubjectItem[]>([])
-  const [modalMode, setModalMode] = useState<ModalMode>(null)
-  const [editingSubject, setEditingSubject] = useState<SubjectItem | null>(null)
-  const [deletingSubject, setDeletingSubject] = useState<SubjectItem | null>(null)
+  const subjectsQuery = useSubjects()
+  const createSubject = useCreateSubject()
+  const updateSubject = useUpdateSubject()
+  const deleteSubject = useDeleteSubject()
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setSubjects(MOCK_SUBJECTS)
-      setStatus('ready')
-    }, 700)
-    return () => window.clearTimeout(timer)
-  }, [])
+  const [modalMode, setModalMode] = useState<ModalMode>(null)
+  const [editingSubject, setEditingSubject] = useState<SubjectItemType | null>(null)
+  const [deletingSubject, setDeletingSubject] = useState<SubjectItemType | null>(null)
+  const [formError, setFormError] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  const subjects = subjectsQuery.data ?? []
+  const isFormSubmitting = createSubject.isPending || updateSubject.isPending
 
   function openCreate() {
+    setFormError(null)
     setEditingSubject(null)
     setModalMode('create')
   }
 
-  function openEdit(subject: SubjectItem) {
+  function openEdit(subject: SubjectItemType) {
+    setFormError(null)
     setEditingSubject(subject)
     setModalMode('edit')
   }
 
   function closeModal() {
+    if (isFormSubmitting) return
     setModalMode(null)
     setEditingSubject(null)
+    setFormError(null)
   }
 
-  function handleSubmit(values: SubjectFormValues) {
-    if (modalMode === 'create') {
-      const nextId = subjects.reduce((max, item) => Math.max(max, item.id), 0) + 1
-      setSubjects((current) => [
-        {
-          id: nextId,
-          subjectName: values.subjectName,
-          description: values.description,
-        },
-        ...current,
-      ])
-    }
+  async function handleSubmit(values: SubjectFormValues) {
+    setFormError(null)
 
-    if (modalMode === 'edit' && editingSubject) {
-      setSubjects((current) =>
-        current.map((item) =>
-          item.id === editingSubject.id
-            ? {
-                ...item,
-                subjectName: values.subjectName,
-                description: values.description,
-              }
-            : item,
-        ),
-      )
-    }
+    try {
+      if (modalMode === 'create') {
+        await createSubject.mutateAsync(values)
+      }
 
-    closeModal()
+      if (modalMode === 'edit' && editingSubject) {
+        await updateSubject.mutateAsync({ id: editingSubject.id, payload: values })
+      }
+
+      setModalMode(null)
+      setEditingSubject(null)
+    } catch (error) {
+      setFormError(getApiErrorMessage(error, 'Unable to save subject'))
+    }
   }
 
-  function confirmDelete() {
+  async function confirmDelete() {
     if (!deletingSubject) return
-    setSubjects((current) => current.filter((item) => item.id !== deletingSubject.id))
-    setDeletingSubject(null)
+    setDeleteError(null)
+
+    try {
+      await deleteSubject.mutateAsync(deletingSubject.id)
+      setDeletingSubject(null)
+    } catch (error) {
+      setDeleteError(getApiErrorMessage(error, 'Unable to delete subject'))
+    }
   }
 
   return (
@@ -112,9 +97,20 @@ export function SubjectListPage() {
         </Button>
       </div>
 
-      {status === 'loading' ? <Spinner label="Loading subjects..." /> : null}
+      {subjectsQuery.isLoading ? <Spinner label="Loading subjects..." /> : null}
 
-      {status === 'ready' && subjects.length === 0 ? (
+      {subjectsQuery.isError ? (
+        <ErrorState
+          message={getApiErrorMessage(subjectsQuery.error, 'Unable to load subjects')}
+          action={
+            <Button variant="secondary" onClick={() => void subjectsQuery.refetch()}>
+              Try again
+            </Button>
+          }
+        />
+      ) : null}
+
+      {subjectsQuery.isSuccess && subjects.length === 0 ? (
         <EmptyState
           title="No subjects yet"
           description="Add your first subject to start building exams and practice sets."
@@ -127,67 +123,27 @@ export function SubjectListPage() {
         />
       ) : null}
 
-      {status === 'ready' && subjects.length > 0 ? (
-        <>
-          <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:block">
-            <table className="min-w-full text-left text-sm">
-              <thead className="border-b border-slate-200 bg-slate-50/80 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                <tr>
-                  <th className="px-4 py-3">Subject name</th>
-                  <th className="px-4 py-3">Description</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {subjects.map((subject) => (
-                  <tr key={subject.id} className="hover:bg-slate-50/70">
-                    <td className="px-4 py-3 font-medium text-slate-900">{subject.subjectName}</td>
-                    <td className="max-w-md px-4 py-3 text-slate-600">{subject.description}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button variant="secondary" className="h-9 px-3" onClick={() => openEdit(subject)}>
-                          <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
-                          Edit
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          className="h-9 px-3 text-red-600 hover:bg-red-50 hover:text-red-700"
-                          onClick={() => setDeletingSubject(subject)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
-                          Delete
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {subjectsQuery.isSuccess && subjects.length > 0 ? (
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="hidden border-b border-slate-200 bg-slate-50/80 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 md:grid md:grid-cols-[minmax(12rem,1fr)_minmax(0,2fr)_auto] md:gap-4">
+            <span>Subject name</span>
+            <span>Description</span>
+            <span className="text-right">Actions</span>
           </div>
-
-          <div className="space-y-3 md:hidden">
+          <div className="divide-y divide-slate-100">
             {subjects.map((subject) => (
-              <article key={subject.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                <h2 className="text-base font-semibold text-slate-900">{subject.subjectName}</h2>
-                <p className="mt-2 text-sm leading-relaxed text-slate-600">{subject.description}</p>
-                <div className="mt-4 flex gap-2">
-                  <Button variant="secondary" className="h-9 flex-1" onClick={() => openEdit(subject)}>
-                    <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="h-9 flex-1 text-red-600 hover:bg-red-50 hover:text-red-700"
-                    onClick={() => setDeletingSubject(subject)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
-                    Delete
-                  </Button>
-                </div>
-              </article>
+              <SubjectItem
+                key={subject.id}
+                subject={subject}
+                onEdit={openEdit}
+                onDelete={(item) => {
+                  setDeleteError(null)
+                  setDeletingSubject(item)
+                }}
+              />
             ))}
           </div>
-        </>
+        </div>
       ) : null}
 
       {modalMode ? (
@@ -205,7 +161,8 @@ export function SubjectListPage() {
               <button
                 type="button"
                 onClick={closeModal}
-                className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                disabled={isFormSubmitting}
+                className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
                 aria-label="Close"
               >
                 <X className="h-4 w-4" strokeWidth={2} />
@@ -214,6 +171,8 @@ export function SubjectListPage() {
             <SubjectForm
               mode={modalMode}
               initialValues={editingSubject ?? undefined}
+              isSubmitting={isFormSubmitting}
+              submitError={formError}
               onSubmit={handleSubmit}
               onCancel={closeModal}
             />
@@ -227,14 +186,29 @@ export function SubjectListPage() {
             <h3 className="text-base font-semibold text-slate-900">Delete subject?</h3>
             <p className="mt-2 text-sm text-slate-600">
               This will remove <span className="font-medium text-slate-900">{deletingSubject.subjectName}</span> from
-              the list. This action cannot be undone in this mock UI.
+              the list.
             </p>
+            {deleteError ? (
+              <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                {deleteError}
+              </p>
+            ) : null}
             <div className="mt-5 flex gap-2">
-              <Button variant="secondary" className="flex-1" onClick={() => setDeletingSubject(null)}>
+              <Button
+                variant="secondary"
+                className="flex-1"
+                disabled={deleteSubject.isPending}
+                onClick={() => setDeletingSubject(null)}
+              >
                 Cancel
               </Button>
-              <Button variant="danger" className="flex-1" onClick={confirmDelete}>
-                Delete
+              <Button
+                variant="danger"
+                className="flex-1"
+                disabled={deleteSubject.isPending}
+                onClick={() => void confirmDelete()}
+              >
+                {deleteSubject.isPending ? 'Deleting...' : 'Delete'}
               </Button>
             </div>
           </div>
