@@ -8,6 +8,7 @@ export const ROLE_LABEL: Record<Role, string> = {
 export const ROUTES = {
   home: '/',
   login: '/login',
+  register: '/register',
   unauthorized: '/unauthorized',
 
   student: {

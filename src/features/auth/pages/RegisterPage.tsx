@@ -1,8 +1,8 @@
 import { GraduationCap } from 'lucide-react'
 
-import { LoginForm } from '../components/LoginForm'
+import { RegisterForm } from '../components/RegisterForm'
 
-export function LoginPage() {
+export function RegisterPage() {
   return (
     <>
       <div className="mb-6 lg:hidden">
@@ -12,18 +12,18 @@ export function LoginPage() {
           </div>
           <div>
             <p className="text-xs font-medium uppercase tracking-wider text-blue-600">AROS Platform</p>
-            <p className="text-base font-semibold text-slate-900">Sign in to continue</p>
+            <p className="text-base font-semibold text-slate-900">Create your account</p>
           </div>
         </div>
       </div>
 
       <div className="mb-5 hidden lg:block">
-        <p className="text-sm font-medium text-blue-600">Welcome back</p>
-        <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-900">Sign in to your account</h2>
-        <p className="mt-1.5 text-sm text-slate-500">Enter your credentials to access your classroom.</p>
+        <p className="text-sm font-medium text-blue-600">Get started</p>
+        <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-900">Create your account</h2>
+        <p className="mt-1.5 text-sm text-slate-500">Join as a student or teacher to start learning.</p>
       </div>
 
-      <LoginForm />
+      <RegisterForm />
     </>
   )
 }

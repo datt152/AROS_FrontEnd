@@ -7,6 +7,7 @@ import { ProtectedRoute } from './ProtectedRoute'
 import { RoleRoute } from './RoleRoute'
 import { ROUTES, STUDENT_PATHS, TEACHER_PATHS } from './routes.config'
 import { LoginPage } from '../features/auth/pages/LoginPage'
+import { RegisterPage } from '../features/auth/pages/RegisterPage'
 // TODO: replace null placeholders with page components when features land
 export const router = createBrowserRouter([
   {
@@ -14,6 +15,7 @@ export const router = createBrowserRouter([
     children: [
       { path: ROUTES.home, element: null },
       { path: ROUTES.login, element: <LoginPage /> },
+      { path: ROUTES.register, element: <RegisterPage /> },
       { path: ROUTES.unauthorized, element: null },
     ],
   },
