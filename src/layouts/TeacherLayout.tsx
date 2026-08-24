@@ -10,8 +10,8 @@ export function TeacherLayout() {
   const [isMobileOpen, setIsMobileOpen] = useState(false)
 
   return (
-    <div className="flex h-screen flex-col bg-slate-50 text-slate-900">
-      <div className="flex min-h-0 flex-1">
+    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
+      <div className="flex min-h-screen flex-1">
         <AppSidebar
           role="teacher"
           isDesktopCollapsed={isDesktopCollapsed}
@@ -19,7 +19,7 @@ export function TeacherLayout() {
           isMobileOpen={isMobileOpen}
           onCloseMobile={() => setIsMobileOpen(false)}
         />
-        <main className="flex min-h-0 flex-1 flex-col">
+        <main className="flex min-h-screen flex-1 flex-col">
           <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center border-b border-slate-200/80 bg-white/85 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
             <div className="flex items-center gap-3">
               <button
@@ -36,7 +36,7 @@ export function TeacherLayout() {
               </div>
             </div>
           </header>
-          <section className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+          <section className="flex-1 p-4 sm:p-6 lg:p-8">
             <Outlet />
           </section>
         </main>

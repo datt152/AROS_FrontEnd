@@ -89,3 +89,7 @@ export async function register(payload: RegisterPayload) {
   )
   return response.data
 }
+
+export async function logoutRequest() {
+  await apiClient.post('/v1/auth/logout', {}, { headers: { [SKIP_AUTH_REFRESH_HEADER]: '1' } })
+}

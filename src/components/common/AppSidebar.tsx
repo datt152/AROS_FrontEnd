@@ -1,7 +1,8 @@
 import type { ComponentType } from 'react'
-import { BookOpen, ChevronRight, ClipboardCheck, FileText, GraduationCap, X } from 'lucide-react'
+import { BookOpen, ChevronRight, ClipboardCheck, FileText, GraduationCap, LogOut, X } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 
+import { useLogout } from '../../features/auth/hooks/useLogout'
 import { MENU_BY_ROLE, type Role } from '../../routes/routes.config'
 
 type AppSidebarProps = {
@@ -52,6 +53,27 @@ function NavItems({ role, onNavigate }: { role: Role; onNavigate?: () => void })
   )
 }
 
+function LogoutRow({ onNavigate }: { onNavigate?: () => void }) {
+  const logoutMutation = useLogout()
+
+  return (
+    <div className="border-t border-slate-200 p-3">
+      <button
+        type="button"
+        disabled={logoutMutation.isPending}
+        onClick={() => {
+          onNavigate?.()
+          logoutMutation.mutate()
+        }}
+        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-600 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-70"
+      >
+        <LogOut className="h-4.5 w-4.5 shrink-0" strokeWidth={1.75} />
+        <span className="truncate">{logoutMutation.isPending ? 'Signing out...' : 'Sign out'}</span>
+      </button>
+    </div>
+  )
+}
+
 export function AppSidebar({
   role,
   isDesktopCollapsed,
@@ -73,7 +95,7 @@ export function AppSidebar({
           </button>
         </div>
       ) : (
-        <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white/90 backdrop-blur-xl lg:flex lg:flex-col">
+        <aside className="hidden min-h-screen w-64 shrink-0 border-r border-slate-200 bg-white/90 backdrop-blur-xl lg:flex lg:flex-col">
           <div className="flex h-14 items-center justify-between border-b border-slate-200 px-4">
             <div>
               <p className="text-sm font-semibold tracking-tight text-slate-900">AROS</p>
@@ -91,12 +113,13 @@ export function AppSidebar({
           <div className="min-h-0 flex-1 overflow-y-auto py-2">
             <NavItems role={role} />
           </div>
+          <LogoutRow />
         </aside>
       )}
 
       {isMobileOpen ? <div className="fixed inset-0 z-40 bg-slate-900/45 lg:hidden" onClick={onCloseMobile} aria-hidden /> : null}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 border-r border-slate-200 bg-white shadow-2xl transition-transform duration-200 lg:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-slate-200 bg-white shadow-2xl transition-transform duration-200 lg:hidden ${
           isMobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -117,6 +140,7 @@ export function AppSidebar({
         <div className="min-h-0 flex-1 overflow-y-auto py-2">
           <NavItems role={role} onNavigate={onCloseMobile} />
         </div>
+        <LogoutRow onNavigate={onCloseMobile} />
       </aside>
     </>
   )
