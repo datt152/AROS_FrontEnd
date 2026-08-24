@@ -10,18 +10,23 @@ import { ROUTES, STUDENT_PATHS, TEACHER_PATHS } from './routes.config'
 import { LoginPage } from '../features/auth/pages/LoginPage'
 import { RegisterPage } from '../features/auth/pages/RegisterPage'
 import { HomePage } from '../pages/HomePage'
+import { NotFoundPage } from '../pages/NotFoundPage'
+import { UnauthorizedPage } from '../pages/UnauthorizedPage'
 // TODO: replace null placeholders with page components when features land
 export const router = createBrowserRouter([
   {
     element: <PublicLayout />,
-    children: [{ path: ROUTES.home, element: <HomePage /> }],
+    children: [
+      { path: ROUTES.home, element: <HomePage /> },
+      
+    ],
   },
   {
     element: <AuthLayout />,
     children: [
       { path: ROUTES.login, element: <LoginPage /> },
       { path: ROUTES.register, element: <RegisterPage /> },
-      { path: ROUTES.unauthorized, element: null },
+      
     ],
   },
   {
@@ -53,6 +58,8 @@ export const router = createBrowserRouter([
       },
     ],
   },
+  { path: '*', element: <NotFoundPage /> },
+  { path: ROUTES.unauthorized, element: <UnauthorizedPage /> }
 ])
 
 export function AppRouter() {
