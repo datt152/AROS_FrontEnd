@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react'
-import { BookOpen, ChevronRight, ClipboardCheck, FileText, GraduationCap, LogOut, PanelRight, X } from 'lucide-react'
+import { BookOpen, ChevronRight, ClipboardCheck, FileText, GraduationCap, LogOut, PanelRight } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 
 import { useLogout } from '../../features/auth/hooks/useLogout'
@@ -15,6 +15,7 @@ type AppSidebarProps = {
 
 const iconByLabel: Record<string, ComponentType<{ className?: string; strokeWidth?: number }>> = {
   Dashboard: GraduationCap,
+  Subjects: BookOpen,
   Exams: FileText,
   Practice: BookOpen,
   History: ClipboardCheck,
