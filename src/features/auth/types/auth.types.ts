@@ -19,3 +19,9 @@ export type RegisterPayload = {
   confirmPassword: string
   role: RegisterRole
 }
+
+export type AuthSession = {
+  email: string
+  role: 'teacher' | 'student'
+  tokenType: string
+}

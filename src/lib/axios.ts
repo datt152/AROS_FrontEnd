@@ -6,6 +6,7 @@ import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
  */
 
 export const SKIP_AUTH_REFRESH_HEADER = 'X-Skip-Auth-Refresh'
+export const AUTH_REFRESH_URL = '/v1/auth/refresh'
 
 type RetryConfig = InternalAxiosRequestConfig & {
   _retry?: boolean
@@ -67,7 +68,7 @@ async function refreshAccessToken() {
   if (!refreshPromise) {
     refreshPromise = apiClient
       .post<TokenResponse>(
-        '/auth/refresh',
+        AUTH_REFRESH_URL,
         {},
         { headers: { [SKIP_AUTH_REFRESH_HEADER]: '1' } },
       )
@@ -89,6 +90,10 @@ async function refreshAccessToken() {
 }
 
 apiClient.interceptors.request.use((config) => {
+  if (shouldSkipAuthRefresh(config)) {
+    return config
+  }
+
   const token = getAccessToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`

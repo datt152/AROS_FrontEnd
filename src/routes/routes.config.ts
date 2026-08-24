@@ -63,3 +63,7 @@ export const MENU_BY_ROLE: Record<Role, NavItem[]> = {
 
 export const STUDENT_PATHS = Object.values(ROUTES.student)
 export const TEACHER_PATHS = Object.values(ROUTES.teacher)
+
+export function getHomePathForRole(role: Role) {
+  return role === 'teacher' ? ROUTES.teacher.dashboard : ROUTES.student.dashboard
+}

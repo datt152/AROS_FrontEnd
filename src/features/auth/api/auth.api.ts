@@ -1,6 +1,13 @@
-import { apiClient, clearAccessToken, setAccessToken, SKIP_AUTH_REFRESH_HEADER } from '../../../lib/axios'
+import {
+  AUTH_REFRESH_URL,
+  apiClient,
+  clearAccessToken,
+  getAccessToken,
+  setAccessToken,
+  SKIP_AUTH_REFRESH_HEADER,
+} from '../../../lib/axios'
 import type { Role } from '../../../routes/routes.config'
-import type { LoginPayload, LoginResponse, RegisterPayload } from '../types/auth.types'
+import type { AuthSession, LoginPayload, LoginResponse, RegisterPayload } from '../types/auth.types'
 
 export class UnsupportedRoleError extends Error {
   readonly receivedRole: string
@@ -19,13 +26,7 @@ export function parseAppRole(role: string): Role | null {
   return null
 }
 
-export async function login(payload: LoginPayload) {
-  const response = await apiClient.post<LoginResponse>(
-    '/v1/auth/login',
-    payload,
-    { headers: { [SKIP_AUTH_REFRESH_HEADER]: '1' } },
-  )
-  const data = response.data
+function applyAuthSession(data: LoginResponse): AuthSession & { accessToken: string } {
   const role = parseAppRole(data.role)
 
   if (!role) {
@@ -38,8 +39,45 @@ export async function login(payload: LoginPayload) {
   }
 
   return {
-    ...data,
+    accessToken: data.accessToken,
+    email: data.email,
     role,
+    tokenType: data.tokenType,
+  }
+}
+
+export async function login(payload: LoginPayload) {
+  const response = await apiClient.post<LoginResponse>(
+    '/v1/auth/login',
+    payload,
+    { headers: { [SKIP_AUTH_REFRESH_HEADER]: '1' } },
+  )
+  return applyAuthSession(response.data)
+}
+
+export async function refreshSession() {
+  const response = await apiClient.post<LoginResponse>(
+    AUTH_REFRESH_URL,
+    {},
+    { headers: { [SKIP_AUTH_REFRESH_HEADER]: '1' } },
+  )
+  return applyAuthSession(response.data)
+}
+
+export async function restoreSession(): Promise<AuthSession | null> {
+  try {
+    const session = await refreshSession()
+    return {
+      email: session.email,
+      role: session.role,
+      tokenType: session.tokenType,
+    }
+  } catch {
+    if (getAccessToken()) {
+      throw new Error('LOGIN_IN_PROGRESS')
+    }
+    clearAccessToken()
+    return null
   }
 }
 

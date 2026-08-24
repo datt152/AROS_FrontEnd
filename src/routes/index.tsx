@@ -4,6 +4,7 @@ import { AuthLayout } from '../layouts/AuthLayout'
 import { PublicLayout } from '../layouts/PublicLayout'
 import { StudentLayout } from '../layouts/StudentLayout'
 import { TeacherLayout } from '../layouts/TeacherLayout'
+import { GuestRoute } from './GuestRoute'
 import { ProtectedRoute } from './ProtectedRoute'
 import { RoleRoute } from './RoleRoute'
 import { ROUTES, STUDENT_PATHS, TEACHER_PATHS } from './routes.config'
@@ -22,11 +23,15 @@ export const router = createBrowserRouter([
     ],
   },
   {
-    element: <AuthLayout />,
+    element: <GuestRoute />,
     children: [
-      { path: ROUTES.login, element: <LoginPage /> },
-      { path: ROUTES.register, element: <RegisterPage /> },
-      
+      {
+        element: <AuthLayout />,
+        children: [
+          { path: ROUTES.login, element: <LoginPage /> },
+          { path: ROUTES.register, element: <RegisterPage /> },
+        ],
+      },
     ],
   },
   {

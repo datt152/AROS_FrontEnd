@@ -1,19 +1,19 @@
-import { useQueryClient } from '@tanstack/react-query'
 import { Navigate, Outlet } from 'react-router-dom'
 
-import { authKeys, type AuthSession } from '../features/auth/hooks/useLogin'
-import { ROUTES } from './routes.config'
+import { AuthBootScreen } from '../features/auth/components/AuthBootScreen'
+import { useAuthSession } from '../features/auth/hooks/useAuthSession'
+import { ROUTES, type Role } from './routes.config'
 
 type RoleRouteProps = {
-  allowedRoles: Array<'teacher' | 'student'>
+  allowedRoles: Role[]
 }
 
 export function RoleRoute({ allowedRoles }: RoleRouteProps) {
-  const queryClient = useQueryClient()
-  const session = queryClient.getQueryData<AuthSession>(authKeys.session)
-  const currentRole = session?.role
+  const { role, isBootstrapping } = useAuthSession()
 
-  if (currentRole && !allowedRoles.includes(currentRole)) {
+  if (isBootstrapping) return <AuthBootScreen />
+
+  if (role && !allowedRoles.includes(role)) {
     return <Navigate to={ROUTES.unauthorized} replace />
   }
 
