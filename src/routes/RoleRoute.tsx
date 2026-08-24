@@ -8,7 +8,7 @@ type RoleRouteProps = {
 
 export function RoleRoute({ allowedRoles }: RoleRouteProps) {
   // TODO: wire AuthProvider / useAuth when auth feature exists
-  const currentRole: Role | undefined = undefined
+  const currentRole: Role | undefined = 'teacher'
 
   if (currentRole && !allowedRoles.includes(currentRole)) {
     return <Navigate to={ROUTES.unauthorized} replace />
