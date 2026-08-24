@@ -6,7 +6,7 @@ import { TeacherLayout } from '../layouts/TeacherLayout'
 import { ProtectedRoute } from './ProtectedRoute'
 import { RoleRoute } from './RoleRoute'
 import { ROUTES, STUDENT_PATHS, TEACHER_PATHS } from './routes.config'
-import { LoginPage } from '../pages/auth/LoginPage'
+import { LoginPage } from '../features/auth/pages/LoginPage'
 // TODO: replace null placeholders with page components when features land
 export const router = createBrowserRouter([
   {
