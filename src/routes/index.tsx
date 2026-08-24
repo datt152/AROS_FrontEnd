@@ -1,6 +1,7 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 
 import { AuthLayout } from '../layouts/AuthLayout'
+import { PublicLayout } from '../layouts/PublicLayout'
 import { StudentLayout } from '../layouts/StudentLayout'
 import { TeacherLayout } from '../layouts/TeacherLayout'
 import { ProtectedRoute } from './ProtectedRoute'
@@ -8,12 +9,16 @@ import { RoleRoute } from './RoleRoute'
 import { ROUTES, STUDENT_PATHS, TEACHER_PATHS } from './routes.config'
 import { LoginPage } from '../features/auth/pages/LoginPage'
 import { RegisterPage } from '../features/auth/pages/RegisterPage'
+import { HomePage } from '../pages/HomePage'
 // TODO: replace null placeholders with page components when features land
 export const router = createBrowserRouter([
   {
+    element: <PublicLayout />,
+    children: [{ path: ROUTES.home, element: <HomePage /> }],
+  },
+  {
     element: <AuthLayout />,
     children: [
-      { path: ROUTES.home, element: null },
       { path: ROUTES.login, element: <LoginPage /> },
       { path: ROUTES.register, element: <RegisterPage /> },
       { path: ROUTES.unauthorized, element: null },
