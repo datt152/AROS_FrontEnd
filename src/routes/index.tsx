@@ -2,6 +2,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 
 import { LoginPage } from '../features/auth/pages/LoginPage'
 import { RegisterPage } from '../features/auth/pages/RegisterPage'
+import { ClassroomListPage } from '../features/classrooms/pages/ClassroomListPage'
 import { SubjectListPage } from '../features/subjects/pages/SubjectListPage'
 import { AuthLayout } from '../layouts/AuthLayout'
 import { PublicLayout } from '../layouts/PublicLayout'
@@ -17,6 +18,7 @@ import { ROUTES, STUDENT_PATHS, TEACHER_PATHS } from './routes.config'
 
 function teacherPageForPath(path: string) {
   if (path === ROUTES.teacher.subjects) return <SubjectListPage />
+  if (path === ROUTES.teacher.classrooms) return <ClassroomListPage />
   return null
 }
 

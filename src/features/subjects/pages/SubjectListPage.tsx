@@ -5,9 +5,18 @@ import { Button } from '../../../components/ui/Button'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { ErrorState } from '../../../components/ui/ErrorState'
 import { Spinner } from '../../../components/ui/Spinner'
+import {
+  Table,
+  TableBody,
+  TableCol,
+  TableColGroup,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../../components/ui/Table'
 import { getApiErrorMessage } from '../../../lib/apiError'
 import { SubjectForm } from '../components/SubjectForm'
-import { SubjectItem } from '../components/SubjectItem'
+import { SubjectItem, SubjectTableRow } from '../components/SubjectItem'
 import {
   useCreateSubject,
   useDeleteSubject,
@@ -125,12 +134,7 @@ export function SubjectListPage() {
 
       {subjectsQuery.isSuccess && subjects.length > 0 ? (
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="hidden border-b border-slate-200 bg-slate-50/80 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 md:grid md:grid-cols-[minmax(12rem,1fr)_minmax(0,2fr)_auto] md:gap-4">
-            <span>Subject name</span>
-            <span>Description</span>
-            <span className="text-right">Actions</span>
-          </div>
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-slate-100 md:hidden">
             {subjects.map((subject) => (
               <SubjectItem
                 key={subject.id}
@@ -142,6 +146,36 @@ export function SubjectListPage() {
                 }}
               />
             ))}
+          </div>
+
+          <div className="hidden md:block">
+            <Table>
+              <TableColGroup>
+                <TableCol width="14%" />
+                <TableCol />
+                <TableCol width="20%" />
+              </TableColGroup>
+              <TableHeader>
+                <TableRow className="border-b-0 hover:bg-transparent">
+                  <TableHead>Subject name</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {subjects.map((subject) => (
+                  <SubjectTableRow
+                    key={subject.id}
+                    subject={subject}
+                    onEdit={openEdit}
+                    onDelete={(item) => {
+                      setDeleteError(null)
+                      setDeletingSubject(item)
+                    }}
+                  />
+                ))}
+              </TableBody>
+            </Table>
           </div>
         </div>
       ) : null}

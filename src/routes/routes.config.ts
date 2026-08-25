@@ -28,6 +28,7 @@ export const ROUTES = {
   teacher: {
     dashboard: '/teacher/dashboard',
     subjects: '/teacher/subjects',
+    classrooms: '/teacher/classrooms',
     createExam: '/teacher/exams/create',
     grading: '/teacher/grading',
     questionBank: '/teacher/question-bank',
@@ -53,6 +54,7 @@ export const MENU_BY_ROLE: Record<Role, NavItem[]> = {
   teacher: [
     { path: ROUTES.teacher.dashboard, label: 'Dashboard' },
     { path: ROUTES.teacher.subjects, label: 'Subjects' },
+    { path: ROUTES.teacher.classrooms, label: 'Classrooms' },
     { path: ROUTES.teacher.createExam, label: 'Create Exam' },
     { path: ROUTES.teacher.grading, label: 'Grading' },
     { path: ROUTES.teacher.questionBank, label: 'Question Bank' },
