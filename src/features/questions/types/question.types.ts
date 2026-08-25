@@ -45,11 +45,11 @@ export type SubjectOption = {
 }
 
 export const DIFFICULTY_LABEL: Record<Difficulty, string> = {
-  EASY: 'Easy',
-  MEDIUM: 'Medium',
-  HARD: 'Hard',
-  VERY_HARD: 'Very hard',
-  APPLICATION: 'Application',
+  EASY: 'Dễ',
+  MEDIUM: 'Trung bình',
+  HARD: 'Khó',
+  VERY_HARD: 'Rất khó',
+  APPLICATION: 'Vận dụng',
 }
 
 export const QUESTION_TYPE_LABEL: Record<QuestionType, string> = {

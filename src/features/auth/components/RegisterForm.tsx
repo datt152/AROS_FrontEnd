@@ -30,27 +30,27 @@ export function RegisterForm() {
     const nextErrors: FieldErrors = {}
 
     if (!fullName.trim()) {
-      nextErrors.fullName = 'Please enter your full name'
+      nextErrors.fullName = 'Vui lòng nhập họ và tên'
     } else if (fullName.trim().length < 2) {
-      nextErrors.fullName = 'Full name must be at least 2 characters'
+      nextErrors.fullName = 'Họ và tên phải có ít nhất 2 ký tự'
     }
 
     if (!email.trim()) {
-      nextErrors.email = 'Please enter your email'
+      nextErrors.email = 'Vui lòng nhập email'
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      nextErrors.email = 'Please enter a valid email'
+      nextErrors.email = 'Vui lòng nhập email hợp lệ'
     }
 
     if (!password) {
-      nextErrors.password = 'Please enter your password'
+      nextErrors.password = 'Vui lòng nhập mật khẩu'
     } else if (password.length < 6) {
-      nextErrors.password = 'Password must be at least 6 characters'
+      nextErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự'
     }
 
     if (!confirmPassword) {
-      nextErrors.confirmPassword = 'Please confirm your password'
+      nextErrors.confirmPassword = 'Vui lòng xác nhận mật khẩu'
     } else if (confirmPassword !== password) {
-      nextErrors.confirmPassword = 'Passwords do not match'
+      nextErrors.confirmPassword = 'Mật khẩu không khớp'
     }
 
     setErrors(nextErrors)
@@ -68,7 +68,7 @@ export function RegisterForm() {
       navigate(ROUTES.login, {
         replace: true,
         state: {
-          notice: typeof message === 'string' && message.trim() ? message : 'Account created successfully. Please sign in.',
+          notice: typeof message === 'string' && message.trim() ? message : 'Tạo tài khoản thành công. Vui lòng đăng nhập.',
         },
       })
     } catch {
@@ -77,7 +77,7 @@ export function RegisterForm() {
   }
 
   const apiError = registerMutation.error
-    ? getApiErrorMessage(registerMutation.error, 'Unable to create your account')
+    ? getApiErrorMessage(registerMutation.error, 'Không thể tạo tài khoản')
     : null
 
   const inputClass = (hasError?: string) =>
@@ -95,7 +95,7 @@ export function RegisterForm() {
 
       <div className="space-y-1.5">
         <label htmlFor="fullName" className="text-sm font-medium text-slate-700">
-          Full name
+          Họ và tên
         </label>
         <div className="relative">
           <User
@@ -112,7 +112,7 @@ export function RegisterForm() {
               setFullName(event.target.value)
               if (errors.fullName) setErrors((current) => ({ ...current, fullName: undefined }))
             }}
-            placeholder="Enter your full name"
+            placeholder="Nhập họ và tên"
             className={inputClass(errors.fullName)}
           />
         </div>
@@ -138,7 +138,7 @@ export function RegisterForm() {
               setEmail(event.target.value)
               if (errors.email) setErrors((current) => ({ ...current, email: undefined }))
             }}
-            placeholder="Enter your email"
+            placeholder="Nhập email của bạn"
             className={inputClass(errors.email)}
           />
         </div>
@@ -147,7 +147,7 @@ export function RegisterForm() {
 
       <div className="space-y-1.5">
         <label htmlFor="password" className="text-sm font-medium text-slate-700">
-          Password
+          Mật khẩu
         </label>
         <div className="relative">
           <Lock
@@ -164,13 +164,13 @@ export function RegisterForm() {
               setPassword(event.target.value)
               if (errors.password) setErrors((current) => ({ ...current, password: undefined }))
             }}
-            placeholder="Create a password"
+            placeholder="Tạo mật khẩu"
             className={`${inputClass(errors.password)} pr-11`}
           />
           <button
             type="button"
             onClick={() => setShowPassword((current) => !current)}
-            aria-label={showPassword ? 'Hide password' : 'Show password'}
+            aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
             className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 transition hover:text-slate-600"
           >
             {showPassword ? (
@@ -185,7 +185,7 @@ export function RegisterForm() {
 
       <div className="space-y-1.5">
         <label htmlFor="confirmPassword" className="text-sm font-medium text-slate-700">
-          Confirm password
+          Xác nhận mật khẩu
         </label>
         <div className="relative">
           <Lock
@@ -204,7 +204,7 @@ export function RegisterForm() {
                 setErrors((current) => ({ ...current, confirmPassword: undefined }))
               }
             }}
-            placeholder="Confirm your password"
+            placeholder="Xác nhận mật khẩu"
             className={inputClass(errors.confirmPassword)}
           />
         </div>
@@ -220,7 +220,7 @@ export function RegisterForm() {
           onChange={(event) => setIsTeacher(event.target.checked)}
           className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/30"
         />
-        <span className="text-sm text-slate-600">I am registering as a teacher</span>
+        <span className="text-sm text-slate-600">Tôi đăng ký với vai trò giáo viên</span>
       </label>
 
       <button
@@ -228,13 +228,13 @@ export function RegisterForm() {
         disabled={registerMutation.isPending}
         className="h-10 w-full rounded-xl bg-linear-to-r from-blue-600 to-emerald-600 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:from-blue-700 hover:to-emerald-700 focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-70"
       >
-        {registerMutation.isPending ? 'Creating account...' : 'Create account'}
+        {registerMutation.isPending ? 'Đang tạo tài khoản...' : 'Tạo tài khoản'}
       </button>
 
       <p className="text-center text-sm text-slate-600">
-        Already have an account?{' '}
+        Đã có tài khoản?{' '}
         <Link to={ROUTES.login} className="font-medium text-blue-600 transition hover:text-blue-700">
-          Sign in
+          Đăng nhập
         </Link>
       </p>
     </form>

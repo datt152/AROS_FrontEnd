@@ -182,7 +182,7 @@ export function QuestionForm({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <label htmlFor="subjectId" className="text-sm font-medium text-slate-700">
-            Subject
+            Môn học
           </label>
           <select
             id="subjectId"
@@ -191,7 +191,7 @@ export function QuestionForm({
             onChange={(event) => updateField('subjectId', Number(event.target.value) || 0)}
             className={selectClassName(Boolean(errors.subjectId))}
           >
-            <option value="">Select a subject</option>
+            <option value="">Chọn môn học</option>
             {subjectOptions.map((subject) => (
               <option key={subject.id} value={subject.id}>
                 {subject.subjectName}
@@ -203,7 +203,7 @@ export function QuestionForm({
 
         <div className="space-y-1.5">
           <label htmlFor="type" className="text-sm font-medium text-slate-700">
-            Question type
+            Loại câu hỏi
           </label>
           <select
             id="type"
@@ -224,7 +224,7 @@ export function QuestionForm({
 
       <div className="space-y-1.5">
         <label htmlFor="difficulty" className="text-sm font-medium text-slate-700">
-          Difficulty
+          Độ khó
         </label>
         <select
           id="difficulty"
@@ -245,14 +245,14 @@ export function QuestionForm({
 
       <div className="space-y-1.5">
         <label htmlFor="content" className="text-sm font-medium text-slate-700">
-          Question content
+          Nội dung câu hỏi
         </label>
         <textarea
           id="content"
           rows={3}
           value={values.content}
           disabled={isSubmitting}
-          placeholder="Enter the question stem"
+          placeholder="Nhập nội dung câu hỏi"
           onChange={(event) => updateField('content', event.target.value)}
           className={textareaClassName(Boolean(errors.content))}
         />
@@ -261,14 +261,14 @@ export function QuestionForm({
 
       <div className="space-y-1.5">
         <label htmlFor="explanation" className="text-sm font-medium text-slate-700">
-          Explanation
+          Giải thích
         </label>
         <textarea
           id="explanation"
           rows={2}
           value={values.explanation}
           disabled={isSubmitting}
-          placeholder="Optional explanation shown after answering"
+          placeholder="Giải thích tùy chọn hiển thị sau khi trả lời"
           onChange={(event) => updateField('explanation', event.target.value)}
           className={textareaClassName(false)}
         />
@@ -276,9 +276,9 @@ export function QuestionForm({
 
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-medium text-slate-700">Answer options</p>
+          <p className="text-sm font-medium text-slate-700">Các đáp án</p>
           <p className="text-xs text-slate-400">
-            {values.type === 'SINGLE_CHOICE' ? 'Choose exactly one correct answer' : 'Choose at least one correct answer'}
+            {values.type === 'SINGLE_CHOICE' ? 'Chọn đúng một đáp án đúng' : 'Chọn ít nhất một đáp án đúng'}
           </p>
         </div>
         {errors.options ? <p className="text-sm text-red-500">{errors.options}</p> : null}
@@ -295,13 +295,13 @@ export function QuestionForm({
                   onChange={(event) => updateOption(index, { isCorrect: event.target.checked })}
                   className="h-4 w-4 border-slate-300 text-blue-600 focus:ring-blue-100"
                 />
-                Correct
+                Đúng
               </label>
               <div className="min-w-0 flex-1 space-y-1">
                 <Input
                   value={option.content}
                   hasError={Boolean(errors.optionContents?.[index])}
-                  placeholder={`Option ${index + 1}`}
+                  placeholder={`Đáp án ${index + 1}`}
                   disabled={isSubmitting}
                   onChange={(event) => updateOption(index, { content: event.target.value })}
                 />
@@ -314,7 +314,7 @@ export function QuestionForm({
                 className="mt-0.5 h-10 shrink-0 px-2 text-red-600 hover:bg-red-50 hover:text-red-700"
                 disabled={isSubmitting || values.options.length <= 1}
                 onClick={() => removeOption(index)}
-                aria-label="Remove option"
+                aria-label="Xóa đáp án"
               >
                 <Trash2 className="h-4 w-4" strokeWidth={1.75} />
               </Button>
@@ -324,22 +324,22 @@ export function QuestionForm({
 
         <Button type="button" variant="secondary" className="h-9" disabled={isSubmitting} onClick={addOption}>
           <Plus className="h-3.5 w-3.5" strokeWidth={1.75} />
-          Add option
+          Thêm đáp án
         </Button>
       </div>
 
       <div className="flex items-center justify-end gap-2 pt-2">
         <Button type="button" variant="secondary" onClick={onCancel} disabled={isSubmitting}>
-          Cancel
+          Hủy
         </Button>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting
             ? mode === 'create'
-              ? 'Creating...'
-              : 'Saving...'
+              ? 'Đang tạo...'
+              : 'Đang lưu...'
             : mode === 'create'
-              ? 'Create question'
-              : 'Save changes'}
+              ? 'Tạo câu hỏi'
+              : 'Lưu thay đổi'}
         </Button>
       </div>
     </form>

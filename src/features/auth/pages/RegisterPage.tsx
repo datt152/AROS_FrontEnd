@@ -11,16 +11,16 @@ export function RegisterPage() {
             <GraduationCap className="h-5 w-5" strokeWidth={1.75} />
           </div>
           <div>
-            <p className="text-xs font-medium uppercase tracking-wider text-blue-600">AROS Platform</p>
-            <p className="text-base font-semibold text-slate-900">Create your account</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-blue-600">Nền tảng AROS</p>
+            <p className="text-base font-semibold text-slate-900">Tạo tài khoản</p>
           </div>
         </div>
       </div>
 
       <div className="mb-5 hidden lg:block">
-        <p className="text-sm font-medium text-blue-600">Get started</p>
-        <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-900">Create your account</h2>
-        <p className="mt-1.5 text-sm text-slate-500">Join as a student or teacher to start learning.</p>
+        <p className="text-sm font-medium text-blue-600">Bắt đầu ngay</p>
+        <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-900">Tạo tài khoản</h2>
+        <p className="mt-1.5 text-sm text-slate-500">Tham gia với vai trò sinh viên hoặc giáo viên để bắt đầu học.</p>
       </div>
 
       <RegisterForm />

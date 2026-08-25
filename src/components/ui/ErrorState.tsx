@@ -6,7 +6,7 @@ type ErrorStateProps = {
   action?: ReactNode
 }
 
-export function ErrorState({ title = 'Something went wrong', message, action }: ErrorStateProps) {
+export function ErrorState({ title = 'Đã xảy ra lỗi', message, action }: ErrorStateProps) {
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-red-200 bg-red-50 px-6 py-16 text-center">
       <p className="text-base font-semibold text-red-700">{title}</p>

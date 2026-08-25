@@ -88,14 +88,14 @@ export function ClassroomForm({
 
       <div className="space-y-1.5">
         <label htmlFor="className" className="text-sm font-medium text-slate-700">
-          Class name
+          Tên lớp
         </label>
         <Input
           id="className"
           name="className"
           value={values.className}
           hasError={Boolean(errors.className)}
-          placeholder="e.g. SE2024-CLC01"
+          placeholder="vd. SE2024-CLC01"
           disabled={isSubmitting}
           onChange={(event) => updateField('className', event.target.value)}
         />
@@ -104,7 +104,7 @@ export function ClassroomForm({
 
       <div className="space-y-1.5">
         <label htmlFor="subjectId" className="text-sm font-medium text-slate-700">
-          Subject
+          Môn học
         </label>
         <select
           id="subjectId"
@@ -114,7 +114,7 @@ export function ClassroomForm({
           onChange={(event) => updateField('subjectId', Number(event.target.value) || 0)}
           className={selectClassName(Boolean(errors.subjectId))}
         >
-          <option value="">Select a subject</option>
+          <option value="">Chọn môn học</option>
           {subjectOptions.map((subject) => (
             <option key={subject.id} value={subject.id}>
               {subject.subjectName}
@@ -127,14 +127,14 @@ export function ClassroomForm({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <label htmlFor="semester" className="text-sm font-medium text-slate-700">
-            Semester
+            Học kỳ
           </label>
           <Input
             id="semester"
             name="semester"
             value={values.semester}
             hasError={Boolean(errors.semester)}
-            placeholder="e.g. 1"
+            placeholder="vd. 1"
             disabled={isSubmitting}
             onChange={(event) => updateField('semester', event.target.value)}
           />
@@ -143,14 +143,14 @@ export function ClassroomForm({
 
         <div className="space-y-1.5">
           <label htmlFor="academicYear" className="text-sm font-medium text-slate-700">
-            Academic year
+            Năm học
           </label>
           <Input
             id="academicYear"
             name="academicYear"
             value={values.academicYear}
             hasError={Boolean(errors.academicYear)}
-            placeholder="e.g. 2025-2026"
+            placeholder="vd. 2025-2026"
             disabled={isSubmitting}
             onChange={(event) => updateField('academicYear', event.target.value)}
           />
@@ -160,7 +160,7 @@ export function ClassroomForm({
 
       <div className="space-y-1.5">
         <label htmlFor="description" className="text-sm font-medium text-slate-700">
-          Description
+          Mô tả
         </label>
         <textarea
           id="description"
@@ -168,7 +168,7 @@ export function ClassroomForm({
           rows={3}
           value={values.description}
           disabled={isSubmitting}
-          placeholder="Optional notes about this class"
+          placeholder="Ghi chú tùy chọn về lớp học"
           onChange={(event) => updateField('description', event.target.value)}
           className={`w-full rounded-xl border bg-slate-50/70 px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:bg-white focus:ring-4 disabled:opacity-60 ${
             errors.description
@@ -187,21 +187,21 @@ export function ClassroomForm({
           onChange={(event) => updateField('isActive', event.target.checked)}
           className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-100"
         />
-        Active class
+        Lớp đang hoạt động
       </label>
 
       <div className="flex items-center justify-end gap-2 pt-2">
         <Button type="button" variant="secondary" onClick={onCancel} disabled={isSubmitting}>
-          Cancel
+          Hủy
         </Button>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting
             ? mode === 'create'
-              ? 'Creating...'
-              : 'Saving...'
+              ? 'Đang tạo...'
+              : 'Đang lưu...'
             : mode === 'create'
-              ? 'Create classroom'
-              : 'Save changes'}
+              ? 'Tạo lớp học'
+              : 'Lưu thay đổi'}
         </Button>
       </div>
     </form>

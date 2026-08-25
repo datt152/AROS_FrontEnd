@@ -24,18 +24,23 @@ type AppSidebarProps = {
 }
 
 const iconByLabel: Record<string, ComponentType<{ className?: string; strokeWidth?: number }>> = {
-  Dashboard: GraduationCap,
-  Subjects: BookOpen,
-  Classrooms: Users,
-  Exams: FileText,
-  Practice: BookOpen,
-  History: ClipboardCheck,
-  Grading: ClipboardCheck,
-  'Question Bank': HelpCircle,
-  'Create Exam': FileText,
-  'OMR Upload': FileText,
-  'Create Practice': FileText,
-  'Exam Stats': ClipboardCheck,
+  'Bảng điều khiển': GraduationCap,
+  'Môn học': BookOpen,
+  'Lớp học': Users,
+  'Bài thi': FileText,
+  'Luyện tập': BookOpen,
+  'Lịch sử': ClipboardCheck,
+  'Chấm điểm': ClipboardCheck,
+  'Ngân hàng câu hỏi': HelpCircle,
+  'Tạo bài thi': FileText,
+  'Tải lên OMR': FileText,
+  'Tạo bài luyện tập': FileText,
+  'Thống kê bài thi': ClipboardCheck,
+}
+
+const workspaceLabel: Record<Role, string> = {
+  teacher: 'Không gian giáo viên',
+  student: 'Không gian sinh viên',
 }
 
 function NavItems({ role, onNavigate }: { role: Role; onNavigate?: () => void }) {
@@ -80,7 +85,7 @@ function LogoutRow({ onNavigate }: { onNavigate?: () => void }) {
         className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-600 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-70"
       >
         <LogOut className="h-4.5 w-4.5 shrink-0" strokeWidth={1.75} />
-        <span className="truncate">{logoutMutation.isPending ? 'Signing out...' : 'Sign out'}</span>
+        <span className="truncate">{logoutMutation.isPending ? 'Đang đăng xuất...' : 'Đăng xuất'}</span>
       </button>
     </div>
   )
@@ -101,7 +106,7 @@ export function AppSidebar({
             type="button"
             onClick={onToggleDesktop}
             className="absolute left-0 top-15 z-20 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-emerald-600 text-white shadow-lg shadow-blue-600/30 transition hover:scale-105 hover:shadow-xl hover:shadow-blue-600/40"
-            aria-label="Expand sidebar"
+            aria-label="Mở rộng thanh bên"
           >
             <ChevronRight className="h-5 w-5" strokeWidth={2.5} />
           </button>
@@ -111,13 +116,13 @@ export function AppSidebar({
           <div className="flex h-14 items-center justify-between border-b border-slate-200 px-4">
             <div>
               <p className="text-sm font-semibold tracking-tight text-slate-900">AROS</p>
-              <p className="text-xs text-slate-500 capitalize">{role} workspace</p>
+              <p className="text-xs text-slate-500">{workspaceLabel[role]}</p>
             </div>
             <button
               type="button"
               onClick={onToggleDesktop}
               className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:text-slate-900"
-              aria-label="Collapse sidebar"
+              aria-label="Thu gọn thanh bên"
             >
               <PanelRight className="h-4.5 w-4.5" strokeWidth={1.75} />
             </button>
@@ -138,13 +143,13 @@ export function AppSidebar({
         <div className="flex h-14 items-center justify-between border-b border-slate-200 px-4">
           <div>
             <p className="text-sm font-semibold tracking-tight text-slate-900">AROS</p>
-            <p className="text-xs text-slate-500 capitalize">{role} workspace</p>
+            <p className="text-xs text-slate-500">{workspaceLabel[role]}</p>
           </div>
           <button
             type="button"
             onClick={onCloseMobile}
             className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:text-slate-900"
-            aria-label="Close sidebar"
+            aria-label="Đóng thanh bên"
           >
             <PanelRight className="h-4.5 w-4.5" strokeWidth={1.75} />
           </button>

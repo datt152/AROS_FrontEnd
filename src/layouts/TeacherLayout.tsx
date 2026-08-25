@@ -26,13 +26,13 @@ export function TeacherLayout() {
                 type="button"
                 onClick={() => setIsMobileOpen(true)}
                 className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:text-slate-900 lg:hidden"
-                aria-label="Open sidebar"
+                aria-label="Mở thanh bên"
               >
                 <PanelLeft className="h-4.5 w-4.5" strokeWidth={1.75} />
               </button>
               <div>
-                <p className="text-sm font-semibold tracking-tight text-slate-900">Teacher Workspace</p>
-                <p className="text-xs text-slate-500">Manage classes, exams, and grading</p>
+                <p className="text-sm font-semibold tracking-tight text-slate-900">Không gian giáo viên</p>
+                <p className="text-xs text-slate-500">Quản lý lớp học, bài thi và chấm điểm</p>
               </div>
             </div>
           </header>

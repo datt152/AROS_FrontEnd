@@ -15,9 +15,9 @@ export function UnauthorizedPage() {
         </div>
 
         <h1 className="mt-8 text-7xl font-bold tracking-tight text-slate-900 sm:text-8xl">403</h1>
-        <p className="mt-4 text-lg font-medium text-slate-700">Access Denied</p>
+        <p className="mt-4 text-lg font-medium text-slate-700">Truy cập bị từ chối</p>
         <p className="mt-2 max-w-sm text-sm text-slate-500">
-          You don't have permission to access this page. Please contact your administrator if you believe this is an error.
+          Bạn không có quyền truy cập trang này. Vui lòng liên hệ quản trị viên nếu bạn cho rằng đây là lỗi.
         </p>
 
         <Link
@@ -25,7 +25,7 @@ export function UnauthorizedPage() {
           className="mt-8 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-emerald-600 px-6 py-3 text-sm font-medium text-white shadow-md shadow-blue-600/20 transition hover:shadow-lg hover:shadow-blue-600/30"
         >
           <ArrowLeft className="h-4 w-4" strokeWidth={2} />
-          Back to Home
+          Về trang chủ
         </Link>
       </div>
     </div>

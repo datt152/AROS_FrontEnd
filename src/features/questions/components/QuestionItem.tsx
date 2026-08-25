@@ -18,14 +18,14 @@ function QuestionActions({
   spread = false,
 }: Pick<QuestionItemProps, 'question' | 'onEdit' | 'onDelete'> & { spread?: boolean }) {
   return (
-    <div className={`flex items-center ${spread ? 'w-full justify-between gap-1' : 'flex-wrap gap-2'}`}>
+    <div className={`flex items-center ${spread ? 'w-full justify-evenly gap-1' : 'flex-wrap gap-2'}`}>
       <Button
         variant="ghost"
         className="h-8 border border-amber-200 bg-amber-50 px-2.5 text-xs text-amber-800 hover:bg-amber-100 hover:text-amber-900"
         onClick={() => onEdit(question)}
       >
         <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
-        Edit
+        Sửa
       </Button>
       <Button
         variant="ghost"
@@ -33,7 +33,7 @@ function QuestionActions({
         onClick={() => onDelete(question)}
       >
         <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
-        Delete
+        Xóa
       </Button>
     </div>
   )
@@ -65,21 +65,21 @@ export function QuestionItem({ question, onEdit, onDelete }: QuestionItemProps) 
   return (
     <article className="grid grid-cols-1 items-start gap-3 px-4 py-4">
       <div className="min-w-0">
-        <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Question</p>
+        <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Câu hỏi</p>
         <p className="line-clamp-2 text-sm font-medium text-slate-900" title={question.content}>
           {question.content}
         </p>
       </div>
       <div>
-        <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Type</p>
+        <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Loại</p>
         <TypeBadge question={question} />
       </div>
       <div>
-        <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Difficulty</p>
+        <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Độ khó</p>
         <DifficultyBadge question={question} />
       </div>
       <div>
-        <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Options</p>
+        <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Đáp án</p>
         <p className="text-sm text-slate-700">{question.options.length}</p>
       </div>
       <QuestionActions question={question} onEdit={onEdit} onDelete={onDelete} />
@@ -95,14 +95,14 @@ export function QuestionTableRow({ question, onEdit, onDelete }: QuestionItemPro
           {question.content}
         </p>
       </TableCell>
-      <TableCell className="py-3.5">
+      <TableCell className="py-3.5" align='center'>
         <TypeBadge question={question} />
       </TableCell>
-      <TableCell className="py-3.5">
+      <TableCell className="py-3.5" align='center'>
         <DifficultyBadge question={question} />
       </TableCell>
-      <TableCell className="py-3.5">{question.options.length}</TableCell>
-      <TableCell className="whitespace-nowrap py-3.5">
+      <TableCell className="py-3.5" align='center'>{question.options.length}</TableCell>
+      <TableCell className="whitespace-nowrap py-3.5 align-evenly">
         <QuestionActions question={question} onEdit={onEdit} onDelete={onDelete} spread />
       </TableCell>
     </TableRow>

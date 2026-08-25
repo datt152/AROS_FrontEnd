@@ -14,48 +14,47 @@ export function AppFooter() {
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-blue-600 to-emerald-600 text-white">
               <GraduationCap className="h-4 w-4" strokeWidth={1.75} />
             </span>
-            <span className="text-sm font-semibold text-slate-900">AROS Platform</span>
+            <span className="text-sm font-semibold text-slate-900">Nền tảng AROS</span>
           </div>
           <p className="mt-3 max-w-sm text-sm leading-relaxed text-slate-500">
-            A focused workspace for students and teachers — exams, practice, and progress in one
-            place.
+            Không gian làm việc tập trung cho sinh viên và giáo viên — bài thi, luyện tập và tiến độ ở một nơi.
           </p>
         </div>
 
         <div>
-          <p className="text-sm font-semibold text-slate-900">Product</p>
+          <p className="text-sm font-semibold text-slate-900">Sản phẩm</p>
           <ul className="mt-3 space-y-2 text-sm">
             <li>
               <Link to={ROUTES.home} className="transition hover:text-blue-600">
-                Home
+                Trang chủ
               </Link>
             </li>
             <li>
               <Link to={ROUTES.login} className="transition hover:text-blue-600">
-                Login
+                Đăng nhập
               </Link>
             </li>
             <li>
               <Link to={ROUTES.register} className="transition hover:text-blue-600">
-                Register
+                Đăng ký
               </Link>
             </li>
           </ul>
         </div>
 
         <div>
-          <p className="text-sm font-semibold text-slate-900">For classrooms</p>
+          <p className="text-sm font-semibold text-slate-900">Dành cho lớp học</p>
           <ul className="mt-3 space-y-2 text-sm">
-            <li>Online exams</li>
-            <li>OMR grading</li>
-            <li>Practice & progress</li>
+            <li>Thi trực tuyến</li>
+            <li>Chấm điểm OMR</li>
+            <li>Luyện tập & tiến độ</li>
           </ul>
         </div>
       </div>
 
       <div className="border-t border-slate-200/80">
         <p className="mx-auto max-w-6xl px-4 py-4 text-xs text-slate-400 sm:px-6">
-          © {year} AROS. Built for modern classrooms.
+          © {year} AROS. Xây dựng cho lớp học hiện đại.
         </p>
       </div>
     </footer>

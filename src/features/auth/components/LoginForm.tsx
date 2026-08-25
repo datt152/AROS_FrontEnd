@@ -47,15 +47,15 @@ export function LoginForm() {
     const nextErrors: FieldErrors = {}
 
     if (!email.trim()) {
-      nextErrors.email = 'Please enter your email'
+      nextErrors.email = 'Vui lòng nhập email'
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      nextErrors.email = 'Please enter a valid email'
+      nextErrors.email = 'Vui lòng nhập email hợp lệ'
     }
 
     if (!password) {
-      nextErrors.password = 'Please enter your password'
+      nextErrors.password = 'Vui lòng nhập mật khẩu'
     } else if (password.length < 6) {
-      nextErrors.password = 'Password must be at least 6 characters'
+      nextErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự'
     }
 
     setErrors(nextErrors)
@@ -111,26 +111,25 @@ export function LoginForm() {
                 type="button"
                 onClick={() => loginMutation.reset()}
                 className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-                aria-label="Close"
+                aria-label="Đóng"
               >
                 <X className="h-4 w-4" strokeWidth={2} />
               </button>
             </div>
             <h3 id="unsupported-role-title" className="mt-3 text-base font-semibold text-slate-900">
-              Role not supported
+              Vai trò không được hỗ trợ
             </h3>
             <p id="unsupported-role-desc" className="mt-1.5 text-sm text-slate-600">
-
-              Access denied. Your account does not have the necessary permissions to sign in to this app.
+              Truy cập bị từ chối. Tài khoản của bạn không có quyền đăng nhập vào ứng dụng này.
               <br />
-              <i>Please contact the administrator if you believe this is a mistake.</i>
+              <i>Vui lòng liên hệ quản trị viên nếu bạn cho rằng đây là nhầm lẫn.</i>
             </p>
             <button
               type="button"
               onClick={() => loginMutation.reset()}
               className="mt-4 h-10 w-full rounded-xl bg-slate-900 text-sm font-medium text-white transition hover:bg-slate-800"
             >
-              Close
+              Đóng
             </button>
           </div>
         </div>
@@ -155,7 +154,7 @@ export function LoginForm() {
               setEmail(event.target.value)
               if (errors.email) setErrors((current) => ({ ...current, email: undefined }))
             }}
-            placeholder="Enter your email"
+            placeholder="Nhập email của bạn"
             className={`h-10 w-full rounded-xl border bg-slate-50/70 pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:bg-white focus:ring-4 ${errors.email
                 ? 'border-red-400 focus:border-red-400 focus:ring-red-100'
                 : 'border-slate-200 focus:border-blue-400 focus:ring-blue-100'
@@ -167,7 +166,7 @@ export function LoginForm() {
 
       <div className="space-y-1.5">
         <label htmlFor="password" className="text-sm font-medium text-slate-700">
-          Password
+          Mật khẩu
         </label>
         <div className="relative">
           <Lock
@@ -184,7 +183,7 @@ export function LoginForm() {
               setPassword(event.target.value)
               if (errors.password) setErrors((current) => ({ ...current, password: undefined }))
             }}
-            placeholder="Enter your password"
+            placeholder="Nhập mật khẩu"
             className={`h-10 w-full rounded-xl border bg-slate-50/70 pl-10 pr-11 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:bg-white focus:ring-4 ${errors.password
                 ? 'border-red-400 focus:border-red-400 focus:ring-red-100'
                 : 'border-slate-200 focus:border-blue-400 focus:ring-blue-100'
@@ -193,7 +192,7 @@ export function LoginForm() {
           <button
             type="button"
             onClick={() => setShowPassword((current) => !current)}
-            aria-label={showPassword ? 'Hide password' : 'Show password'}
+            aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
             className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 transition hover:text-slate-600"
           >
             {showPassword ? (
@@ -214,10 +213,10 @@ export function LoginForm() {
             onChange={(event) => setRememberMe(event.target.checked)}
             className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/30"
           />
-          <span className="text-sm text-slate-600">Remember me</span>
+          <span className="text-sm text-slate-600">Ghi nhớ đăng nhập</span>
         </label>
         <a href="#" className="text-sm font-medium text-blue-600 transition hover:text-blue-700">
-          Forgot password?
+          Quên mật khẩu?
         </a>
       </div>
 
@@ -226,13 +225,13 @@ export function LoginForm() {
         disabled={loginMutation.isPending}
         className="h-10 w-full rounded-xl bg-linear-to-r from-blue-600 to-emerald-600 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:from-blue-700 hover:to-emerald-700 focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-70"
       >
-        {loginMutation.isPending ? 'Signing in...' : 'Sign in'}
+        {loginMutation.isPending ? 'Đang đăng nhập...' : 'Đăng nhập'}
       </button>
 
       <p className="text-center text-sm text-slate-600">
-        Don&apos;t have an account?{' '}
+        Chưa có tài khoản?{' '}
         <Link to={ROUTES.register} className="font-medium text-blue-600 transition hover:text-blue-700">
-          Sign up
+          Đăng ký
         </Link>
       </p>
     </form>

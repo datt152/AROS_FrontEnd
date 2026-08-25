@@ -15,9 +15,9 @@ export function NotFoundPage() {
         </div>
 
         <h1 className="mt-8 text-7xl font-bold tracking-tight text-slate-900 sm:text-8xl">404</h1>
-        <p className="mt-4 text-lg font-medium text-slate-700">Page not found</p>
+        <p className="mt-4 text-lg font-medium text-slate-700">Không tìm thấy trang</p>
         <p className="mt-2 max-w-sm text-sm text-slate-500">
-          The page you're looking for doesn't exist or has been moved.
+          Trang bạn tìm không tồn tại hoặc đã được chuyển đi.
         </p>
 
         <Link
@@ -25,7 +25,7 @@ export function NotFoundPage() {
           className="mt-8 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-emerald-600 px-6 py-3 text-sm font-medium text-white shadow-md shadow-blue-600/20 transition hover:shadow-lg hover:shadow-blue-600/30"
         >
           <ArrowLeft className="h-4 w-4" strokeWidth={2} />
-          Back to Home
+          Về trang chủ
         </Link>
       </div>
     </div>

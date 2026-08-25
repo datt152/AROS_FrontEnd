@@ -1,8 +1,8 @@
 export type Role = 'teacher' | 'student'
 
 export const ROLE_LABEL: Record<Role, string> = {
-  teacher: 'Teacher',
-  student: 'Student',
+  teacher: 'Giáo viên',
+  student: 'Sinh viên',
 }
 
 export const ROUTES = {
@@ -46,22 +46,22 @@ export type NavItem = {
 
 export const MENU_BY_ROLE: Record<Role, NavItem[]> = {
   student: [
-    { path: ROUTES.student.dashboard, label: 'Dashboard' },
-    { path: ROUTES.student.exams, label: 'Exams' },
-    { path: ROUTES.student.practice, label: 'Practice' },
-    { path: ROUTES.student.history, label: 'History' },
+    { path: ROUTES.student.dashboard, label: 'Bảng điều khiển' },
+    { path: ROUTES.student.exams, label: 'Bài thi' },
+    { path: ROUTES.student.practice, label: 'Luyện tập' },
+    { path: ROUTES.student.history, label: 'Lịch sử' },
   ],
   teacher: [
-    { path: ROUTES.teacher.dashboard, label: 'Dashboard' },
-    { path: ROUTES.teacher.subjects, label: 'Subjects' },
-    { path: ROUTES.teacher.classrooms, label: 'Classrooms' },
-    { path: ROUTES.teacher.questionBank, label: 'Question Bank' },
-    { path: ROUTES.teacher.createExam, label: 'Create Exam' },
-    { path: ROUTES.teacher.grading, label: 'Grading' },
-    { path: ROUTES.teacher.omrUpload, label: 'OMR Upload' },
-    { path: ROUTES.teacher.createPractice, label: 'Create Practice' },
-    { path: ROUTES.teacher.examStats, label: 'Exam Stats' },
-    { path: ROUTES.teacher.history, label: 'History' },
+    { path: ROUTES.teacher.dashboard, label: 'Bảng điều khiển' },
+    { path: ROUTES.teacher.subjects, label: 'Môn học' },
+    { path: ROUTES.teacher.classrooms, label: 'Lớp học' },
+    { path: ROUTES.teacher.questionBank, label: 'Ngân hàng câu hỏi' },
+    { path: ROUTES.teacher.createExam, label: 'Tạo bài thi' },
+    { path: ROUTES.teacher.grading, label: 'Chấm điểm' },
+    { path: ROUTES.teacher.omrUpload, label: 'Tải lên OMR' },
+    { path: ROUTES.teacher.createPractice, label: 'Tạo bài luyện tập' },
+    { path: ROUTES.teacher.examStats, label: 'Thống kê bài thi' },
+    { path: ROUTES.teacher.history, label: 'Lịch sử' },
   ],
 }
 

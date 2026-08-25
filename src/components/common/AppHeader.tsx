@@ -13,7 +13,7 @@ export function AppHeader() {
           </span>
           <span>
             <span className="block text-sm font-semibold tracking-tight text-slate-900">AROS</span>
-            <span className="block text-[11px] font-medium text-slate-500">Learning Platform</span>
+            <span className="block text-[11px] font-medium text-slate-500">Nền tảng học tập</span>
           </span>
         </Link>
 
@@ -22,13 +22,13 @@ export function AppHeader() {
             to={ROUTES.login}
             className="rounded-xl px-3.5 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900"
           >
-            Login
+            Đăng nhập
           </Link>
           <Link
             to={ROUTES.register}
             className="rounded-xl bg-linear-to-r from-blue-600 to-emerald-600 px-3.5 py-2 text-sm font-semibold text-white shadow-md shadow-blue-600/20 transition hover:from-blue-700 hover:to-emerald-700"
           >
-            Register
+            Đăng ký
           </Link>
         </nav>
       </div>

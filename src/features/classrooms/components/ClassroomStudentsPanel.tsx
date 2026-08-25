@@ -90,12 +90,12 @@ export function ClassroomStudentsPanel({
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40">
-      <button type="button" className="flex-1 cursor-default" aria-label="Close panel" onClick={onClose} />
+      <button type="button" className="flex-1 cursor-default" aria-label="Đóng bảng" onClick={onClose} />
 
       <aside className="flex h-full w-full max-w-lg flex-col border-l border-slate-200 bg-white shadow-2xl">
         <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
           <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-wider text-blue-600">Students</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-blue-600">Sinh viên</p>
             <h2 className="mt-1 truncate text-lg font-semibold text-slate-900" title={classroom.className}>
               {classroom.className}
             </h2>
@@ -105,7 +105,7 @@ export function ClassroomStudentsPanel({
             type="button"
             onClick={onClose}
             className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-            aria-label="Close"
+            aria-label="Đóng"
           >
             <X className="h-4 w-4" strokeWidth={2} />
           </button>
@@ -113,24 +113,24 @@ export function ClassroomStudentsPanel({
 
         <div className="space-y-5 overflow-y-auto px-5 py-4">
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" className="h-9" disabled title="Coming soon — backend not ready">
+            <Button variant="secondary" className="h-9" disabled title="Sắp ra mắt — backend chưa sẵn sàng">
               <FileSpreadsheet className="h-3.5 w-3.5" strokeWidth={1.75} />
-              Import Excel
+              Nhập Excel
             </Button>
-            <Button variant="secondary" className="h-9" disabled title="Coming soon — backend not ready">
+            <Button variant="secondary" className="h-9" disabled title="Sắp ra mắt — backend chưa sẵn sàng">
               <UserPlus className="h-3.5 w-3.5" strokeWidth={1.75} />
-              Bulk create accounts
+              Tạo tài khoản hàng loạt
             </Button>
           </div>
           <p className="text-xs text-slate-400">
-            Import Excel and bulk account creation are placeholders until the backend is ready.
+            Nhập Excel và tạo tài khoản hàng loạt là chức năng tạm thời cho đến khi backend sẵn sàng.
           </p>
 
           <form className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/60 p-4" onSubmit={handleEnroll}>
             <div>
-              <p className="text-sm font-medium text-slate-800">Enroll students</p>
+              <p className="text-sm font-medium text-slate-800">Ghi danh sinh viên</p>
               <p className="mt-0.5 text-xs text-slate-500">
-                Enter student emails separated by commas (EnrollStudentRequest.studentEmails).
+                Nhập email sinh viên, phân cách bằng dấu phẩy.
               </p>
             </div>
             {enrollError ? (
@@ -140,7 +140,7 @@ export function ClassroomStudentsPanel({
               <Input
                 value={studentEmailsText}
                 hasError={Boolean(errors.studentEmailsText)}
-                placeholder="e.g. an@student.edu.vn, binh@student.edu.vn"
+                placeholder="vd. an@student.edu.vn, binh@student.edu.vn"
                 disabled={isEnrolling}
                 onChange={(event) => {
                   setStudentEmailsText(event.target.value)
@@ -153,25 +153,25 @@ export function ClassroomStudentsPanel({
             </div>
             <Button type="submit" className="w-full sm:w-auto" disabled={isEnrolling}>
               <UserPlus className="h-3.5 w-3.5" strokeWidth={1.75} />
-              {isEnrolling ? 'Enrolling...' : 'Add to class'}
+              {isEnrolling ? 'Đang ghi danh...' : 'Thêm vào lớp'}
             </Button>
           </form>
 
           <div>
             <div className="mb-3 flex items-center justify-between gap-2">
               <p className="text-sm font-medium text-slate-800">
-                Roster <span className="text-slate-400">({students.length})</span>
+                Danh sách <span className="text-slate-400">({students.length})</span>
               </p>
             </div>
 
-            {isLoadingStudents ? <Spinner label="Loading students..." className="py-8" /> : null}
+            {isLoadingStudents ? <Spinner label="Đang tải sinh viên..." className="py-8" /> : null}
 
             {studentsError ? (
               <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-center">
                 <p className="text-sm text-red-600">{studentsError}</p>
                 {onRetryStudents ? (
                   <Button variant="secondary" className="mt-3 h-9" onClick={onRetryStudents}>
-                    Try again
+                    Thử lại
                   </Button>
                 ) : null}
               </div>
@@ -179,8 +179,8 @@ export function ClassroomStudentsPanel({
 
             {!isLoadingStudents && !studentsError && students.length === 0 ? (
               <EmptyState
-                title="No students yet"
-                description="Enroll students by email, or use Import Excel when available."
+                title="Chưa có sinh viên nào"
+                description="Ghi danh sinh viên bằng email, hoặc dùng Nhập Excel khi có sẵn."
               />
             ) : null}
 
@@ -204,7 +204,7 @@ export function ClassroomStudentsPanel({
                       onClick={() => setRemovingStudent(student)}
                     >
                       <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
-                      Remove
+                      Gỡ bỏ
                     </Button>
                   </li>
                 ))}
@@ -217,10 +217,10 @@ export function ClassroomStudentsPanel({
       {removingStudent ? (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/40 px-4">
           <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
-            <h3 className="text-base font-semibold text-slate-900">Remove student?</h3>
+            <h3 className="text-base font-semibold text-slate-900">Gỡ sinh viên?</h3>
             <p className="mt-2 text-sm text-slate-600">
-              Remove{' '}
-              <span className="font-medium text-slate-900">{removingStudent.fullName}</span> from{' '}
+              Gỡ{' '}
+              <span className="font-medium text-slate-900">{removingStudent.fullName}</span> khỏi{' '}
               <span className="font-medium text-slate-900">{classroom.className}</span>?
             </p>
             <div className="mt-5 flex gap-2">
@@ -230,10 +230,10 @@ export function ClassroomStudentsPanel({
                 disabled={isRemoving}
                 onClick={() => setRemovingStudent(null)}
               >
-                Cancel
+                Hủy
               </Button>
               <Button variant="danger" className="flex-1" disabled={isRemoving} onClick={() => void confirmRemove()}>
-                {isRemoving ? 'Removing...' : 'Remove'}
+                {isRemoving ? 'Đang gỡ...' : 'Gỡ bỏ'}
               </Button>
             </div>
           </div>

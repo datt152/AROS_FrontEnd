@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-export function getApiErrorMessage(error: unknown, fallback = 'Something went wrong. Please try again.') {
+export function getApiErrorMessage(error: unknown, fallback = 'Đã xảy ra lỗi. Vui lòng thử lại.') {
   if (axios.isAxiosError(error)) {
     const data = error.response?.data as { message?: string; error?: string } | string | undefined
     if (typeof data === 'string' && data.trim()) return data

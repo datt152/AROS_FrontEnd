@@ -24,20 +24,19 @@ export function AuthLayout() {
               <GraduationCap className="h-5 w-5" strokeWidth={1.75} />
             </div>
             <div>
-              <p className="text-sm font-medium text-blue-100">AROS Platform</p>
-              <p className="text-base font-semibold tracking-tight">Learning Management</p>
+              <p className="text-sm font-medium text-blue-100">Nền tảng AROS</p>
+              <p className="text-base font-semibold tracking-tight">Quản lý học tập</p>
             </div>
           </div>
 
           <div className="space-y-3">
             <h1 className="text-3xl font-semibold leading-snug tracking-tight">
-              Learn smarter.
+              Học thông minh hơn.
               <br />
-              Teach with clarity.
+              Giảng dạy rõ ràng.
             </h1>
             <p className="max-w-sm text-sm leading-relaxed text-blue-100/90">
-              A focused workspace for students and teachers — exams, practice, and progress in one
-              place.
+              Không gian làm việc tập trung cho sinh viên và giáo viên — bài thi, luyện tập và tiến độ ở một nơi.
             </p>
           </div>
 
@@ -46,7 +45,7 @@ export function AuthLayout() {
               <BookOpen className="h-5 w-5" strokeWidth={1.75} />
             </div>
             <p className="text-sm text-blue-50/95">
-              Structured for education — simple tools, clear outcomes.
+              Thiết kế cho giáo dục — công cụ đơn giản, kết quả rõ ràng.
             </p>
           </div>
         </section>

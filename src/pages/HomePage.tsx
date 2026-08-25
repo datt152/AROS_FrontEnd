@@ -6,18 +6,18 @@ import { ROUTES } from '../routes/routes.config'
 const highlights = [
   {
     icon: ClipboardCheck,
-    title: 'Smarter exams',
-    body: 'Create, deliver, and grade assessments without leaving the classroom workflow.',
+    title: 'Bài thi thông minh',
+    body: 'Tạo, tổ chức và chấm bài kiểm tra mà không rời khỏi quy trình lớp học.',
   },
   {
     icon: BookOpen,
-    title: 'Practice that sticks',
-    body: 'Give students focused practice sets so they can review before the next exam.',
+    title: 'Luyện tập hiệu quả',
+    body: 'Cung cấp bộ luyện tập tập trung để sinh viên ôn tập trước kỳ thi.',
   },
   {
     icon: LineChart,
-    title: 'Clear progress',
-    body: 'See results, history, and class insights in one place — simple tools, clear outcomes.',
+    title: 'Tiến độ rõ ràng',
+    body: 'Xem kết quả, lịch sử và thông tin lớp ở một nơi — công cụ đơn giản, kết quả rõ ràng.',
   },
 ]
 
@@ -25,20 +25,20 @@ export function HomePage() {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col items-center px-4 py-12 sm:px-6 sm:py-16 lg:py-20">
       <p className="rounded-full border border-blue-100 bg-white/70 px-3 py-1 text-xs font-medium uppercase tracking-wider text-blue-600 shadow-sm">
-        Education workspace
+        Không gian giáo dục
       </p>
 
       <h1 className="mt-6 max-w-3xl text-center text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl lg:text-[3.25rem] lg:leading-tight">
-        Learn smarter.
+        Học thông minh hơn.
         <br />
         <span className="bg-linear-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent">
-          Teach with clarity.
+          Giảng dạy rõ ràng.
         </span>
       </h1>
 
       <p className="mt-5 max-w-2xl text-center text-sm leading-relaxed text-slate-600 sm:text-base">
-        AROS is a focused platform for students and teachers — exams, OMR grading, practice, and
-        progress together, without extra noise.
+        AROS là nền tảng tập trung cho sinh viên và giáo viên — bài thi, chấm OMR, luyện tập và tiến độ cùng một
+        chỗ, không rườm rà.
       </p>
 
       <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -46,13 +46,13 @@ export function HomePage() {
           to={ROUTES.register}
           className="rounded-xl bg-linear-to-r from-blue-600 to-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:from-blue-700 hover:to-emerald-700"
         >
-          Get started
+          Bắt đầu ngay
         </Link>
         <Link
           to={ROUTES.login}
           className="rounded-xl border border-slate-200 bg-white/80 px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-blue-200 hover:text-blue-700"
         >
-          Sign in
+          Đăng nhập
         </Link>
       </div>
 
@@ -76,8 +76,8 @@ export function HomePage() {
           <GraduationCap className="h-5 w-5" strokeWidth={1.75} />
         </div>
         <p className="text-sm text-slate-600">
-          Built for classrooms that need structure — students take exams, teachers create and grade,
-          everyone sees progress clearly.
+          Xây dựng cho lớp học cần cấu trúc — sinh viên làm bài thi, giáo viên tạo và chấm, mọi người thấy tiến độ
+          rõ ràng.
         </p>
       </div>
     </div>

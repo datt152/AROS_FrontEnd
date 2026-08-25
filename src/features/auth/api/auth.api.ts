@@ -13,7 +13,7 @@ export class UnsupportedRoleError extends Error {
   readonly receivedRole: string
 
   constructor(receivedRole: string) {
-    super('This account is not allowed to sign in. Only Student and Teacher roles are supported.')
+    super('Tài khoản này không được phép đăng nhập. Chỉ hỗ trợ vai trò Sinh viên và Giáo viên.')
     this.name = 'UnsupportedRoleError'
     this.receivedRole = receivedRole
   }

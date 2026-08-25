@@ -26,13 +26,13 @@ export function StudentLayout() {
                 type="button"
                 onClick={() => setIsMobileOpen(true)}
                 className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:text-slate-900 lg:hidden"
-                aria-label="Open sidebar"
+                aria-label="Mở thanh bên"
               >
                 <PanelLeft className="h-4.5 w-4.5" strokeWidth={1.75} />
               </button>
               <div>
-                <p className="text-sm font-semibold tracking-tight text-slate-900">Student Workspace</p>
-                <p className="text-xs text-slate-500">Take exams and follow your progress</p>
+                <p className="text-sm font-semibold tracking-tight text-slate-900">Không gian sinh viên</p>
+                <p className="text-xs text-slate-500">Làm bài thi và theo dõi tiến độ</p>
               </div>
             </div>
           </header>
