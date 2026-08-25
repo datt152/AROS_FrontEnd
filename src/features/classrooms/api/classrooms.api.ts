@@ -19,12 +19,22 @@ type ClassroomDto = {
 
 type ClassroomStudentDto = {
   id?: number
-  studentCode?: string
   fullName?: string
   email?: string
-  studentId?: number
-  username?: string
-  name?: string
+  phone?: string
+  studentCode?: string
+}
+
+function normalizeStudent(dto: ClassroomStudentDto): ClassroomStudent | null {
+  if (dto.id === undefined || !dto.fullName?.trim() || !dto.email?.trim()) return null
+
+  return {
+    id: dto.id,
+    fullName: dto.fullName.trim(),
+    email: dto.email.trim(),
+    phone: dto.phone?.trim() ?? '',
+    studentCode: dto.studentCode?.trim() ?? '',
+  }
 }
 
 function normalizeClassroom(dto: ClassroomDto): ClassroomItem | null {
@@ -39,19 +49,6 @@ function normalizeClassroom(dto: ClassroomDto): ClassroomItem | null {
     isActive: dto.isActive ?? true,
     subjectId: dto.subjectId,
     subjectName: dto.subjectName ?? '',
-  }
-}
-
-function normalizeStudent(dto: ClassroomStudentDto): ClassroomStudent | null {
-  const id = dto.id ?? dto.studentId
-  const email = dto.email?.trim()
-  if (id === undefined || !email) return null
-
-  return {
-    id,
-    studentCode: dto.studentCode ?? `SV${String(id).padStart(3, '0')}`,
-    fullName: dto.fullName ?? dto.name ?? dto.username ?? email.split('@')[0] ?? 'Student',
-    email,
   }
 }
 

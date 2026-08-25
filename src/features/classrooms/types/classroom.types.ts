@@ -30,12 +30,13 @@ export type ClassroomFormErrors = {
   subjectId?: string
 }
 
-/** Student row for classroom roster UI (shape can align with future API) */
+/** Matches student item from GET /v1/classes/:id/students */
 export type ClassroomStudent = {
   id: number
-  studentCode: string
   fullName: string
   email: string
+  phone: string
+  studentCode: string
 }
 
 /** Matches EnrollStudentRequest from backend */

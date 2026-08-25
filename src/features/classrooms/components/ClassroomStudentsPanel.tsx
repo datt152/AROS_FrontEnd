@@ -194,7 +194,7 @@ export function ClassroomStudentsPanel({
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-slate-900">{student.fullName}</p>
                       <p className="truncate text-xs text-slate-500">
-                        {student.studentCode} · {student.email}
+                        {[student.studentCode, student.email, student.phone].filter(Boolean).join(' · ')}
                       </p>
                     </div>
                     <Button
