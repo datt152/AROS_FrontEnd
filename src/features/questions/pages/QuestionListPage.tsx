@@ -1,8 +1,9 @@
 import { ArrowLeft, BookOpen, FileSpreadsheet, Plus, Search, Sparkles, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import { Button } from '../../../components/ui/Button'
 import { EmptyState } from '../../../components/ui/EmptyState'
+import { ErrorState } from '../../../components/ui/ErrorState'
 import { Input } from '../../../components/ui/Input'
 import { Spinner } from '../../../components/ui/Spinner'
 import {
@@ -14,140 +15,28 @@ import {
   TableHeader,
   TableRow,
 } from '../../../components/ui/Table'
+import { getApiErrorMessage } from '../../../lib/apiError'
+import { useSubjects } from '../../subjects/hooks/useSubjects'
 import { QuestionForm } from '../components/QuestionForm'
 import { QuestionItem, QuestionTableRow } from '../components/QuestionItem'
+import {
+  useCreateQuestion,
+  useDeleteQuestion,
+  useQuestionCounts,
+  useQuestions,
+  useUpdateQuestion,
+} from '../hooks/useQuestions'
 import type {
   Difficulty,
   QuestionFormValues,
   QuestionItem as QuestionItemType,
   QuestionType,
-  SubjectOption,
 } from '../types/question.types'
 
 type ModalMode = 'create' | 'edit' | null
-type ListStatus = 'loading' | 'ready'
 
 const PAGE_SIZE = 10
-
-const MOCK_SUBJECTS: SubjectOption[] = [
-  { id: 1, subjectName: 'Software Engineering' },
-  { id: 2, subjectName: 'Database Systems' },
-  { id: 3, subjectName: 'Web Development' },
-]
-
-const MOCK_QUESTIONS: QuestionItemType[] = [
-  {
-    questionId: 1,
-    subjectId: 1,
-    content: 'Which of the following best describes a software requirement?',
-    difficulty: 'EASY',
-    explanation: 'A requirement states what the system should do, not how it is implemented.',
-    type: 'SINGLE_CHOICE',
-    options: [
-      { content: 'A constraint on how code is formatted', isCorrect: false },
-      { content: 'A statement of what the system should do', isCorrect: true },
-      { content: 'A unit test written by developers', isCorrect: false },
-      { content: 'A deployment script', isCorrect: false },
-    ],
-  },
-  {
-    questionId: 2,
-    subjectId: 1,
-    content: 'Select all typical activities in the software development life cycle.',
-    difficulty: 'MEDIUM',
-    explanation: null,
-    type: 'MULTIPLE_CHOICE',
-    options: [
-      { content: 'Requirements analysis', isCorrect: true },
-      { content: 'Design', isCorrect: true },
-      { content: 'Hardware soldering', isCorrect: false },
-      { content: 'Testing', isCorrect: true },
-    ],
-  },
-  {
-    questionId: 3,
-    subjectId: 2,
-    content: 'What does ACID stand for in database transactions?',
-    difficulty: 'HARD',
-    explanation: 'Atomicity, Consistency, Isolation, Durability.',
-    type: 'SINGLE_CHOICE',
-    options: [
-      { content: 'Atomicity, Consistency, Isolation, Durability', isCorrect: true },
-      { content: 'Access, Control, Index, Data', isCorrect: false },
-      { content: 'Aggregate, Count, Insert, Delete', isCorrect: false },
-    ],
-  },
-  {
-    questionId: 4,
-    subjectId: 2,
-    content: 'Which statements about primary keys are true?',
-    difficulty: 'MEDIUM',
-    explanation: null,
-    type: 'MULTIPLE_CHOICE',
-    options: [
-      { content: 'A primary key uniquely identifies a row', isCorrect: true },
-      { content: 'A primary key can contain NULL values', isCorrect: false },
-      { content: 'A table can have only one primary key', isCorrect: true },
-    ],
-  },
-  {
-    questionId: 5,
-    subjectId: 3,
-    content: 'Which HTTP method is typically used to create a new resource?',
-    difficulty: 'EASY',
-    explanation: 'POST is commonly used to create resources.',
-    type: 'SINGLE_CHOICE',
-    options: [
-      { content: 'GET', isCorrect: false },
-      { content: 'POST', isCorrect: true },
-      { content: 'HEAD', isCorrect: false },
-    ],
-  },
-  {
-    questionId: 6,
-    subjectId: 3,
-    content: 'Select valid ways to persist data in a React SPA without a backend.',
-    difficulty: 'VERY_HARD',
-    explanation: null,
-    type: 'MULTIPLE_CHOICE',
-    options: [
-      { content: 'localStorage', isCorrect: true },
-      { content: 'sessionStorage', isCorrect: true },
-      { content: 'IndexedDB', isCorrect: true },
-      { content: 'SQL Server stored procedures', isCorrect: false },
-    ],
-  },
-  {
-    questionId: 7,
-    subjectId: 1,
-    content: 'Apply SOLID principles: which change would most improve a God class that mixes UI, API, and DB logic?',
-    difficulty: 'APPLICATION',
-    explanation: 'Split responsibilities into smaller, focused modules.',
-    type: 'SINGLE_CHOICE',
-    options: [
-      { content: 'Add more static methods', isCorrect: false },
-      { content: 'Split UI, API, and persistence into separate layers', isCorrect: true },
-      { content: 'Increase the class name length', isCorrect: false },
-    ],
-  },
-  {
-    questionId: 8,
-    subjectId: 2,
-    content: 'Which isolation levels can reduce dirty reads?',
-    difficulty: 'HARD',
-    explanation: null,
-    type: 'MULTIPLE_CHOICE',
-    options: [
-      { content: 'READ UNCOMMITTED', isCorrect: false },
-      { content: 'READ COMMITTED', isCorrect: true },
-      { content: 'SERIALIZABLE', isCorrect: true },
-    ],
-  },
-]
-
-function resolveSubjectName(subjectId: number) {
-  return MOCK_SUBJECTS.find((subject) => subject.id === subjectId)?.subjectName ?? `Môn #${subjectId}`
-}
+const FILTER_FETCH_SIZE = 200
 
 function questionMatchesSearch(question: QuestionItemType, query: string) {
   const keyword = query.trim().toLowerCase()
@@ -165,8 +54,11 @@ function questionMatchesSearch(question: QuestionItemType, query: string) {
 }
 
 export function QuestionListPage() {
-  const [status, setStatus] = useState<ListStatus>('loading')
-  const [questions, setQuestions] = useState<QuestionItemType[]>([])
+  const subjectsQuery = useSubjects()
+  const createQuestion = useCreateQuestion()
+  const updateQuestion = useUpdateQuestion()
+  const deleteQuestion = useDeleteQuestion()
+
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState<QuestionType | ''>('')
@@ -175,43 +67,67 @@ export function QuestionListPage() {
 
   const [modalMode, setModalMode] = useState<ModalMode>(null)
   const [editingQuestion, setEditingQuestion] = useState<QuestionItemType | null>(null)
+  const [deletingQuestion, setDeletingQuestion] = useState<QuestionItemType | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
-  const [isFormSubmitting, setIsFormSubmitting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setQuestions(MOCK_QUESTIONS)
-      setStatus('ready')
-    }, 700)
+  const subjects = subjectsQuery.data ?? []
+  const subjectIds = subjects.map((subject) => subject.id)
+  const countQueries = useQuestionCounts(subjectIds)
 
-    return () => window.clearTimeout(timer)
-  }, [])
+  const hasClientFilters = Boolean(searchQuery.trim() || typeFilter || difficultyFilter)
+
+  const questionsQuery = useQuestions(
+    selectedSubjectId
+      ? {
+          subjectId: selectedSubjectId,
+          page: hasClientFilters ? 0 : page,
+          size: hasClientFilters ? FILTER_FETCH_SIZE : PAGE_SIZE,
+        }
+      : undefined,
+  )
+
+  const selectedSubjectName = useMemo(() => {
+    if (!selectedSubjectId) return ''
+    return subjects.find((subject) => subject.id === selectedSubjectId)?.subjectName ?? `Môn #${selectedSubjectId}`
+  }, [selectedSubjectId, subjects])
+
+  const subjectOptions = useMemo(
+    () => subjects.map((subject) => ({ id: subject.id, subjectName: subject.subjectName })),
+    [subjects],
+  )
 
   const questionCountBySubject = useMemo(() => {
     const counts = new Map<number, number>()
-    for (const question of questions) {
-      counts.set(question.subjectId, (counts.get(question.subjectId) ?? 0) + 1)
-    }
+    subjects.forEach((subject, index) => {
+      counts.set(subject.id, countQueries[index]?.data ?? 0)
+    })
     return counts
-  }, [questions])
-
-  const selectedSubjectName = selectedSubjectId ? resolveSubjectName(selectedSubjectId) : ''
+  }, [subjects, countQueries])
 
   const filteredQuestions = useMemo(() => {
-    if (!selectedSubjectId) return []
+    const items = questionsQuery.data?.items ?? []
+    if (!hasClientFilters) return items
 
-    return questions.filter((question) => {
-      if (question.subjectId !== selectedSubjectId) return false
+    return items.filter((question) => {
       if (typeFilter && question.type !== typeFilter) return false
       if (difficultyFilter && question.difficulty !== difficultyFilter) return false
       if (!questionMatchesSearch(question, searchQuery)) return false
       return true
     })
-  }, [questions, selectedSubjectId, typeFilter, difficultyFilter, searchQuery])
+  }, [questionsQuery.data?.items, hasClientFilters, typeFilter, difficultyFilter, searchQuery])
 
-  const totalPages = Math.max(1, Math.ceil(filteredQuestions.length / PAGE_SIZE))
+  const totalPages = hasClientFilters
+    ? Math.max(1, Math.ceil(filteredQuestions.length / PAGE_SIZE))
+    : Math.max(1, questionsQuery.data?.totalPages ?? 1)
+
   const currentPage = Math.min(page, totalPages - 1)
-  const pagedQuestions = filteredQuestions.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE)
+
+  const pagedQuestions = hasClientFilters
+    ? filteredQuestions.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE)
+    : filteredQuestions
+
+  const isFormSubmitting = createQuestion.isPending || updateQuestion.isPending
 
   function selectSubject(subjectId: number) {
     setSelectedSubjectId(subjectId)
@@ -241,6 +157,11 @@ export function QuestionListPage() {
     setModalMode('edit')
   }
 
+  function openDelete(question: QuestionItemType) {
+    setDeleteError(null)
+    setDeletingQuestion(question)
+  }
+
   function closeModal() {
     if (isFormSubmitting) return
     setModalMode(null)
@@ -250,44 +171,41 @@ export function QuestionListPage() {
 
   async function handleSubmit(values: QuestionFormValues) {
     setFormError(null)
-    setIsFormSubmitting(true)
-    await new Promise((resolve) => window.setTimeout(resolve, 350))
 
-    if (modalMode === 'create') {
-      const nextId = questions.reduce((max, item) => Math.max(max, item.questionId), 0) + 1
-      setQuestions((current) => [
-        {
-          questionId: nextId,
-          ...values,
-          explanation: values.explanation || null,
-          subjectName: resolveSubjectName(values.subjectId),
-        },
-        ...current,
-      ])
+    try {
+      if (modalMode === 'create') {
+        await createQuestion.mutateAsync(values)
+      }
+
+      if (modalMode === 'edit' && editingQuestion) {
+        await updateQuestion.mutateAsync({ id: editingQuestion.questionId, payload: values })
+      }
+
+      setModalMode(null)
+      setEditingQuestion(null)
+    } catch (error) {
+      setFormError(getApiErrorMessage(error, 'Unable to save question'))
     }
+  }
 
-    if (modalMode === 'edit' && editingQuestion) {
-      setQuestions((current) =>
-        current.map((item) =>
-          item.questionId === editingQuestion.questionId
-            ? {
-                ...item,
-                ...values,
-                explanation: values.explanation || null,
-                subjectName: resolveSubjectName(values.subjectId),
-              }
-            : item,
-        ),
-      )
+  async function confirmDelete() {
+    if (!deletingQuestion) return
+    setDeleteError(null)
+
+    try {
+      await deleteQuestion.mutateAsync(deletingQuestion.questionId)
+      setDeletingQuestion(null)
+    } catch (error) {
+      setDeleteError(getApiErrorMessage(error, 'Unable to delete question'))
     }
-
-    setIsFormSubmitting(false)
-    setModalMode(null)
-    setEditingQuestion(null)
   }
 
   const selectClassName =
     'h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100'
+
+  const totalQuestionLabel = hasClientFilters
+    ? filteredQuestions.length
+    : (questionsQuery.data?.totalElements ?? filteredQuestions.length)
 
   return (
     <section className="space-y-5">
@@ -301,30 +219,54 @@ export function QuestionListPage() {
         </p>
       </div>
 
-      {status === 'loading' ? <Spinner label="Loading questions..." /> : null}
+      {!selectedSubjectId ? (
+        <>
+          {subjectsQuery.isLoading ? <Spinner label="Loading subjects..." /> : null}
 
-      {status === 'ready' && !selectedSubjectId ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {MOCK_SUBJECTS.map((subject) => (
-            <button
-              key={subject.id}
-              type="button"
-              onClick={() => selectSubject(subject.id)}
-              className="rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:border-blue-300 hover:shadow-md"
-            >
-              <div className="mb-3 inline-flex rounded-xl bg-blue-50 p-2.5 text-blue-600">
-                <BookOpen className="h-5 w-5" strokeWidth={1.75} />
-              </div>
-              <p className="font-semibold text-slate-900">{subject.subjectName}</p>
-              <p className="mt-1 text-sm text-slate-500">
-                {questionCountBySubject.get(subject.id) ?? 0} questions
-              </p>
-            </button>
-          ))}
-        </div>
+          {subjectsQuery.isError ? (
+            <ErrorState
+              message={getApiErrorMessage(subjectsQuery.error, 'Unable to load subjects')}
+              action={
+                <Button variant="secondary" onClick={() => void subjectsQuery.refetch()}>
+                  Try again
+                </Button>
+              }
+            />
+          ) : null}
+
+          {subjectsQuery.isSuccess && subjects.length === 0 ? (
+            <EmptyState
+              title="No subjects yet"
+              description="Create a subject first before building a question bank."
+            />
+          ) : null}
+
+          {subjectsQuery.isSuccess && subjects.length > 0 ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {subjects.map((subject, index) => (
+                <button
+                  key={subject.id}
+                  type="button"
+                  onClick={() => selectSubject(subject.id)}
+                  className="flex min-h-36 flex-col rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:border-blue-300 hover:shadow-md"
+                >
+                  <div className="mb-3 inline-flex rounded-xl bg-blue-50 p-2.5 text-blue-600">
+                    <BookOpen className="h-5 w-5" strokeWidth={1.75} />
+                  </div>
+                  <p className="line-clamp-2 font-semibold text-slate-900">{subject.subjectName}</p>
+                  <p className="mt-auto pt-3 text-sm text-slate-500">
+                    {countQueries[index]?.isLoading
+                      ? 'Loading...'
+                      : `${questionCountBySubject.get(subject.id) ?? 0} questions`}
+                  </p>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </>
       ) : null}
 
-      {status === 'ready' && selectedSubjectId ? (
+      {selectedSubjectId ? (
         <>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <Button variant="secondary" className="w-full sm:w-auto" onClick={backToSubjectPicker}>
@@ -349,10 +291,7 @@ export function QuestionListPage() {
 
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
             <p className="text-sm font-medium text-slate-900">{selectedSubjectName}</p>
-            <p className="mt-0.5 text-xs text-slate-500">
-              {questions.filter((question) => question.subjectId === selectedSubjectId).length} questions in this
-              subject
-            </p>
+            <p className="mt-0.5 text-xs text-slate-500">{totalQuestionLabel} questions in this subject</p>
           </div>
 
           <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 lg:flex-row lg:items-center">
@@ -397,7 +336,20 @@ export function QuestionListPage() {
             </select>
           </div>
 
-          {filteredQuestions.length === 0 ? (
+          {questionsQuery.isLoading ? <Spinner label="Loading questions..." /> : null}
+
+          {questionsQuery.isError ? (
+            <ErrorState
+              message={getApiErrorMessage(questionsQuery.error, 'Unable to load questions')}
+              action={
+                <Button variant="secondary" onClick={() => void questionsQuery.refetch()}>
+                  Try again
+                </Button>
+              }
+            />
+          ) : null}
+
+          {questionsQuery.isSuccess && filteredQuestions.length === 0 ? (
             <EmptyState
               title={searchQuery || typeFilter || difficultyFilter ? 'No matching questions' : 'No questions yet'}
               description={
@@ -426,43 +378,57 @@ export function QuestionListPage() {
                 )
               }
             />
-          ) : (
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <div className="divide-y divide-slate-100 md:hidden">
-                {pagedQuestions.map((question) => (
-                  <QuestionItem key={question.questionId} question={question} onEdit={openEdit} />
-                ))}
+          ) : null}
+
+          {questionsQuery.isSuccess && filteredQuestions.length > 0 ? (
+            <div className="flex min-h-[32rem] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="flex-1">
+                <div className="divide-y divide-slate-200 md:hidden">
+                  {pagedQuestions.map((question) => (
+                    <QuestionItem
+                      key={question.questionId}
+                      question={question}
+                      onEdit={openEdit}
+                      onDelete={openDelete}
+                    />
+                  ))}
+                </div>
+
+                <div className="hidden md:block">
+                  <Table>
+                    <TableColGroup>
+                      <TableCol />
+                      <TableCol width="8.5rem" />
+                      <TableCol width="7.5rem" />
+                      <TableCol width="4.5rem" />
+                      <TableCol width="12rem" />
+                    </TableColGroup>
+                    <TableHeader>
+                      <TableRow className="border-b-0 hover:bg-transparent">
+                        <TableHead>Question</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Difficulty</TableHead>
+                        <TableHead>Options</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {pagedQuestions.map((question) => (
+                        <QuestionTableRow
+                          key={question.questionId}
+                          question={question}
+                          onEdit={openEdit}
+                          onDelete={openDelete}
+                        />
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
 
-              <div className="hidden md:block">
-                <Table>
-                  <TableColGroup>
-                    <TableCol />
-                    <TableCol width="8.5rem" />
-                    <TableCol width="7.5rem" />
-                    <TableCol width="4.5rem" />
-                    <TableCol width="11.5rem" />
-                  </TableColGroup>
-                  <TableHeader>
-                    <TableRow className="border-b-0 hover:bg-transparent">
-                      <TableHead>Question</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Difficulty</TableHead>
-                      <TableHead>Options</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pagedQuestions.map((question) => (
-                      <QuestionTableRow key={question.questionId} question={question} onEdit={openEdit} />
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              <div className="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-sm text-slate-500">
+              <div className="mt-auto flex items-center justify-between border-t border-slate-200 px-4 py-3 text-sm text-slate-500">
                 <p>
-                  Page {currentPage + 1} / {totalPages} · {filteredQuestions.length} questions
+                  Page {currentPage + 1} / {totalPages} · {totalQuestionLabel} questions
                 </p>
                 <div className="flex gap-2">
                   <Button
@@ -484,7 +450,7 @@ export function QuestionListPage() {
                 </div>
               </div>
             </div>
-          )}
+          ) : null}
         </>
       ) : null}
 
@@ -518,7 +484,7 @@ export function QuestionListPage() {
               <QuestionForm
                 mode={modalMode}
                 initialValues={editingQuestion ?? undefined}
-                subjectOptions={MOCK_SUBJECTS}
+                subjectOptions={subjectOptions}
                 lockedSubjectId={modalMode === 'create' ? (selectedSubjectId ?? undefined) : undefined}
                 isSubmitting={isFormSubmitting}
                 submitError={formError}
@@ -527,6 +493,46 @@ export function QuestionListPage() {
               />
             </div>
           </aside>
+        </div>
+      ) : null}
+
+      {deletingQuestion ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
+          <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
+            <h3 className="text-base font-semibold text-slate-900">Delete question?</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              This will permanently remove{' '}
+              <span className="font-medium text-slate-900">
+                {deletingQuestion.content.length > 80
+                  ? `${deletingQuestion.content.slice(0, 80)}…`
+                  : deletingQuestion.content}
+              </span>{' '}
+              from the question bank.
+            </p>
+            {deleteError ? (
+              <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                {deleteError}
+              </p>
+            ) : null}
+            <div className="mt-5 flex gap-2">
+              <Button
+                variant="secondary"
+                className="flex-1"
+                disabled={deleteQuestion.isPending}
+                onClick={() => setDeletingQuestion(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                className="flex-1"
+                disabled={deleteQuestion.isPending}
+                onClick={() => void confirmDelete()}
+              >
+                {deleteQuestion.isPending ? 'Deleting...' : 'Delete'}
+              </Button>
+            </div>
+          </div>
         </div>
       ) : null}
     </section>

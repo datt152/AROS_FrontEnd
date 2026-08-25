@@ -8,9 +8,15 @@ import { DIFFICULTY_BADGE_CLASS, DIFFICULTY_LABEL, QUESTION_TYPE_LABEL } from '.
 type QuestionItemProps = {
   question: QuestionItemType
   onEdit: (question: QuestionItemType) => void
+  onDelete: (question: QuestionItemType) => void
 }
 
-function QuestionActions({ question, onEdit, spread = false }: Pick<QuestionItemProps, 'question' | 'onEdit'> & { spread?: boolean }) {
+function QuestionActions({
+  question,
+  onEdit,
+  onDelete,
+  spread = false,
+}: Pick<QuestionItemProps, 'question' | 'onEdit' | 'onDelete'> & { spread?: boolean }) {
   return (
     <div className={`flex items-center ${spread ? 'w-full justify-between gap-1' : 'flex-wrap gap-2'}`}>
       <Button
@@ -21,16 +27,14 @@ function QuestionActions({ question, onEdit, spread = false }: Pick<QuestionItem
         <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
         Edit
       </Button>
-      <span title="Sắp ra mắt">
-        <Button
-          variant="ghost"
-          disabled
-          className="h-8 border border-red-200 bg-red-50 px-2.5 text-xs text-red-700"
-        >
-          <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
-          Delete
-        </Button>
-      </span>
+      <Button
+        variant="ghost"
+        className="h-8 border border-red-200 bg-red-50 px-2.5 text-xs text-red-700 hover:bg-red-100 hover:text-red-800"
+        onClick={() => onDelete(question)}
+      >
+        <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+        Delete
+      </Button>
     </div>
   )
 }
@@ -57,9 +61,9 @@ function DifficultyBadge({ question }: { question: QuestionItemType }) {
   )
 }
 
-export function QuestionItem({ question, onEdit }: QuestionItemProps) {
+export function QuestionItem({ question, onEdit, onDelete }: QuestionItemProps) {
   return (
-    <article className="grid grid-cols-1 items-start gap-3 px-4 py-3">
+    <article className="grid grid-cols-1 items-start gap-3 px-4 py-4">
       <div className="min-w-0">
         <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Question</p>
         <p className="line-clamp-2 text-sm font-medium text-slate-900" title={question.content}>
@@ -78,28 +82,28 @@ export function QuestionItem({ question, onEdit }: QuestionItemProps) {
         <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Options</p>
         <p className="text-sm text-slate-700">{question.options.length}</p>
       </div>
-      <QuestionActions question={question} onEdit={onEdit} />
+      <QuestionActions question={question} onEdit={onEdit} onDelete={onDelete} />
     </article>
   )
 }
 
-export function QuestionTableRow({ question, onEdit }: QuestionItemProps) {
+export function QuestionTableRow({ question, onEdit, onDelete }: QuestionItemProps) {
   return (
-    <TableRow>
-      <TableCell className="max-w-0 overflow-hidden">
+    <TableRow className="border-slate-200">
+      <TableCell className="max-w-0 overflow-hidden py-3.5">
         <p className="line-clamp-2 text-sm font-medium text-slate-900" title={question.content}>
           {question.content}
         </p>
       </TableCell>
-      <TableCell>
+      <TableCell className="py-3.5">
         <TypeBadge question={question} />
       </TableCell>
-      <TableCell>
+      <TableCell className="py-3.5">
         <DifficultyBadge question={question} />
       </TableCell>
-      <TableCell>{question.options.length}</TableCell>
-      <TableCell className="whitespace-nowrap">
-        <QuestionActions question={question} onEdit={onEdit} spread />
+      <TableCell className="py-3.5">{question.options.length}</TableCell>
+      <TableCell className="whitespace-nowrap py-3.5">
+        <QuestionActions question={question} onEdit={onEdit} onDelete={onDelete} spread />
       </TableCell>
     </TableRow>
   )
