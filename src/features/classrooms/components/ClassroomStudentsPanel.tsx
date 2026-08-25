@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Button } from '../../../components/ui/Button'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { Input } from '../../../components/ui/Input'
+import { Spinner } from '../../../components/ui/Spinner'
 import type {
   ClassroomItem,
   ClassroomStudent,
@@ -13,9 +14,15 @@ import type {
 type ClassroomStudentsPanelProps = {
   classroom: ClassroomItem
   students: ClassroomStudent[]
+  isLoadingStudents?: boolean
+  studentsError?: string | null
+  onRetryStudents?: () => void
+  isEnrolling?: boolean
+  enrollError?: string | null
+  isRemoving?: boolean
   onClose: () => void
-  onEnroll: (studentEmails: string[]) => void
-  onRemove: (student: ClassroomStudent) => void
+  onEnroll: (studentEmails: string[]) => void | Promise<void>
+  onRemove: (student: ClassroomStudent) => void | Promise<void>
 }
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -23,6 +30,12 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 export function ClassroomStudentsPanel({
   classroom,
   students,
+  isLoadingStudents = false,
+  studentsError = null,
+  onRetryStudents,
+  isEnrolling = false,
+  enrollError = null,
+  isRemoving = false,
   onClose,
   onEnroll,
   onRemove,
@@ -31,7 +44,7 @@ export function ClassroomStudentsPanel({
   const [errors, setErrors] = useState<EnrollStudentFormErrors>({})
   const [removingStudent, setRemovingStudent] = useState<ClassroomStudent | null>(null)
 
-  function handleEnroll(event: React.FormEvent<HTMLFormElement>) {
+  async function handleEnroll(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     const nextErrors: EnrollStudentFormErrors = {}
@@ -55,8 +68,24 @@ export function ClassroomStudentsPanel({
     }
 
     setErrors({})
-    onEnroll(emails)
-    setStudentEmailsText('')
+
+    try {
+      await onEnroll(emails)
+      setStudentEmailsText('')
+    } catch {
+      // Error surfaced via enrollError prop from page
+    }
+  }
+
+  async function confirmRemove() {
+    if (!removingStudent) return
+
+    try {
+      await onRemove(removingStudent)
+      setRemovingStudent(null)
+    } catch {
+      setRemovingStudent(null)
+    }
   }
 
   return (
@@ -84,21 +113,11 @@ export function ClassroomStudentsPanel({
 
         <div className="space-y-5 overflow-y-auto px-5 py-4">
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant="secondary"
-              className="h-9"
-              disabled
-              title="Coming soon — backend not ready"
-            >
+            <Button variant="secondary" className="h-9" disabled title="Coming soon — backend not ready">
               <FileSpreadsheet className="h-3.5 w-3.5" strokeWidth={1.75} />
               Import Excel
             </Button>
-            <Button
-              variant="secondary"
-              className="h-9"
-              disabled
-              title="Coming soon — backend not ready"
-            >
+            <Button variant="secondary" className="h-9" disabled title="Coming soon — backend not ready">
               <UserPlus className="h-3.5 w-3.5" strokeWidth={1.75} />
               Bulk create accounts
             </Button>
@@ -114,11 +133,15 @@ export function ClassroomStudentsPanel({
                 Enter student emails separated by commas (EnrollStudentRequest.studentEmails).
               </p>
             </div>
+            {enrollError ? (
+              <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">{enrollError}</p>
+            ) : null}
             <div className="space-y-1.5">
               <Input
                 value={studentEmailsText}
                 hasError={Boolean(errors.studentEmailsText)}
                 placeholder="e.g. an@student.edu.vn, binh@student.edu.vn"
+                disabled={isEnrolling}
                 onChange={(event) => {
                   setStudentEmailsText(event.target.value)
                   if (errors.studentEmailsText) setErrors({})
@@ -128,9 +151,9 @@ export function ClassroomStudentsPanel({
                 <p className="text-sm text-red-500">{errors.studentEmailsText}</p>
               ) : null}
             </div>
-            <Button type="submit" className="w-full sm:w-auto">
+            <Button type="submit" className="w-full sm:w-auto" disabled={isEnrolling}>
               <UserPlus className="h-3.5 w-3.5" strokeWidth={1.75} />
-              Add to class
+              {isEnrolling ? 'Enrolling...' : 'Add to class'}
             </Button>
           </form>
 
@@ -141,12 +164,27 @@ export function ClassroomStudentsPanel({
               </p>
             </div>
 
-            {students.length === 0 ? (
+            {isLoadingStudents ? <Spinner label="Loading students..." className="py-8" /> : null}
+
+            {studentsError ? (
+              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-center">
+                <p className="text-sm text-red-600">{studentsError}</p>
+                {onRetryStudents ? (
+                  <Button variant="secondary" className="mt-3 h-9" onClick={onRetryStudents}>
+                    Try again
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
+
+            {!isLoadingStudents && !studentsError && students.length === 0 ? (
               <EmptyState
                 title="No students yet"
                 description="Enroll students by email, or use Import Excel when available."
               />
-            ) : (
+            ) : null}
+
+            {!isLoadingStudents && !studentsError && students.length > 0 ? (
               <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200">
                 {students.map((student) => (
                   <li
@@ -162,6 +200,7 @@ export function ClassroomStudentsPanel({
                     <Button
                       variant="ghost"
                       className="h-9 shrink-0 px-3 text-red-600 hover:bg-red-50 hover:text-red-700"
+                      disabled={isRemoving}
                       onClick={() => setRemovingStudent(student)}
                     >
                       <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
@@ -170,7 +209,7 @@ export function ClassroomStudentsPanel({
                   </li>
                 ))}
               </ul>
-            )}
+            ) : null}
           </div>
         </div>
       </aside>
@@ -185,18 +224,16 @@ export function ClassroomStudentsPanel({
               <span className="font-medium text-slate-900">{classroom.className}</span>?
             </p>
             <div className="mt-5 flex gap-2">
-              <Button variant="secondary" className="flex-1" onClick={() => setRemovingStudent(null)}>
+              <Button
+                variant="secondary"
+                className="flex-1"
+                disabled={isRemoving}
+                onClick={() => setRemovingStudent(null)}
+              >
                 Cancel
               </Button>
-              <Button
-                variant="danger"
-                className="flex-1"
-                onClick={() => {
-                  onRemove(removingStudent)
-                  setRemovingStudent(null)
-                }}
-              >
-                Remove
+              <Button variant="danger" className="flex-1" disabled={isRemoving} onClick={() => void confirmRemove()}>
+                {isRemoving ? 'Removing...' : 'Remove'}
               </Button>
             </div>
           </div>

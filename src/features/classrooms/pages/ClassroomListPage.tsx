@@ -1,8 +1,9 @@
 import { Plus, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import { Button } from '../../../components/ui/Button'
 import { EmptyState } from '../../../components/ui/EmptyState'
+import { ErrorState } from '../../../components/ui/ErrorState'
 import { Spinner } from '../../../components/ui/Spinner'
 import {
   Table,
@@ -13,91 +14,50 @@ import {
   TableHeader,
   TableRow,
 } from '../../../components/ui/Table'
+import { getApiErrorMessage } from '../../../lib/apiError'
+import { useSubjects } from '../../subjects/hooks/useSubjects'
 import { ClassroomForm } from '../components/ClassroomForm'
 import { ClassroomItem, ClassroomTableRow } from '../components/ClassroomItem'
 import { ClassroomStudentsPanel } from '../components/ClassroomStudentsPanel'
-import type {
-  ClassroomFormValues,
-  ClassroomItem as ClassroomItemType,
-  ClassroomStudent,
-  SubjectOption,
-} from '../types/classroom.types'
+import {
+  useClassroomStudents,
+  useClassrooms,
+  useCreateClassroom,
+  useDeleteClassroom,
+  useEnrollStudents,
+  useRemoveStudentFromClass,
+  useUpdateClassroom,
+} from '../hooks/useClassrooms'
+import type { ClassroomFormValues, ClassroomItem as ClassroomItemType } from '../types/classroom.types'
 
 type ModalMode = 'create' | 'edit' | null
-type ListStatus = 'loading' | 'ready'
-
-const MOCK_SUBJECTS: SubjectOption[] = [
-  { id: 1, subjectName: 'Software Engineering' },
-  { id: 2, subjectName: 'Database Systems' },
-  { id: 3, subjectName: 'Web Development' },
-]
-
-const MOCK_CLASSROOMS: ClassroomItemType[] = [
-  {
-    id: 1,
-    className: 'SE2025-CLC01',
-    description: 'Morning class for Software Engineering majors',
-    semester: '1',
-    academicYear: '2025-2026',
-    isActive: true,
-    subjectId: 1,
-    subjectName: 'Software Engineering',
-  },
-  {
-    id: 2,
-    className: 'DB2025-CQ02',
-    description: 'Database practice group',
-    semester: '1',
-    academicYear: '2025-2026',
-    isActive: true,
-    subjectId: 2,
-    subjectName: 'Database Systems',
-  },
-  {
-    id: 3,
-    className: 'WEB2024-CLC03',
-    description: '',
-    semester: '2',
-    academicYear: '2024-2025',
-    isActive: false,
-    subjectId: 3,
-    subjectName: 'Web Development',
-  },
-]
-
-const MOCK_STUDENTS_BY_CLASS: Record<number, ClassroomStudent[]> = {
-  1: [
-    { id: 101, studentCode: 'SV001', fullName: 'Nguyen Van An', email: 'an.nguyen@student.edu.vn' },
-    { id: 102, studentCode: 'SV002', fullName: 'Tran Thi Binh', email: 'binh.tran@student.edu.vn' },
-    { id: 103, studentCode: 'SV003', fullName: 'Le Minh Cuong', email: 'cuong.le@student.edu.vn' },
-  ],
-  2: [
-    { id: 201, studentCode: 'SV010', fullName: 'Pham Thu Dung', email: 'dung.pham@student.edu.vn' },
-  ],
-  3: [],
-}
 
 export function ClassroomListPage() {
-  const [status, setStatus] = useState<ListStatus>('loading')
-  const [classrooms, setClassrooms] = useState<ClassroomItemType[]>([])
-  const [studentsByClass, setStudentsByClass] =
-    useState<Record<number, ClassroomStudent[]>>(MOCK_STUDENTS_BY_CLASS)
+  const classroomsQuery = useClassrooms()
+  const subjectsQuery = useSubjects()
+  const createClassroom = useCreateClassroom()
+  const updateClassroom = useUpdateClassroom()
+  const deleteClassroom = useDeleteClassroom()
+  const enrollStudents = useEnrollStudents()
+  const removeStudent = useRemoveStudentFromClass()
 
   const [modalMode, setModalMode] = useState<ModalMode>(null)
   const [editingClassroom, setEditingClassroom] = useState<ClassroomItemType | null>(null)
   const [deletingClassroom, setDeletingClassroom] = useState<ClassroomItemType | null>(null)
   const [managingClassroom, setManagingClassroom] = useState<ClassroomItemType | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
-  const [isFormSubmitting, setIsFormSubmitting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [enrollError, setEnrollError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setClassrooms(MOCK_CLASSROOMS)
-      setStatus('ready')
-    }, 700)
+  const studentsQuery = useClassroomStudents(managingClassroom?.id)
 
-    return () => window.clearTimeout(timer)
-  }, [])
+  const classrooms = classroomsQuery.data ?? []
+  const subjectOptions = useMemo(
+    () => (subjectsQuery.data ?? []).map((subject) => ({ id: subject.id, subjectName: subject.subjectName })),
+    [subjectsQuery.data],
+  )
+
+  const isFormSubmitting = createClassroom.isPending || updateClassroom.isPending
 
   function openCreate() {
     setFormError(null)
@@ -118,95 +78,61 @@ export function ClassroomListPage() {
     setFormError(null)
   }
 
-  function resolveSubjectName(subjectId: number) {
-    return MOCK_SUBJECTS.find((subject) => subject.id === subjectId)?.subjectName ?? 'Unknown subject'
-  }
-
   async function handleSubmit(values: ClassroomFormValues) {
     setFormError(null)
-    setIsFormSubmitting(true)
 
-    await new Promise((resolve) => window.setTimeout(resolve, 400))
-
-    if (modalMode === 'create') {
-      const nextId = classrooms.reduce((max, item) => Math.max(max, item.id), 0) + 1
-      const created: ClassroomItemType = {
-        id: nextId,
-        ...values,
-        subjectName: resolveSubjectName(values.subjectId),
+    try {
+      if (modalMode === 'create') {
+        await createClassroom.mutateAsync(values)
       }
-      setClassrooms((current) => [created, ...current])
-      setStudentsByClass((current) => ({ ...current, [nextId]: [] }))
-    }
 
-    if (modalMode === 'edit' && editingClassroom) {
-      setClassrooms((current) =>
-        current.map((item) =>
-          item.id === editingClassroom.id
-            ? {
-                ...item,
-                ...values,
-                subjectName: resolveSubjectName(values.subjectId),
-              }
-            : item,
-        ),
-      )
-    }
+      if (modalMode === 'edit' && editingClassroom) {
+        await updateClassroom.mutateAsync({ id: editingClassroom.id, payload: values })
+      }
 
-    setIsFormSubmitting(false)
-    setModalMode(null)
-    setEditingClassroom(null)
+      setModalMode(null)
+      setEditingClassroom(null)
+    } catch (error) {
+      setFormError(getApiErrorMessage(error, 'Unable to save classroom'))
+    }
   }
 
-  function confirmDelete() {
+  async function confirmDelete() {
     if (!deletingClassroom) return
-    const id = deletingClassroom.id
-    setClassrooms((current) => current.filter((item) => item.id !== id))
-    setStudentsByClass((current) => {
-      const next = { ...current }
-      delete next[id]
-      return next
-    })
-    if (managingClassroom?.id === id) setManagingClassroom(null)
-    setDeletingClassroom(null)
+    setDeleteError(null)
+
+    try {
+      await deleteClassroom.mutateAsync(deletingClassroom.id)
+      if (managingClassroom?.id === deletingClassroom.id) setManagingClassroom(null)
+      setDeletingClassroom(null)
+    } catch (error) {
+      setDeleteError(getApiErrorMessage(error, 'Unable to delete classroom'))
+    }
   }
 
-  function handleEnroll(studentEmails: string[]) {
+  async function handleEnroll(studentEmails: string[]) {
+    if (!managingClassroom) return
+    setEnrollError(null)
+
+    try {
+      await enrollStudents.mutateAsync({
+        classroomId: managingClassroom.id,
+        payload: { studentEmails },
+      })
+    } catch (error) {
+      setEnrollError(getApiErrorMessage(error, 'Unable to enroll students'))
+      throw error
+    }
+  }
+
+  async function handleRemoveStudent(studentId: number) {
     if (!managingClassroom) return
 
-    setStudentsByClass((current) => {
-      const existing = current[managingClassroom.id] ?? []
-      const existingEmails = new Set(existing.map((student) => student.email.toLowerCase()))
-      const nextIdBase = existing.reduce((max, student) => Math.max(max, student.id), 1000)
-
-      const additions: ClassroomStudent[] = studentEmails
-        .filter((email) => !existingEmails.has(email.toLowerCase()))
-        .map((email, index) => {
-          const localPart = email.split('@')[0] ?? 'student'
-          return {
-            id: nextIdBase + index + 1,
-            studentCode: `SV${String(nextIdBase + index + 1).slice(-3)}`,
-            fullName: localPart.replace(/[._-]/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase()),
-            email,
-          }
-        })
-
-      return {
-        ...current,
-        [managingClassroom.id]: [...existing, ...additions],
-      }
+    await removeStudent.mutateAsync({
+      classroomId: managingClassroom.id,
+      studentId,
     })
   }
-
-  function handleRemoveStudent(student: ClassroomStudent) {
-    if (!managingClassroom) return
-    setStudentsByClass((current) => ({
-      ...current,
-      [managingClassroom.id]: (current[managingClassroom.id] ?? []).filter((item) => item.id !== student.id),
-    }))
-  }
-
-  const managingStudents = managingClassroom ? (studentsByClass[managingClassroom.id] ?? []) : []
 
   return (
     <section className="space-y-5">
@@ -224,9 +150,20 @@ export function ClassroomListPage() {
         </Button>
       </div>
 
-      {status === 'loading' ? <Spinner label="Loading classrooms..." /> : null}
+      {classroomsQuery.isLoading ? <Spinner label="Loading classrooms..." /> : null}
 
-      {status === 'ready' && classrooms.length === 0 ? (
+      {classroomsQuery.isError ? (
+        <ErrorState
+          message={getApiErrorMessage(classroomsQuery.error, 'Unable to load classrooms')}
+          action={
+            <Button variant="secondary" onClick={() => void classroomsQuery.refetch()}>
+              Try again
+            </Button>
+          }
+        />
+      ) : null}
+
+      {classroomsQuery.isSuccess && classrooms.length === 0 ? (
         <EmptyState
           title="No classrooms yet"
           description="Add your first classroom to start enrolling students."
@@ -239,7 +176,7 @@ export function ClassroomListPage() {
         />
       ) : null}
 
-      {status === 'ready' && classrooms.length > 0 ? (
+      {classroomsQuery.isSuccess && classrooms.length > 0 ? (
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="divide-y divide-slate-100 md:hidden">
             {classrooms.map((classroom) => (
@@ -247,8 +184,14 @@ export function ClassroomListPage() {
                 key={classroom.id}
                 classroom={classroom}
                 onEdit={openEdit}
-                onDelete={setDeletingClassroom}
-                onManageStudents={setManagingClassroom}
+                onDelete={(item) => {
+                  setDeleteError(null)
+                  setDeletingClassroom(item)
+                }}
+                onManageStudents={(item) => {
+                  setEnrollError(null)
+                  setManagingClassroom(item)
+                }}
               />
             ))}
           </div>
@@ -279,8 +222,14 @@ export function ClassroomListPage() {
                     key={classroom.id}
                     classroom={classroom}
                     onEdit={openEdit}
-                    onDelete={setDeletingClassroom}
-                    onManageStudents={setManagingClassroom}
+                    onDelete={(item) => {
+                      setDeleteError(null)
+                      setDeletingClassroom(item)
+                    }}
+                    onManageStudents={(item) => {
+                      setEnrollError(null)
+                      setManagingClassroom(item)
+                    }}
                   />
                 ))}
               </TableBody>
@@ -314,7 +263,7 @@ export function ClassroomListPage() {
             <ClassroomForm
               mode={modalMode}
               initialValues={editingClassroom ?? undefined}
-              subjectOptions={MOCK_SUBJECTS}
+              subjectOptions={subjectOptions}
               isSubmitting={isFormSubmitting}
               submitError={formError}
               onSubmit={handleSubmit}
@@ -333,12 +282,27 @@ export function ClassroomListPage() {
               <span className="font-medium text-slate-900">{deletingClassroom.className}</span> and its
               student roster from the list.
             </p>
+            {deleteError ? (
+              <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                {deleteError}
+              </p>
+            ) : null}
             <div className="mt-5 flex gap-2">
-              <Button variant="secondary" className="flex-1" onClick={() => setDeletingClassroom(null)}>
+              <Button
+                variant="secondary"
+                className="flex-1"
+                disabled={deleteClassroom.isPending}
+                onClick={() => setDeletingClassroom(null)}
+              >
                 Cancel
               </Button>
-              <Button variant="danger" className="flex-1" onClick={confirmDelete}>
-                Delete
+              <Button
+                variant="danger"
+                className="flex-1"
+                disabled={deleteClassroom.isPending}
+                onClick={() => void confirmDelete()}
+              >
+                {deleteClassroom.isPending ? 'Deleting...' : 'Delete'}
               </Button>
             </div>
           </div>
@@ -348,10 +312,18 @@ export function ClassroomListPage() {
       {managingClassroom ? (
         <ClassroomStudentsPanel
           classroom={managingClassroom}
-          students={managingStudents}
+          students={studentsQuery.data ?? []}
+          isLoadingStudents={studentsQuery.isLoading}
+          studentsError={
+            studentsQuery.isError ? getApiErrorMessage(studentsQuery.error, 'Unable to load students') : null
+          }
+          onRetryStudents={() => void studentsQuery.refetch()}
+          isEnrolling={enrollStudents.isPending}
+          enrollError={enrollError}
+          isRemoving={removeStudent.isPending}
           onClose={() => setManagingClassroom(null)}
           onEnroll={handleEnroll}
-          onRemove={handleRemoveStudent}
+          onRemove={(student) => void handleRemoveStudent(student.id)}
         />
       ) : null}
     </section>
