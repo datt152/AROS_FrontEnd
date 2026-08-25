@@ -1,0 +1,550 @@
+import { useMemo, useState } from 'react'
+
+import { Button } from '../../../components/ui/Button'
+import { Input } from '../../../components/ui/Input'
+import type {
+  ClassroomOption,
+  ExamCreateFormValues,
+  ExamFormErrors,
+  ExamItem,
+  ExamMode,
+  ExamUpdateFormValues,
+  QuestionPickItem,
+  SubjectOption,
+} from '../types/exam.types'
+import { EXAM_MODE_LABEL, QUESTION_TYPE_LABEL } from '../types/exam.types'
+
+type ExamFormProps = {
+  mode: 'create' | 'edit'
+  initialValues?: ExamItem
+  subjectOptions: SubjectOption[]
+  questionOptions: QuestionPickItem[]
+  classroomOptions: ClassroomOption[]
+  isSubmitting?: boolean
+  submitError?: string | null
+  onSubjectChange?: (subjectId: number) => void
+  onSubmitCreate: (values: ExamCreateFormValues) => void | Promise<void>
+  onSubmitUpdate: (values: ExamUpdateFormValues) => void | Promise<void>
+  onCancel: () => void
+}
+
+const selectClassName = (hasError: boolean) =>
+  `h-10 w-full rounded-xl border bg-slate-50/70 px-3 text-sm text-slate-900 outline-none transition focus:bg-white focus:ring-4 disabled:opacity-60 ${
+    hasError
+      ? 'border-red-400 focus:border-red-400 focus:ring-red-100'
+      : 'border-slate-200 focus:border-blue-400 focus:ring-blue-100'
+  }`
+
+function toCreateValues(item?: ExamItem): ExamCreateFormValues {
+  return {
+    title: item?.title ?? '',
+    duration: item?.duration ?? '',
+    examMode: item?.examMode ?? '',
+    subjectId: item?.subjectId ?? '',
+    questionIds: item?.questionIds ?? [],
+    maxScore: item?.maxScore ?? 10,
+    rawPoints: {},
+    classroomIds: item?.classroomIds ?? [],
+    config: {
+      shuffleQuestions: item?.config?.shuffleQuestions ?? false,
+      shuffleAnswers: item?.config?.shuffleAnswers ?? false,
+      paperCount: item?.config?.paperCount ?? 1,
+      semester: item?.config?.semester ?? '1',
+      academicYear: item?.config?.academicYear ?? '2025-2026',
+      allowEdit: item?.config?.allowEdit ?? false,
+    },
+  }
+}
+
+function toUpdateValues(item?: ExamItem): ExamUpdateFormValues {
+  return {
+    title: item?.title ?? '',
+    duration: item?.duration ?? '',
+    examMode: item?.examMode ?? '',
+    subjectId: item?.subjectId ?? '',
+    maxScore: item?.maxScore ?? 10,
+    config: {
+      shuffleQuestions: item?.config?.shuffleQuestions ?? false,
+      shuffleAnswers: item?.config?.shuffleAnswers ?? false,
+      paperCount: item?.config?.paperCount ?? 1,
+      semester: item?.config?.semester ?? '1',
+      academicYear: item?.config?.academicYear ?? '2025-2026',
+      allowEdit: item?.config?.allowEdit ?? false,
+    },
+  }
+}
+
+export function ExamForm({
+  mode,
+  initialValues,
+  subjectOptions,
+  questionOptions,
+  classroomOptions: _classroomOptions,
+  isSubmitting = false,
+  submitError = null,
+  onSubjectChange,
+  onSubmitCreate,
+  onSubmitUpdate,
+  onCancel,
+}: ExamFormProps) {
+  const [step, setStep] = useState(1)
+  const [showRawPoints, setShowRawPoints] = useState(false)
+  const [createValues, setCreateValues] = useState<ExamCreateFormValues>(() => toCreateValues(initialValues))
+  const [updateValues, setUpdateValues] = useState<ExamUpdateFormValues>(() => toUpdateValues(initialValues))
+  const [errors, setErrors] = useState<ExamFormErrors>({})
+
+  const selectedSubjectId = mode === 'create' ? createValues.subjectId : updateValues.subjectId
+  const selectedMode = mode === 'create' ? createValues.examMode : updateValues.examMode
+
+  const availableQuestions = useMemo(() => {
+    if (!selectedSubjectId) return []
+    return questionOptions.filter((question) => {
+      if (question.subjectId !== selectedSubjectId) return false
+      if (selectedMode === 'OMR_PAPER' && question.type === 'MULTIPLE_CHOICE') return false
+      return true
+    })
+  }, [questionOptions, selectedSubjectId, selectedMode])
+
+  function updateCreateField<K extends keyof ExamCreateFormValues>(key: K, value: ExamCreateFormValues[K]) {
+    setCreateValues((current) => {
+      const next = { ...current, [key]: value }
+      if (key === 'subjectId' || key === 'examMode') {
+        next.questionIds = []
+        next.rawPoints = {}
+        if (key === 'subjectId') next.classroomIds = []
+      }
+      return next
+    })
+    if (key === 'subjectId' && typeof value === 'number' && value > 0) {
+      onSubjectChange?.(value)
+    }
+    if (key in errors) setErrors((current) => ({ ...current, [key]: undefined }))
+  }
+
+  function updateUpdateField<K extends keyof ExamUpdateFormValues>(key: K, value: ExamUpdateFormValues[K]) {
+    setUpdateValues((current) => ({ ...current, [key]: value }))
+    if (key === 'subjectId' && typeof value === 'number' && value > 0) {
+      onSubjectChange?.(value)
+    }
+    if (key in errors) setErrors((current) => ({ ...current, [key]: undefined }))
+  }
+
+  function toggleQuestion(questionId: number) {
+    setCreateValues((current) => {
+      const exists = current.questionIds.includes(questionId)
+      const questionIds = exists
+        ? current.questionIds.filter((id) => id !== questionId)
+        : [...current.questionIds, questionId]
+      const rawPoints = { ...current.rawPoints }
+      if (exists) delete rawPoints[questionId]
+      else rawPoints[questionId] = 1
+      return { ...current, questionIds, rawPoints }
+    })
+    setErrors((current) => ({ ...current, questionIds: undefined }))
+  }
+
+  function validateMeta(values: { title: string; duration: number | ''; examMode: ExamMode | ''; subjectId: number | ''; maxScore: number | '' }) {
+    const nextErrors: ExamFormErrors = {}
+    if (!values.title.trim()) nextErrors.title = 'Vui lòng nhập tiêu đề'
+    if (values.duration === '' || Number(values.duration) <= 0) nextErrors.duration = 'Thời gian phải lớn hơn 0'
+    if (!values.examMode) nextErrors.examMode = 'Vui lòng chọn hình thức thi'
+    if (!values.subjectId) nextErrors.subjectId = 'Vui lòng chọn môn học'
+    if (values.maxScore === '' || Number(values.maxScore) <= 0) nextErrors.maxScore = 'Thang điểm phải lớn hơn 0'
+    setErrors(nextErrors)
+    return Object.keys(nextErrors).length === 0
+  }
+
+  function validateQuestions() {
+    const nextErrors: ExamFormErrors = {}
+    if (createValues.questionIds.length < 1) nextErrors.questionIds = 'Chọn ít nhất 1 câu hỏi'
+    setErrors(nextErrors)
+    return Object.keys(nextErrors).length === 0
+  }
+
+  function validateConfig() {
+    const nextErrors: ExamFormErrors = {}
+    if (createValues.config.paperCount === '' || Number(createValues.config.paperCount) < 1) {
+      nextErrors.paperCount = 'Số đề in phải ≥ 1'
+    }
+    setErrors(nextErrors)
+    return Object.keys(nextErrors).length === 0
+  }
+
+  async function handleNext() {
+    if (step === 1 && !validateMeta(createValues)) return
+    if (step === 2 && !validateQuestions()) return
+    if (step === 3 && !validateConfig()) return
+    setStep((value) => Math.min(value + 1, 3))
+  }
+
+  async function handleCreateSubmit() {
+    if (!validateMeta(createValues) || !validateQuestions() || !validateConfig()) {
+      if (!validateMeta(createValues)) setStep(1)
+      else if (!validateQuestions()) setStep(2)
+      else setStep(3)
+      return
+    }
+
+    await onSubmitCreate({
+      ...createValues,
+      title: createValues.title.trim(),
+      duration: Number(createValues.duration),
+      examMode: createValues.examMode as ExamMode,
+      subjectId: Number(createValues.subjectId),
+      maxScore: Number(createValues.maxScore),
+      classroomIds: [],
+      config: {
+        ...createValues.config,
+        paperCount: Number(createValues.config.paperCount) || 1,
+      },
+    })
+  }
+
+  async function handleUpdateSubmit() {
+    if (!validateMeta(updateValues)) return
+    await onSubmitUpdate({
+      title: updateValues.title.trim(),
+      duration: Number(updateValues.duration),
+      examMode: updateValues.examMode as ExamMode,
+      subjectId: Number(updateValues.subjectId),
+      maxScore: Number(updateValues.maxScore),
+      config: updateValues.config,
+    })
+  }
+
+  const values = mode === 'create' ? createValues : updateValues
+  const stepLabels = ['Thông tin', 'Câu hỏi', 'Cấu hình']
+  const totalSteps = stepLabels.length
+
+  return (
+    <form
+      className="space-y-4"
+      onSubmit={(event) => {
+        event.preventDefault()
+        // Create wizard: không dùng type=submit cho nút cuối — tránh swap button trong cùng click
+        // khiến form tự submit ngay khi vừa tới bước cuối.
+        if (mode === 'edit') void handleUpdateSubmit()
+      }}
+      noValidate
+    >
+      {submitError ? (
+        <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">{submitError}</p>
+      ) : null}
+
+      {mode === 'create' ? (
+        <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-slate-500">
+          {stepLabels.map((label, index) => {
+            const value = index + 1
+            return (
+              <div key={label} className="flex items-center gap-2">
+                <span
+                  className={`inline-flex h-6 w-6 items-center justify-center rounded-full ${
+                    step === value
+                      ? 'bg-blue-600 text-white'
+                      : step > value
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'bg-slate-100 text-slate-500'
+                  }`}
+                >
+                  {value}
+                </span>
+                <span className={step === value ? 'text-slate-900' : ''}>{label}</span>
+                {value < totalSteps ? <span className="text-slate-300">/</span> : null}
+              </div>
+            )
+          })}
+        </div>
+      ) : (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          Danh sách câu hỏi không thể chỉnh sau khi tạo. Trạng thái mở thi dùng nút “Mở thi”.
+        </p>
+      )}
+
+      {(mode === 'edit' || step === 1) && (
+        <>
+          <div className="space-y-1.5">
+            <label htmlFor="title" className="text-sm font-medium text-slate-700">
+              Tiêu đề
+            </label>
+            <Input
+              id="title"
+              value={values.title}
+              hasError={Boolean(errors.title)}
+              placeholder="vd. Giữa kỳ CNPM"
+              disabled={isSubmitting}
+              onChange={(event) =>
+                mode === 'create'
+                  ? updateCreateField('title', event.target.value)
+                  : updateUpdateField('title', event.target.value)
+              }
+            />
+            {errors.title ? <p className="text-sm text-red-500">{errors.title}</p> : null}
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <label htmlFor="duration" className="text-sm font-medium text-slate-700">
+                Thời gian (phút)
+              </label>
+              <Input
+                id="duration"
+                type="number"
+                min={1}
+                value={values.duration}
+                hasError={Boolean(errors.duration)}
+                disabled={isSubmitting}
+                onChange={(event) => {
+                  const next = event.target.value === '' ? '' : Number(event.target.value)
+                  mode === 'create' ? updateCreateField('duration', next) : updateUpdateField('duration', next)
+                }}
+              />
+              {errors.duration ? <p className="text-sm text-red-500">{errors.duration}</p> : null}
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor="maxScore" className="text-sm font-medium text-slate-700">
+                Thang điểm
+              </label>
+              <Input
+                id="maxScore"
+                type="number"
+                min={1}
+                value={values.maxScore}
+                hasError={Boolean(errors.maxScore)}
+                disabled={isSubmitting}
+                onChange={(event) => {
+                  const next = event.target.value === '' ? '' : Number(event.target.value)
+                  mode === 'create' ? updateCreateField('maxScore', next) : updateUpdateField('maxScore', next)
+                }}
+              />
+              {errors.maxScore ? <p className="text-sm text-red-500">{errors.maxScore}</p> : null}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <label htmlFor="examMode" className="text-sm font-medium text-slate-700">
+                Hình thức thi
+              </label>
+              <select
+                id="examMode"
+                value={values.examMode}
+                disabled={isSubmitting}
+                onChange={(event) => {
+                  const next = event.target.value as ExamMode | ''
+                  mode === 'create' ? updateCreateField('examMode', next) : updateUpdateField('examMode', next)
+                }}
+                className={selectClassName(Boolean(errors.examMode))}
+              >
+                <option value="">Chọn hình thức</option>
+                <option value="ONLINE">{EXAM_MODE_LABEL.ONLINE}</option>
+                <option value="OMR_PAPER">{EXAM_MODE_LABEL.OMR_PAPER}</option>
+              </select>
+              {errors.examMode ? <p className="text-sm text-red-500">{errors.examMode}</p> : null}
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor="subjectId" className="text-sm font-medium text-slate-700">
+                Môn học
+              </label>
+              <select
+                id="subjectId"
+                value={values.subjectId}
+                disabled={isSubmitting}
+                onChange={(event) => {
+                  const next = event.target.value === '' ? '' : Number(event.target.value)
+                  mode === 'create' ? updateCreateField('subjectId', next) : updateUpdateField('subjectId', next)
+                }}
+                className={selectClassName(Boolean(errors.subjectId))}
+              >
+                <option value="">Chọn môn học</option>
+                {subjectOptions.map((subject) => (
+                  <option key={subject.id} value={subject.id}>
+                    {subject.subjectName}
+                  </option>
+                ))}
+              </select>
+              {errors.subjectId ? <p className="text-sm text-red-500">{errors.subjectId}</p> : null}
+            </div>
+          </div>
+        </>
+      )}
+
+      {mode === 'create' && step === 2 ? (
+        <div className="space-y-3">
+          <div>
+            <p className="text-sm font-medium text-slate-800">Chọn câu hỏi</p>
+            <p className="mt-0.5 text-xs text-slate-500">
+              {selectedMode === 'OMR_PAPER'
+                ? 'Chế độ OMR chỉ cho phép câu một đáp án.'
+                : 'Chọn ít nhất một câu hỏi thuộc môn đã chọn.'}
+            </p>
+          </div>
+          {errors.questionIds ? <p className="text-sm text-red-500">{errors.questionIds}</p> : null}
+          {availableQuestions.length === 0 ? (
+            <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-4 text-sm text-slate-500">
+              Không có câu hỏi phù hợp.
+            </p>
+          ) : (
+            <ul className="max-h-72 space-y-2 overflow-y-auto rounded-2xl border border-slate-200 p-2">
+              {availableQuestions.map((question) => (
+                <li key={question.questionId}>
+                  <label className="flex cursor-pointer items-start gap-3 rounded-xl px-3 py-2.5 hover:bg-slate-50">
+                    <input
+                      type="checkbox"
+                      checked={createValues.questionIds.includes(question.questionId)}
+                      disabled={isSubmitting}
+                      onChange={() => toggleQuestion(question.questionId)}
+                      className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-slate-900">{question.content}</p>
+                      <p className="mt-1 text-xs text-slate-500">{QUESTION_TYPE_LABEL[question.type]}</p>
+                    </div>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          )}
+          <button
+            type="button"
+            className="text-sm font-medium text-blue-600 hover:text-blue-700"
+            onClick={() => setShowRawPoints((value) => !value)}
+          >
+            {showRawPoints ? 'Ẩn điểm thô' : 'Hiện điểm thô (nâng cao)'}
+          </button>
+          {showRawPoints ? (
+            <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+              {createValues.questionIds.map((questionId) => (
+                <div key={questionId} className="flex items-center gap-3">
+                  <p className="min-w-0 flex-1 truncate text-xs text-slate-600">#{questionId}</p>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.25"
+                    className="w-24"
+                    value={createValues.rawPoints[questionId] ?? 1}
+                    disabled={isSubmitting}
+                    onChange={(event) =>
+                      updateCreateField('rawPoints', {
+                        ...createValues.rawPoints,
+                        [questionId]: Number(event.target.value) || 0,
+                      })
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {mode === 'create' && step === 3 ? (
+        <div className="space-y-4">
+          <label className="flex items-center gap-2.5 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={createValues.config.shuffleQuestions}
+              disabled={isSubmitting}
+              onChange={(event) =>
+                updateCreateField('config', { ...createValues.config, shuffleQuestions: event.target.checked })
+              }
+              className="h-4 w-4 rounded border-slate-300 text-blue-600"
+            />
+            Xáo trộn câu hỏi
+          </label>
+          <label className="flex items-center gap-2.5 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={createValues.config.shuffleAnswers}
+              disabled={isSubmitting}
+              onChange={(event) =>
+                updateCreateField('config', { ...createValues.config, shuffleAnswers: event.target.checked })
+              }
+              className="h-4 w-4 rounded border-slate-300 text-blue-600"
+            />
+            Xáo trộn đáp án
+          </label>
+          <label className="flex items-center gap-2.5 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={createValues.config.allowEdit}
+              disabled={isSubmitting}
+              onChange={(event) =>
+                updateCreateField('config', { ...createValues.config, allowEdit: event.target.checked })
+              }
+              className="h-4 w-4 rounded border-slate-300 text-blue-600"
+            />
+            Cho phép sửa bài khi đang làm
+          </label>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700">Số đề in</label>
+              <Input
+                type="number"
+                min={1}
+                value={createValues.config.paperCount}
+                hasError={Boolean(errors.paperCount)}
+                disabled={isSubmitting}
+                onChange={(event) =>
+                  updateCreateField('config', {
+                    ...createValues.config,
+                    paperCount: event.target.value === '' ? '' : Number(event.target.value),
+                  })
+                }
+              />
+              {errors.paperCount ? <p className="text-sm text-red-500">{errors.paperCount}</p> : null}
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700">Học kỳ</label>
+              <Input
+                value={createValues.config.semester}
+                disabled={isSubmitting}
+                onChange={(event) =>
+                  updateCreateField('config', { ...createValues.config, semester: event.target.value })
+                }
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700">Năm học</label>
+              <Input
+                value={createValues.config.academicYear}
+                disabled={isSubmitting}
+                onChange={(event) =>
+                  updateCreateField('config', { ...createValues.config, academicYear: event.target.value })
+                }
+              />
+            </div>
+          </div>
+          <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+            Giao lớp sau khi tạo — dùng “Chọn lớp” ở chi tiết đề hoặc danh sách.
+          </p>
+        </div>
+      ) : null}
+
+      <div className="flex items-center justify-between gap-2 pt-2">
+        <Button type="button" variant="secondary" onClick={onCancel} disabled={isSubmitting}>
+          Hủy
+        </Button>
+        <div className="flex gap-2">
+          {mode === 'create' && step > 1 ? (
+            <Button type="button" variant="secondary" disabled={isSubmitting} onClick={() => setStep((value) => value - 1)}>
+              Quay lại
+            </Button>
+          ) : null}
+          {mode === 'create' && step < totalSteps ? (
+            <Button type="button" disabled={isSubmitting} onClick={() => void handleNext()}>
+              Tiếp tục
+            </Button>
+          ) : mode === 'create' ? (
+            <Button type="button" disabled={isSubmitting} onClick={() => void handleCreateSubmit()}>
+              {isSubmitting ? 'Đang tạo...' : 'Tạo đề (nháp)'}
+            </Button>
+          ) : (
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Đang lưu...' : 'Lưu thay đổi'}
+            </Button>
+          )}
+        </div>
+      </div>
+    </form>
+  )
+}

@@ -3,6 +3,8 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { LoginPage } from '../features/auth/pages/LoginPage'
 import { RegisterPage } from '../features/auth/pages/RegisterPage'
 import { ClassroomListPage } from '../features/classrooms/pages/ClassroomListPage'
+import { ExamListPage } from '../features/exams/pages/ExamListPage'
+import { ExamTakePage } from '../features/exams/pages/ExamTakePage'
 import { QuestionListPage } from '../features/questions/pages/QuestionListPage'
 import { SubjectListPage } from '../features/subjects/pages/SubjectListPage'
 import { AuthLayout } from '../layouts/AuthLayout'
@@ -21,6 +23,12 @@ function teacherPageForPath(path: string) {
   if (path === ROUTES.teacher.subjects) return <SubjectListPage />
   if (path === ROUTES.teacher.classrooms) return <ClassroomListPage />
   if (path === ROUTES.teacher.questionBank) return <QuestionListPage />
+  if (path === ROUTES.teacher.exams) return <ExamListPage />
+  return null
+}
+
+function studentPageForPath(path: string) {
+  if (path === ROUTES.student.takeExam) return <ExamTakePage />
   return null
 }
 
@@ -63,7 +71,7 @@ export const router = createBrowserRouter([
             element: <StudentLayout />,
             children: STUDENT_PATHS.map((path) => ({
               path,
-              element: null,
+              element: studentPageForPath(path),
             })),
           },
         ],
