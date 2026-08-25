@@ -1,5 +1,6 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { STALE_TIME } from '../../../lib/queryStaleTime'
 import { createQuestion, deleteQuestion, getQuestions, updateQuestion } from '../api/questions.api'
 import type { GetQuestionsParams } from '../api/questions.api'
 import type { QuestionPayload } from '../types/question.types'
@@ -17,6 +18,7 @@ export function useQuestions(params: GetQuestionsParams | undefined) {
     queryKey: questionKeys.list(params ?? { subjectId: -1, page: 0, size: 10 }),
     queryFn: () => getQuestions(params!),
     enabled: params !== undefined && params.subjectId > 0,
+    staleTime: STALE_TIME.list,
   })
 }
 
@@ -29,6 +31,7 @@ export function useQuestionCounts(subjectIds: number[]) {
         return result.totalElements
       },
       enabled: subjectId > 0,
+      staleTime: STALE_TIME.list,
     })),
   })
 }

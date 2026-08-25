@@ -1,5 +1,6 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { STALE_TIME } from '../../../lib/queryStaleTime'
 import {
   createExam,
   createExamVersions,
@@ -38,6 +39,7 @@ export function useExams(params: GetExamsParams) {
   return useQuery({
     queryKey: examKeys.list(params),
     queryFn: () => getExams(params),
+    staleTime: STALE_TIME.list,
   })
 }
 
@@ -46,6 +48,7 @@ export function useExam(id: number | undefined) {
     queryKey: examKeys.detail(id ?? -1),
     queryFn: () => getExam(id!),
     enabled: id !== undefined && id > 0,
+    staleTime: STALE_TIME.detail,
   })
 }
 
@@ -54,6 +57,7 @@ export function useExamVersions(id: number | undefined) {
     queryKey: examKeys.versions(id ?? -1),
     queryFn: () => getExamVersions(id!),
     enabled: id !== undefined && id > 0,
+    staleTime: STALE_TIME.detail,
   })
 }
 
@@ -63,6 +67,7 @@ export function useExamVersionsMany(ids: number[]) {
       queryKey: examKeys.versions(id),
       queryFn: () => getExamVersions(id),
       enabled: id > 0,
+      staleTime: STALE_TIME.detail,
     })),
   })
 }
@@ -72,6 +77,7 @@ export function useExamClassrooms(id: number | undefined) {
     queryKey: examKeys.classrooms(id ?? -1),
     queryFn: () => getExamClassrooms(id!),
     enabled: id !== undefined && id > 0,
+    staleTime: STALE_TIME.detail,
   })
 }
 
@@ -80,6 +86,7 @@ export function useExamVersionDetail(examId: number | undefined, versionCode: st
     queryKey: examKeys.versionDetail(examId ?? -1, versionCode ?? ''),
     queryFn: () => getExamVersionDetail(examId!, versionCode!),
     enabled: examId !== undefined && examId > 0 && Boolean(versionCode),
+    staleTime: STALE_TIME.detail,
   })
 }
 
@@ -89,6 +96,7 @@ export function useTakeExam(id: number | undefined, enabled = true) {
     queryFn: () => takeExam(id!),
     enabled: enabled && id !== undefined && id > 0,
     retry: false,
+    staleTime: STALE_TIME.realtime,
   })
 }
 

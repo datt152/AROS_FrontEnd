@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { STALE_TIME } from '../../../lib/queryStaleTime'
 import {
   createClassroom,
   deleteClassroom,
@@ -25,6 +26,7 @@ export function useClassrooms(subjectId?: number) {
   return useQuery({
     queryKey: classroomKeys.list(subjectId),
     queryFn: () => getClassrooms({ subjectId }),
+    staleTime: STALE_TIME.reference,
   })
 }
 
@@ -33,6 +35,7 @@ export function useClassroom(id: number | undefined) {
     queryKey: classroomKeys.detail(id ?? -1),
     queryFn: () => getClassroom(id!),
     enabled: id !== undefined,
+    staleTime: STALE_TIME.detail,
   })
 }
 
@@ -41,6 +44,7 @@ export function useClassroomStudents(classroomId: number | undefined) {
     queryKey: classroomKeys.students(classroomId ?? -1),
     queryFn: () => getClassroomStudents(classroomId!),
     enabled: classroomId !== undefined,
+    staleTime: STALE_TIME.detail,
   })
 }
 

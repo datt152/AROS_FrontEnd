@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 
 import { getAccessToken } from '../../../lib/axios'
+import { STALE_TIME } from '../../../lib/queryStaleTime'
 import { restoreSession } from '../api/auth.api'
 
 export const authKeys = {
@@ -13,7 +14,7 @@ export function useAuthSession() {
     queryKey: authKeys.session,
     queryFn: restoreSession,
     retry: false,
-    staleTime: 5 * 60_000,
+    staleTime: STALE_TIME.auth,
   })
 
   const session = sessionQuery.data ?? null

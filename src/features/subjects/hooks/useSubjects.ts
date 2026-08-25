@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { STALE_TIME } from '../../../lib/queryStaleTime'
 import {
   createSubject,
   deleteSubject,
@@ -21,6 +22,7 @@ export function useSubjects() {
   return useQuery({
     queryKey: subjectKeys.list(),
     queryFn: getSubjects,
+    staleTime: STALE_TIME.reference,
   })
 }
 
@@ -29,6 +31,7 @@ export function useSubject(id: number | undefined) {
     queryKey: subjectKeys.detail(id ?? -1),
     queryFn: () => getSubject(id!),
     enabled: id !== undefined,
+    staleTime: STALE_TIME.reference,
   })
 }
 
