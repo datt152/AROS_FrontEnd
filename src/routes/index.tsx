@@ -1,5 +1,6 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 
+import { AuthSessionBridge } from '../features/auth/components/AuthSessionBridge'
 import { LoginPage } from '../features/auth/pages/LoginPage'
 import { RegisterPage } from '../features/auth/pages/RegisterPage'
 import { ClassroomListPage } from '../features/classrooms/pages/ClassroomListPage'
@@ -34,52 +35,57 @@ function studentPageForPath(path: string) {
 
 export const router = createBrowserRouter([
   {
-    element: <PublicLayout />,
-    children: [{ path: ROUTES.home, element: <HomePage /> }],
-  },
-  {
-    element: <GuestRoute />,
+    element: <AuthSessionBridge />,
     children: [
       {
-        element: <AuthLayout />,
-        children: [
-          { path: ROUTES.login, element: <LoginPage /> },
-          { path: ROUTES.register, element: <RegisterPage /> },
-        ],
+        element: <PublicLayout />,
+        children: [{ path: ROUTES.home, element: <HomePage /> }],
       },
-    ],
-  },
-  {
-    element: <ProtectedRoute />,
-    children: [
       {
-        element: <RoleRoute allowedRoles={['teacher']} />,
+        element: <GuestRoute />,
         children: [
           {
-            element: <TeacherLayout />,
-            children: TEACHER_PATHS.map((path) => ({
-              path,
-              element: teacherPageForPath(path),
-            })),
+            element: <AuthLayout />,
+            children: [
+              { path: ROUTES.login, element: <LoginPage /> },
+              { path: ROUTES.register, element: <RegisterPage /> },
+            ],
           },
         ],
       },
       {
-        element: <RoleRoute allowedRoles={['student']} />,
+        element: <ProtectedRoute />,
         children: [
           {
-            element: <StudentLayout />,
-            children: STUDENT_PATHS.map((path) => ({
-              path,
-              element: studentPageForPath(path),
-            })),
+            element: <RoleRoute allowedRoles={['teacher']} />,
+            children: [
+              {
+                element: <TeacherLayout />,
+                children: TEACHER_PATHS.map((path) => ({
+                  path,
+                  element: teacherPageForPath(path),
+                })),
+              },
+            ],
+          },
+          {
+            element: <RoleRoute allowedRoles={['student']} />,
+            children: [
+              {
+                element: <StudentLayout />,
+                children: STUDENT_PATHS.map((path) => ({
+                  path,
+                  element: studentPageForPath(path),
+                })),
+              },
+            ],
           },
         ],
       },
+      { path: ROUTES.unauthorized, element: <UnauthorizedPage /> },
+      { path: '*', element: <NotFoundPage /> },
     ],
   },
-  { path: ROUTES.unauthorized, element: <UnauthorizedPage /> },
-  { path: '*', element: <NotFoundPage /> },
 ])
 
 export function AppRouter() {

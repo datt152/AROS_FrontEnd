@@ -36,7 +36,7 @@ export function clearAccessToken() {
   accessToken = null
 }
 
-/** Register logout/session cleanup from AuthProvider (optional). */
+/** Register session cleanup + redirect (AuthSessionBridge). */
 export function setUnauthorizedHandler(handler: (() => void) | null) {
   unauthorizedHandler = handler
 }
@@ -120,8 +120,10 @@ apiClient.interceptors.response.use(
     const token = await refreshAccessToken()
 
     if (!token) {
-      clearAccessToken()
       unauthorizedHandler?.()
+      if (!unauthorizedHandler) {
+        clearAccessToken()
+      }
       return Promise.reject(error)
     }
 
