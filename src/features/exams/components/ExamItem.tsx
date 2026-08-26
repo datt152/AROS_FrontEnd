@@ -78,22 +78,6 @@ function ExamActions({
             <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
             Sửa
           </Button>
-          <Button
-            variant="ghost"
-            className="h-8 border border-sky-200 bg-sky-50 px-2 text-xs text-sky-700 hover:bg-sky-100"
-            onClick={() => onAssignClassrooms(exam)}
-          >
-            <Users className="h-3.5 w-3.5" strokeWidth={1.75} />
-            Giao lớp
-          </Button>
-          <Button
-            variant="ghost"
-            className="h-8 border border-violet-200 bg-violet-50 px-2 text-xs text-violet-700 hover:bg-violet-100"
-            onClick={() => onGenerateVersions(exam)}
-          >
-            <FileCode2 className="h-3.5 w-3.5" strokeWidth={1.75} />
-            Sinh mã
-          </Button>
           <span title={openBlockReason ?? undefined}>
             <Button
               variant="ghost"

@@ -122,9 +122,6 @@ export function ClassroomStudentsPanel({
               Tạo tài khoản hàng loạt
             </Button>
           </div>
-          <p className="text-xs text-slate-400">
-            Nhập Excel và tạo tài khoản hàng loạt là chức năng tạm thời cho đến khi backend sẵn sàng.
-          </p>
 
           <form className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/60 p-4" onSubmit={handleEnroll}>
             <div>
@@ -140,7 +137,7 @@ export function ClassroomStudentsPanel({
               <Input
                 value={studentEmailsText}
                 hasError={Boolean(errors.studentEmailsText)}
-                placeholder="vd. an@student.edu.vn, binh@student.edu.vn"
+                placeholder="Vui lòng nhập email sinh viên"
                 disabled={isEnrolling}
                 onChange={(event) => {
                   setStudentEmailsText(event.target.value)

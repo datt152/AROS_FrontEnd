@@ -57,7 +57,7 @@ export function ClassroomForm({
     }
 
     if (!values.subjectId) {
-      nextErrors.subjectId = 'Môn học ID không được để trống'
+      nextErrors.subjectId = 'Môn học không được để trống'
     }
 
     setErrors(nextErrors)
@@ -95,7 +95,7 @@ export function ClassroomForm({
           name="className"
           value={values.className}
           hasError={Boolean(errors.className)}
-          placeholder="vd. SE2024-CLC01"
+          placeholder="Vui lòng nhập tên lớp"
           disabled={isSubmitting}
           onChange={(event) => updateField('className', event.target.value)}
         />
@@ -134,7 +134,7 @@ export function ClassroomForm({
             name="semester"
             value={values.semester}
             hasError={Boolean(errors.semester)}
-            placeholder="vd. 1"
+            placeholder="Vui lòng nhập học kỳ"
             disabled={isSubmitting}
             onChange={(event) => updateField('semester', event.target.value)}
           />
@@ -150,7 +150,7 @@ export function ClassroomForm({
             name="academicYear"
             value={values.academicYear}
             hasError={Boolean(errors.academicYear)}
-            placeholder="vd. 2025-2026"
+            placeholder="Vui lòng nhập năm học"
             disabled={isSubmitting}
             onChange={(event) => updateField('academicYear', event.target.value)}
           />

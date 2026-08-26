@@ -364,6 +364,7 @@ export function QuestionListPage() {
                     </div>
                     <p className="line-clamp-2 font-semibold text-slate-900">{subject.subjectName}</p>
                   </div>
+                  <div className="text-sm text-slate-500">{subject.description}</div>
                   <p className="mt-auto pt-2 text-sm text-slate-500">
                     {countQueries[index]?.isLoading
                       ? 'Đang tải...'

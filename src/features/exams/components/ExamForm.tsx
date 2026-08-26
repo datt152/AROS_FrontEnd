@@ -312,7 +312,7 @@ export function ExamForm({
               id="title"
               value={values.title}
               hasError={Boolean(errors.title)}
-              placeholder="vd. Giữa kỳ CNPM"
+              placeholder="Vui lòng nhập tiêu đề"
               disabled={isSubmitting}
               onChange={(event) =>
                 mode === 'create'
@@ -569,7 +569,7 @@ export function ExamForm({
                 className="text-sm font-medium text-blue-600 hover:text-blue-700"
                 onClick={() => setShowRawPoints((value) => !value)}
               >
-                {showRawPoints ? 'Ẩn điểm thô' : 'Hiện điểm thô (nâng cao)'}
+                {showRawPoints ? 'Ẩn tùy chỉnh điểm' : 'Hiện tùy chỉnh điểm (nâng cao)'}
               </button>
               {showRawPoints ? (
                 <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50/70 p-3">

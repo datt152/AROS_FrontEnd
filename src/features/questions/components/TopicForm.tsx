@@ -70,7 +70,7 @@ export function TopicForm({
           id="topicName"
           value={values.name}
           hasError={Boolean(errors.name)}
-          placeholder="vd. Chương 1 — Giới thiệu"
+          placeholder="Vui lòng nhập chủ đề"
           disabled={isSubmitting}
           onChange={(event) => updateField('name', event.target.value)}
         />

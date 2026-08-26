@@ -482,18 +482,6 @@ export function ExamListPage() {
           <p className="mt-1 text-sm text-slate-500">Tạo nháp → giao lớp → sinh mã đề → mở thi.</p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
-          <Button variant="secondary" className="w-full sm:w-auto" disabled title="Sắp ra mắt">
-            <ClipboardList className="h-4 w-4" strokeWidth={1.75} />
-            Giao đề cho lớp
-          </Button>
-          <Button variant="secondary" className="w-full sm:w-auto" disabled title="Sắp ra mắt">
-            <Printer className="h-4 w-4" strokeWidth={1.75} />
-            OMR / Chấm giấy
-          </Button>
-          <Button variant="secondary" className="w-full sm:w-auto" disabled title="Sắp ra mắt">
-            <BarChart3 className="h-4 w-4" strokeWidth={1.75} />
-            Thống kê điểm
-          </Button>
           <Button onClick={openCreate} className="w-full sm:w-auto">
             <Plus className="h-4 w-4" strokeWidth={2} />
             Tạo đề thi

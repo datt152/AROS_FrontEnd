@@ -115,7 +115,7 @@ export function ExamTemplateForm({
           id="title"
           value={values.title}
           hasError={Boolean(errors.title)}
-          placeholder="vd. Bộ đề giữa kỳ Toán"
+          placeholder="Vui lòng nhập tiêu đề"
           disabled={isSubmitting}
           onChange={(event) => {
             setValues((current) => ({ ...current, title: event.target.value }))

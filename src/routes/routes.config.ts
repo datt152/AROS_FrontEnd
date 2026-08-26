@@ -37,7 +37,6 @@ export const ROUTES = {
     practice: '/teacher/practice',
     createPractice: '/teacher/practice/create',
     examStats: '/teacher/exam-stats',
-    history: '/teacher/history',
   },
 } as const
 
@@ -60,11 +59,10 @@ export const MENU_BY_ROLE: Record<Role, NavItem[]> = {
     { path: ROUTES.teacher.questionBank, label: 'Ngân hàng câu hỏi' },
     { path: ROUTES.teacher.examTemplates, label: 'Thư viện đề' },
     { path: ROUTES.teacher.exams, label: 'Quản lý bài thi' },
+    { path: ROUTES.teacher.practice, label: 'Bài luyện tập' },
     { path: ROUTES.teacher.grading, label: 'Chấm điểm' },
     { path: ROUTES.teacher.omrUpload, label: 'Tải lên OMR' },
-    { path: ROUTES.teacher.practice, label: 'Bài luyện tập' },
     { path: ROUTES.teacher.examStats, label: 'Thống kê bài thi' },
-    { path: ROUTES.teacher.history, label: 'Lịch sử' },
   ],
 }
 
