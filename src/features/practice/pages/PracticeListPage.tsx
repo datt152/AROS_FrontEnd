@@ -32,12 +32,12 @@ import {
 } from '../../exams/hooks/useExams'
 import type {
   ExamItem as ExamItemType,
-  ExamMode,
   ExamOpenValues,
   ExamUpdatePayload,
   ExamVersionCreateValues,
 } from '../../exams/types/exam.types'
 import { useQuestions } from '../../questions/hooks/useQuestions'
+import { useTopics } from '../../questions/hooks/useTopics'
 import { useSubjects } from '../../subjects/hooks/useSubjects'
 import { PracticeDetailPanel } from '../components/PracticeDetailPanel'
 import { PracticeFilterBar } from '../components/PracticeFilterBar'
@@ -101,6 +101,11 @@ export function PracticeListPage() {
       : undefined,
   )
 
+  const topicsSubjectId = formSubjectId ?? editing?.subjectId
+  const topicsQuery = useTopics(
+    topicsSubjectId ? { subjectId: topicsSubjectId, page: 0, size: 50 } : undefined,
+  )
+
   const draftIds = useMemo(
     () => (examsQuery.data?.items ?? []).filter((item) => item.status === 'DRAFT').map((item) => item.id),
     [examsQuery.data?.items],
@@ -158,8 +163,14 @@ export function PracticeListPage() {
         content: item.content,
         type: item.type,
         subjectId: item.subjectId,
+        topicId: item.topicId ?? null,
       })),
     [questionsQuery.data?.items],
+  )
+
+  const topics = useMemo(
+    () => (topicsQuery.data?.items ?? []).map((item) => ({ id: item.id, name: item.name })),
+    [topicsQuery.data?.items],
   )
 
   const filtered = useMemo(() => {
@@ -195,20 +206,18 @@ export function PracticeListPage() {
       await createExam.mutateAsync({
         title: values.title.trim(),
         duration: Number(values.duration) || 30,
-        examMode: (values.examMode || 'ONLINE') as ExamMode,
+        examMode: 'ONLINE',
         purpose: 'PRACTICE',
         subjectId: Number(values.subjectId),
         questionIds: values.questionIds,
-        maxScore: Number(values.maxScore) || 10,
+        maxScore: 10,
         classroomIds: values.classroomIds.length > 0 ? values.classroomIds : undefined,
         config: {
-          showScoreToStudent: values.config.showScoreToStudent,
+          showScoreToStudent: true,
           timeLimitEnabled: values.config.timeLimitEnabled,
           maxAttempts: values.config.maxAttempts === '' ? null : Number(values.config.maxAttempts),
           shuffleQuestions: values.config.shuffleQuestions,
           shuffleAnswers: values.config.shuffleAnswers,
-          paperCount: Number(values.config.paperCount) || 1,
-          allowEdit: values.config.allowEdit,
           semester: values.config.semester || undefined,
           academicYear: values.config.academicYear || undefined,
         },
@@ -229,17 +238,15 @@ export function PracticeListPage() {
         payload: buildUpdatePayload(editingExamRaw, {
           title: values.title.trim(),
           duration: Number(values.duration) || editing.duration,
-          examMode: (values.examMode || editing.examMode) as ExamMode,
+          examMode: 'ONLINE',
           subjectId: Number(values.subjectId) || editing.subjectId,
-          maxScore: Number(values.maxScore) || editing.maxScore,
+          maxScore: 10,
           config: {
-            showScoreToStudent: values.config.showScoreToStudent,
+            showScoreToStudent: true,
             timeLimitEnabled: values.config.timeLimitEnabled,
             maxAttempts: values.config.maxAttempts === '' ? null : Number(values.config.maxAttempts),
             shuffleQuestions: values.config.shuffleQuestions,
             shuffleAnswers: values.config.shuffleAnswers,
-            paperCount: Number(values.config.paperCount) || 1,
-            allowEdit: values.config.allowEdit,
             semester: values.config.semester,
             academicYear: values.config.academicYear,
           },
@@ -357,7 +364,7 @@ export function PracticeListPage() {
   return (
     <section className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
+        <div className="min-w-0">
           <p className="text-xs font-medium uppercase tracking-wider text-blue-600">Luyện tập</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">Bài luyện tập</h1>
           <p className="mt-1 text-sm text-slate-500">
@@ -365,6 +372,7 @@ export function PracticeListPage() {
           </p>
         </div>
         <Button
+          className="w-full shrink-0 sm:w-auto"
           onClick={() => {
             setEditing(null)
             setFormSubjectId(undefined)
@@ -501,7 +509,7 @@ export function PracticeListPage() {
             }}
           />
           <aside className="flex h-full w-full max-w-xl flex-col border-l border-slate-200 bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+            <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-5 py-4">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wider text-blue-600">
                   {drawerMode === 'create' ? 'Tạo mới' : 'Chỉnh sửa'}
@@ -523,7 +531,7 @@ export function PracticeListPage() {
               </button>
             </div>
             {formError ? (
-              <p className="mx-5 mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+              <p className="mx-5 mt-3 shrink-0 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
                 {formError}
               </p>
             ) : null}
@@ -533,6 +541,7 @@ export function PracticeListPage() {
               subjects={subjects}
               classrooms={classrooms}
               questions={questions}
+              topics={topics}
               onSubjectChange={setFormSubjectId}
               onCancel={() => {
                 setDrawerMode(null)

@@ -1,5 +1,5 @@
 import { Plus, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
@@ -13,14 +13,19 @@ import type {
   SubjectOption,
 } from '../types/question.types'
 import { DIFFICULTY_LABEL, QUESTION_TYPE_LABEL } from '../types/question.types'
+import type { TopicOption } from '../types/topic.types'
 
 type QuestionFormProps = {
   mode: 'create' | 'edit'
   initialValues?: QuestionItem
   subjectOptions: SubjectOption[]
+  topicOptions: TopicOption[]
   lockedSubjectId?: number
+  lockedTopicId?: number
+  topicsLoading?: boolean
   isSubmitting?: boolean
   submitError?: string | null
+  onSubjectChange?: (subjectId: number) => void
   onSubmit: (values: QuestionFormValues) => void | Promise<void>
   onCancel: () => void
 }
@@ -46,9 +51,14 @@ function emptyOption(): AnswerOptionItem {
   return { content: '', isCorrect: false }
 }
 
-function toFormValues(item?: QuestionItem, lockedSubjectId?: number): QuestionFormValues {
+function toFormValues(
+  item?: QuestionItem,
+  lockedSubjectId?: number,
+  lockedTopicId?: number,
+): QuestionFormValues {
   return {
     subjectId: item?.subjectId ?? lockedSubjectId ?? 0,
+    topicId: item?.topicId ?? lockedTopicId ?? null,
     content: item?.content ?? '',
     difficulty: item?.difficulty ?? 'MEDIUM',
     explanation: item?.explanation ?? '',
@@ -71,14 +81,26 @@ export function QuestionForm({
   mode,
   initialValues,
   subjectOptions,
+  topicOptions,
   lockedSubjectId,
+  lockedTopicId,
+  topicsLoading = false,
   isSubmitting = false,
   submitError = null,
+  onSubjectChange,
   onSubmit,
   onCancel,
 }: QuestionFormProps) {
-  const [values, setValues] = useState<QuestionFormValues>(() => toFormValues(initialValues, lockedSubjectId))
+  const [values, setValues] = useState<QuestionFormValues>(() =>
+    toFormValues(initialValues, lockedSubjectId, lockedTopicId),
+  )
   const [errors, setErrors] = useState<QuestionFormErrors>({})
+
+  useEffect(() => {
+    if (lockedTopicId && !values.topicId) {
+      setValues((current) => ({ ...current, topicId: lockedTopicId }))
+    }
+  }, [lockedTopicId, values.topicId])
 
   function updateField<K extends keyof QuestionFormValues>(key: K, value: QuestionFormValues[K]) {
     setValues((current) => {
@@ -88,6 +110,14 @@ export function QuestionForm({
           ...current,
           type: nextType,
           options: clampCorrectAnswers(current.options, nextType),
+        }
+      }
+
+      if (key === 'subjectId') {
+        return {
+          ...current,
+          subjectId: value as number,
+          topicId: lockedTopicId ?? null,
         }
       }
 
@@ -137,6 +167,7 @@ export function QuestionForm({
     const optionContents: string[] = []
 
     if (!values.subjectId) nextErrors.subjectId = 'ID Môn học không được rỗng'
+    if (!values.topicId) nextErrors.topicId = 'Vui lòng chọn chủ đề'
     if (!values.content.trim()) nextErrors.content = 'Nội dung câu hỏi không được rỗng'
     if (!values.type) nextErrors.type = 'Loại câu hỏi không được để trống'
     if (values.options.length === 0) nextErrors.options = 'Phải có ít nhất 1 đáp án'
@@ -162,6 +193,7 @@ export function QuestionForm({
 
     await onSubmit({
       subjectId: values.subjectId,
+      topicId: values.topicId,
       content: values.content.trim(),
       difficulty: values.difficulty,
       explanation: values.explanation.trim(),
@@ -173,8 +205,10 @@ export function QuestionForm({
     })
   }
 
+  const topicLocked = Boolean(lockedTopicId)
+
   return (
-    <form className="space-y-4" onSubmit={handleSubmit} noValidate>
+    <form className="space-y-4" onSubmit={(event) => void handleSubmit(event)} noValidate>
       {submitError ? (
         <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">{submitError}</p>
       ) : null}
@@ -187,8 +221,12 @@ export function QuestionForm({
           <select
             id="subjectId"
             value={values.subjectId || ''}
-            disabled={isSubmitting || Boolean(lockedSubjectId && mode === 'create')}
-            onChange={(event) => updateField('subjectId', Number(event.target.value) || 0)}
+            disabled={isSubmitting || Boolean(lockedSubjectId)}
+            onChange={(event) => {
+              const next = Number(event.target.value) || 0
+              updateField('subjectId', next)
+              if (next > 0) onSubjectChange?.(next)
+            }}
             className={selectClassName(Boolean(errors.subjectId))}
           >
             <option value="">Chọn môn học</option>
@@ -201,6 +239,37 @@ export function QuestionForm({
           {errors.subjectId ? <p className="text-sm text-red-500">{errors.subjectId}</p> : null}
         </div>
 
+        <div className="space-y-1.5">
+          <label htmlFor="topicId" className="text-sm font-medium text-slate-700">
+            Chủ đề
+          </label>
+          <select
+            id="topicId"
+            value={values.topicId ?? ''}
+            disabled={isSubmitting || topicLocked || !values.subjectId || topicsLoading}
+            onChange={(event) =>
+              updateField('topicId', event.target.value === '' ? null : Number(event.target.value))
+            }
+            className={selectClassName(Boolean(errors.topicId))}
+          >
+            <option value="">
+              {!values.subjectId
+                ? 'Chọn môn trước'
+                : topicsLoading
+                  ? 'Đang tải chủ đề...'
+                  : 'Chọn chủ đề'}
+            </option>
+            {topicOptions.map((topic) => (
+              <option key={topic.id} value={topic.id}>
+                {topic.name}
+              </option>
+            ))}
+          </select>
+          {errors.topicId ? <p className="text-sm text-red-500">{errors.topicId}</p> : null}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <label htmlFor="type" className="text-sm font-medium text-slate-700">
             Loại câu hỏi
@@ -220,27 +289,27 @@ export function QuestionForm({
           </select>
           {errors.type ? <p className="text-sm text-red-500">{errors.type}</p> : null}
         </div>
-      </div>
 
-      <div className="space-y-1.5">
-        <label htmlFor="difficulty" className="text-sm font-medium text-slate-700">
-          Độ khó
-        </label>
-        <select
-          id="difficulty"
-          value={values.difficulty ?? ''}
-          disabled={isSubmitting}
-          onChange={(event) =>
-            updateField('difficulty', (event.target.value || null) as Difficulty | null)
-          }
-          className={selectClassName(false)}
-        >
-          {DIFFICULTIES.map((difficulty) => (
-            <option key={difficulty} value={difficulty}>
-              {DIFFICULTY_LABEL[difficulty]}
-            </option>
-          ))}
-        </select>
+        <div className="space-y-1.5">
+          <label htmlFor="difficulty" className="text-sm font-medium text-slate-700">
+            Độ khó
+          </label>
+          <select
+            id="difficulty"
+            value={values.difficulty ?? ''}
+            disabled={isSubmitting}
+            onChange={(event) =>
+              updateField('difficulty', (event.target.value || null) as Difficulty | null)
+            }
+            className={selectClassName(false)}
+          >
+            {DIFFICULTIES.map((difficulty) => (
+              <option key={difficulty} value={difficulty}>
+                {DIFFICULTY_LABEL[difficulty]}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="space-y-1.5">

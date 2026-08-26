@@ -54,6 +54,7 @@ export type PracticeQuestionOption = {
   content: string
   type: QuestionType
   subjectId: number
+  topicId?: number | null
 }
 
 export type PracticeFormValues = {
@@ -146,19 +147,19 @@ export function practiceToFormValues(item: PracticeItem): PracticeFormValues {
   return {
     title: item.title,
     duration: item.duration,
-    examMode: item.examMode,
+    examMode: 'ONLINE',
     subjectId: item.subjectId,
     questionIds: item.questionIds,
-    maxScore: item.maxScore,
+    maxScore: 10,
     classroomIds: item.classroomIds,
     config: {
-      showScoreToStudent: item.config.showScoreToStudent,
+      showScoreToStudent: true,
       timeLimitEnabled: item.config.timeLimitEnabled,
       maxAttempts: item.config.maxAttempts ?? '',
       shuffleQuestions: item.config.shuffleQuestions,
       shuffleAnswers: item.config.shuffleAnswers,
-      paperCount: item.config.paperCount,
-      allowEdit: item.config.allowEdit,
+      paperCount: 1,
+      allowEdit: false,
       semester: item.config.semester,
       academicYear: item.config.academicYear,
     },

@@ -166,6 +166,7 @@ export function ExamDetailPanel({
                 <div className="col-span-2 space-y-1 border-t border-slate-200 pt-3 text-xs text-slate-600">
                   <p>Xáo câu hỏi: {exam.config.shuffleQuestions ? 'Có' : 'Không'}</p>
                   <p>Xáo đáp án: {exam.config.shuffleAnswers ? 'Có' : 'Không'}</p>
+                  <p>Hiện điểm sau thi: {exam.config.showScoreToStudent ? 'Có' : 'Không'}</p>
                   <p>Số đề in: {exam.config.paperCount ?? 1}</p>
                   <p>
                     Học kỳ {exam.config.semester ?? '—'} · Năm học {exam.config.academicYear ?? '—'}

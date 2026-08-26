@@ -19,6 +19,7 @@ type ExamFormProps = {
   initialValues?: ExamItem
   subjectOptions: SubjectOption[]
   questionOptions: QuestionPickItem[]
+  topicOptions?: { id: number; name: string }[]
   classroomOptions: ClassroomOption[]
   isSubmitting?: boolean
   submitError?: string | null
@@ -52,6 +53,7 @@ function toCreateValues(item?: ExamItem): ExamCreateFormValues {
       semester: item?.config?.semester ?? '1',
       academicYear: item?.config?.academicYear ?? '2025-2026',
       allowEdit: item?.config?.allowEdit ?? false,
+      showScoreToStudent: item?.config?.showScoreToStudent ?? true,
     },
   }
 }
@@ -70,6 +72,7 @@ function toUpdateValues(item?: ExamItem): ExamUpdateFormValues {
       semester: item?.config?.semester ?? '1',
       academicYear: item?.config?.academicYear ?? '2025-2026',
       allowEdit: item?.config?.allowEdit ?? false,
+      showScoreToStudent: item?.config?.showScoreToStudent ?? true,
     },
   }
 }
@@ -79,6 +82,7 @@ export function ExamForm({
   initialValues,
   subjectOptions,
   questionOptions,
+  topicOptions = [],
   classroomOptions: _classroomOptions,
   isSubmitting = false,
   submitError = null,
@@ -89,6 +93,7 @@ export function ExamForm({
 }: ExamFormProps) {
   const [step, setStep] = useState(1)
   const [showRawPoints, setShowRawPoints] = useState(false)
+  const [topicFilter, setTopicFilter] = useState<number | ''>('')
   const [createValues, setCreateValues] = useState<ExamCreateFormValues>(() => toCreateValues(initialValues))
   const [updateValues, setUpdateValues] = useState<ExamUpdateFormValues>(() => toUpdateValues(initialValues))
   const [errors, setErrors] = useState<ExamFormErrors>({})
@@ -101,9 +106,10 @@ export function ExamForm({
     return questionOptions.filter((question) => {
       if (question.subjectId !== selectedSubjectId) return false
       if (selectedMode === 'OMR_PAPER' && question.type === 'MULTIPLE_CHOICE') return false
+      if (topicFilter !== '' && question.topicId !== topicFilter) return false
       return true
     })
-  }, [questionOptions, selectedSubjectId, selectedMode])
+  }, [questionOptions, selectedSubjectId, selectedMode, topicFilter])
 
   function updateCreateField<K extends keyof ExamCreateFormValues>(key: K, value: ExamCreateFormValues[K]) {
     setCreateValues((current) => {
@@ -115,6 +121,7 @@ export function ExamForm({
       }
       return next
     })
+    if (key === 'subjectId') setTopicFilter('')
     if (key === 'subjectId' && typeof value === 'number' && value > 0) {
       onSubjectChange?.(value)
     }
@@ -143,13 +150,12 @@ export function ExamForm({
     setErrors((current) => ({ ...current, questionIds: undefined }))
   }
 
-  function validateMeta(values: { title: string; duration: number | ''; examMode: ExamMode | ''; subjectId: number | ''; maxScore: number | '' }) {
+  function validateMeta(values: { title: string; duration: number | ''; examMode: ExamMode | ''; subjectId: number | '' }) {
     const nextErrors: ExamFormErrors = {}
     if (!values.title.trim()) nextErrors.title = 'Vui lòng nhập tiêu đề'
     if (values.duration === '' || Number(values.duration) <= 0) nextErrors.duration = 'Thời gian phải lớn hơn 0'
     if (!values.examMode) nextErrors.examMode = 'Vui lòng chọn hình thức thi'
     if (!values.subjectId) nextErrors.subjectId = 'Vui lòng chọn môn học'
-    if (values.maxScore === '' || Number(values.maxScore) <= 0) nextErrors.maxScore = 'Thang điểm phải lớn hơn 0'
     setErrors(nextErrors)
     return Object.keys(nextErrors).length === 0
   }
@@ -161,27 +167,16 @@ export function ExamForm({
     return Object.keys(nextErrors).length === 0
   }
 
-  function validateConfig() {
-    const nextErrors: ExamFormErrors = {}
-    if (createValues.config.paperCount === '' || Number(createValues.config.paperCount) < 1) {
-      nextErrors.paperCount = 'Số đề in phải ≥ 1'
-    }
-    setErrors(nextErrors)
-    return Object.keys(nextErrors).length === 0
-  }
-
   async function handleNext() {
     if (step === 1 && !validateMeta(createValues)) return
     if (step === 2 && !validateQuestions()) return
-    if (step === 3 && !validateConfig()) return
     setStep((value) => Math.min(value + 1, 3))
   }
 
   async function handleCreateSubmit() {
-    if (!validateMeta(createValues) || !validateQuestions() || !validateConfig()) {
+    if (!validateMeta(createValues) || !validateQuestions()) {
       if (!validateMeta(createValues)) setStep(1)
-      else if (!validateQuestions()) setStep(2)
-      else setStep(3)
+      else setStep(2)
       return
     }
 
@@ -191,11 +186,12 @@ export function ExamForm({
       duration: Number(createValues.duration),
       examMode: createValues.examMode as ExamMode,
       subjectId: Number(createValues.subjectId),
-      maxScore: Number(createValues.maxScore),
+      maxScore: 10,
       classroomIds: [],
       config: {
         ...createValues.config,
-        paperCount: Number(createValues.config.paperCount) || 1,
+        paperCount: 1,
+        allowEdit: false,
       },
     })
   }
@@ -207,8 +203,14 @@ export function ExamForm({
       duration: Number(updateValues.duration),
       examMode: updateValues.examMode as ExamMode,
       subjectId: Number(updateValues.subjectId),
-      maxScore: Number(updateValues.maxScore),
-      config: updateValues.config,
+      maxScore: 10,
+      config: updateValues.config
+        ? {
+            ...updateValues.config,
+            paperCount: 1,
+            allowEdit: false,
+          }
+        : undefined,
     })
   }
 
@@ -301,22 +303,10 @@ export function ExamForm({
               {errors.duration ? <p className="text-sm text-red-500">{errors.duration}</p> : null}
             </div>
             <div className="space-y-1.5">
-              <label htmlFor="maxScore" className="text-sm font-medium text-slate-700">
-                Thang điểm
-              </label>
-              <Input
-                id="maxScore"
-                type="number"
-                min={1}
-                value={values.maxScore}
-                hasError={Boolean(errors.maxScore)}
-                disabled={isSubmitting}
-                onChange={(event) => {
-                  const next = event.target.value === '' ? '' : Number(event.target.value)
-                  mode === 'create' ? updateCreateField('maxScore', next) : updateUpdateField('maxScore', next)
-                }}
-              />
-              {errors.maxScore ? <p className="text-sm text-red-500">{errors.maxScore}</p> : null}
+              <p className="text-sm font-medium text-slate-700">Thang điểm</p>
+              <p className="flex h-10 items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700">
+                10 (cố định)
+              </p>
             </div>
           </div>
 
@@ -368,6 +358,24 @@ export function ExamForm({
         </>
       )}
 
+      {mode === 'edit' && updateValues.config ? (
+        <label className="flex items-center gap-2.5 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            checked={updateValues.config.showScoreToStudent}
+            disabled={isSubmitting}
+            onChange={(event) =>
+              updateUpdateField('config', {
+                ...updateValues.config!,
+                showScoreToStudent: event.target.checked,
+              })
+            }
+            className="h-4 w-4 rounded border-slate-300 text-blue-600"
+          />
+          Hiện điểm sau khi kiểm tra
+        </label>
+      ) : null}
+
       {mode === 'create' && step === 2 ? (
         <div className="space-y-3">
           <div>
@@ -377,6 +385,27 @@ export function ExamForm({
                 ? 'Chế độ OMR chỉ cho phép câu một đáp án.'
                 : 'Chọn ít nhất một câu hỏi thuộc môn đã chọn.'}
             </p>
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor="topicFilter" className="text-sm font-medium text-slate-700">
+              Lọc theo chủ đề
+            </label>
+            <select
+              id="topicFilter"
+              value={topicFilter}
+              disabled={isSubmitting || !selectedSubjectId}
+              onChange={(event) =>
+                setTopicFilter(event.target.value === '' ? '' : Number(event.target.value))
+              }
+              className={selectClassName(false)}
+            >
+              <option value="">Tất cả chủ đề</option>
+              {topicOptions.map((topic) => (
+                <option key={topic.id} value={topic.id}>
+                  {topic.name}
+                </option>
+              ))}
+            </select>
           </div>
           {errors.questionIds ? <p className="text-sm text-red-500">{errors.questionIds}</p> : null}
           {availableQuestions.length === 0 ? (
@@ -466,33 +495,19 @@ export function ExamForm({
           <label className="flex items-center gap-2.5 text-sm text-slate-700">
             <input
               type="checkbox"
-              checked={createValues.config.allowEdit}
+              checked={createValues.config.showScoreToStudent}
               disabled={isSubmitting}
               onChange={(event) =>
-                updateCreateField('config', { ...createValues.config, allowEdit: event.target.checked })
+                updateCreateField('config', {
+                  ...createValues.config,
+                  showScoreToStudent: event.target.checked,
+                })
               }
               className="h-4 w-4 rounded border-slate-300 text-blue-600"
             />
-            Cho phép sửa bài khi đang làm
+            Hiện điểm sau khi kiểm tra
           </label>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-700">Số đề in</label>
-              <Input
-                type="number"
-                min={1}
-                value={createValues.config.paperCount}
-                hasError={Boolean(errors.paperCount)}
-                disabled={isSubmitting}
-                onChange={(event) =>
-                  updateCreateField('config', {
-                    ...createValues.config,
-                    paperCount: event.target.value === '' ? '' : Number(event.target.value),
-                  })
-                }
-              />
-              {errors.paperCount ? <p className="text-sm text-red-500">{errors.paperCount}</p> : null}
-            </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-slate-700">Học kỳ</label>
               <Input

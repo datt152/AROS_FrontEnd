@@ -1,5 +1,4 @@
 type PracticeConfigSectionProps = {
-  showScoreToStudent: boolean
   timeLimitEnabled: boolean
   duration: number | ''
   maxAttempts: number | ''
@@ -8,7 +7,6 @@ type PracticeConfigSectionProps = {
     maxAttempts?: string
   }
   onChange: (patch: {
-    showScoreToStudent?: boolean
     timeLimitEnabled?: boolean
     duration?: number | ''
     maxAttempts?: number | ''
@@ -57,7 +55,6 @@ function Switch({
 }
 
 export function PracticeConfigSection({
-  showScoreToStudent,
   timeLimitEnabled,
   duration,
   maxAttempts,
@@ -69,17 +66,9 @@ export function PracticeConfigSection({
       <div>
         <h3 className="text-sm font-semibold text-slate-900">Cấu hình luyện tập</h3>
         <p className="mt-0.5 text-xs text-slate-500">
-          Khác kỳ thi: có thể tắt giới hạn giờ, giới hạn số lần làm, và ẩn điểm sau khi nộp.
+          Điểm luôn hiện cho sinh viên sau khi nộp. Có thể tắt giới hạn giờ và giới hạn số lần làm.
         </p>
       </div>
-
-      <Switch
-        id="practice-show-score"
-        checked={showScoreToStudent}
-        onChange={(checked) => onChange({ showScoreToStudent: checked })}
-        label="Hiện điểm cho sinh viên"
-        description="Bật: SV thấy điểm sau khi nộp. Tắt: chỉ báo nộp thành công."
-      />
 
       <Switch
         id="practice-time-limit"

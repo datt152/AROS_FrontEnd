@@ -58,9 +58,7 @@ export function PracticeDetailPanel({
           <div className="grid grid-cols-2 gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-3 text-sm">
             <div>
               <p className="text-xs text-slate-400">Hiện điểm SV</p>
-              <p className="mt-0.5 font-medium text-slate-900">
-                {item.config.showScoreToStudent ? 'Có' : 'Không'}
-              </p>
+              <p className="mt-0.5 font-medium text-slate-900">Có (cố định)</p>
             </div>
             <div>
               <p className="text-xs text-slate-400">Số lần làm</p>

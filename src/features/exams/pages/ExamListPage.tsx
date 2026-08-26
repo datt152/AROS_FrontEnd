@@ -17,6 +17,7 @@ import {
 import { getApiErrorMessage } from '../../../lib/apiError'
 import { useClassrooms } from '../../classrooms/hooks/useClassrooms'
 import { useQuestions } from '../../questions/hooks/useQuestions'
+import { useTopics } from '../../questions/hooks/useTopics'
 import { useSubjects } from '../../subjects/hooks/useSubjects'
 import { toRawPointsPayload } from '../api/exams.api'
 import { ExamAssignClassroomsModal } from '../components/ExamAssignClassroomsModal'
@@ -123,6 +124,16 @@ export function ExamListPage() {
       : undefined,
   )
 
+  const topicsQuery = useTopics(
+    questionsSubjectId
+      ? {
+          subjectId: questionsSubjectId,
+          page: 0,
+          size: 50,
+        }
+      : undefined,
+  )
+
   const questionOptions: QuestionPickItem[] = useMemo(
     () =>
       (questionsQuery.data?.items ?? []).map((question) => ({
@@ -131,8 +142,15 @@ export function ExamListPage() {
         type: question.type,
         difficulty: question.difficulty ?? undefined,
         subjectId: question.subjectId,
+        topicId: question.topicId ?? null,
+        topicName: question.topicName ?? null,
       })),
     [questionsQuery.data?.items],
+  )
+
+  const topicOptions = useMemo(
+    () => (topicsQuery.data?.items ?? []).map((topic) => ({ id: topic.id, name: topic.name })),
+    [topicsQuery.data?.items],
   )
 
   const detailQuestionsFromBank = useMemo(() => {
@@ -281,16 +299,16 @@ export function ExamListPage() {
         purpose: 'EXAM',
         subjectId: Number(values.subjectId),
         questionIds: values.questionIds,
-        maxScore: Number(values.maxScore),
+        maxScore: 10,
         rawPoints: toRawPointsPayload(values.rawPoints),
         classroomIds: values.classroomIds.length > 0 ? values.classroomIds : undefined,
         config: {
           shuffleQuestions: values.config.shuffleQuestions,
           shuffleAnswers: values.config.shuffleAnswers,
-          paperCount: Number(values.config.paperCount) || 1,
+          paperCount: 1,
           semester: values.config.semester || undefined,
           academicYear: values.config.academicYear || undefined,
-          allowEdit: values.config.allowEdit,
+          showScoreToStudent: values.config.showScoreToStudent,
         },
       })
       setModalMode(null)
@@ -311,15 +329,15 @@ export function ExamListPage() {
           duration: Number(values.duration),
           examMode: values.examMode as ExamMode,
           subjectId: Number(values.subjectId),
-          maxScore: Number(values.maxScore),
+          maxScore: 10,
           config: values.config
             ? {
                 shuffleQuestions: values.config.shuffleQuestions,
                 shuffleAnswers: values.config.shuffleAnswers,
-                paperCount: Number(values.config.paperCount) || 1,
+                paperCount: 1,
                 semester: values.config.semester,
                 academicYear: values.config.academicYear,
-                allowEdit: values.config.allowEdit,
+                showScoreToStudent: values.config.showScoreToStudent,
               }
             : undefined,
         }),
@@ -647,6 +665,7 @@ export function ExamListPage() {
                 initialValues={editingExam ?? undefined}
                 subjectOptions={subjectOptions}
                 questionOptions={questionOptions}
+                topicOptions={topicOptions}
                 classroomOptions={classroomOptions}
                 isSubmitting={isMutating}
                 submitError={formError}

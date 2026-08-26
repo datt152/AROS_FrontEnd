@@ -11,6 +11,8 @@ export type AnswerOptionItem = {
 export type QuestionItem = {
   questionId: number
   subjectId: number
+  topicId?: number | null
+  topicName?: string | null
   content: string
   difficulty: Difficulty | null
   explanation: string | null
@@ -22,6 +24,7 @@ export type QuestionItem = {
 /** Matches QuestionRequest from backend */
 export type QuestionPayload = {
   subjectId: number
+  topicId?: number | null
   content: string
   difficulty: Difficulty | null
   explanation: string
@@ -33,6 +36,7 @@ export type QuestionFormValues = QuestionPayload
 
 export type QuestionFormErrors = {
   subjectId?: string
+  topicId?: string
   content?: string
   type?: string
   options?: string

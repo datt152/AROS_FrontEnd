@@ -19,6 +19,7 @@ type PracticeFormProps = {
   subjects: PracticeSubjectOption[]
   classrooms: PracticeClassroomOption[]
   questions: PracticeQuestionOption[]
+  topics?: { id: number; name: string }[]
   onSubjectChange?: (subjectId: number | undefined) => void
   onSubmit: (values: PracticeFormValues) => void
   onCancel: () => void
@@ -30,6 +31,7 @@ export function PracticeForm({
   subjects,
   classrooms,
   questions,
+  topics = [],
   onSubjectChange,
   onSubmit,
   onCancel,
@@ -38,11 +40,16 @@ export function PracticeForm({
     initialValues ? practiceToFormValues(initialValues) : emptyPracticeFormValues(),
   )
   const [errors, setErrors] = useState<PracticeFormErrors>({})
+  const [topicFilter, setTopicFilter] = useState<number | ''>('')
 
   const filteredQuestions = useMemo(() => {
     if (values.subjectId === '') return []
-    return questions.filter((question) => question.subjectId === values.subjectId)
-  }, [questions, values.subjectId])
+    return questions.filter((question) => {
+      if (question.subjectId !== values.subjectId) return false
+      if (topicFilter !== '' && question.topicId !== topicFilter) return false
+      return true
+    })
+  }, [questions, values.subjectId, topicFilter])
 
   const filteredClassrooms = useMemo(() => {
     if (values.subjectId === '') return []
@@ -53,17 +60,12 @@ export function PracticeForm({
     const next: PracticeFormErrors = {}
     if (!values.title.trim()) next.title = 'Nhập tiêu đề bài luyện tập'
     if (values.subjectId === '') next.subjectId = 'Chọn môn học'
-    if (values.examMode === '') next.examMode = 'Chọn hình thức'
-    if (values.maxScore === '' || Number(values.maxScore) <= 0) next.maxScore = 'Thang điểm phải > 0'
     if (mode === 'create' && values.questionIds.length === 0) next.questionIds = 'Chọn ít nhất 1 câu hỏi'
     if (values.config.timeLimitEnabled && (values.duration === '' || Number(values.duration) < 1)) {
       next.duration = 'Thời lượng tối thiểu 1 phút khi bật giới hạn giờ'
     }
     if (values.config.maxAttempts !== '' && Number(values.config.maxAttempts) < 1) {
       next.maxAttempts = 'Số lần làm phải ≥ 1 hoặc để trống'
-    }
-    if (values.config.paperCount === '' || Number(values.config.paperCount) < 1) {
-      next.paperCount = 'Số mã đề ≥ 1'
     }
     setErrors(next)
     return Object.keys(next).length === 0
@@ -72,12 +74,20 @@ export function PracticeForm({
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
     if (!validate()) return
-    onSubmit(values)
+    onSubmit({
+      ...values,
+      examMode: 'ONLINE',
+      maxScore: 10,
+      config: {
+        ...values.config,
+        showScoreToStudent: true,
+      },
+    })
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex h-full flex-col">
-      <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
+    <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-4">
         <div className="space-y-1.5">
           <label htmlFor="practice-title" className="text-xs font-medium uppercase tracking-wider text-slate-500">
             Tiêu đề
@@ -103,6 +113,7 @@ export function PracticeForm({
               disabled={mode === 'edit'}
               onChange={(event) => {
                 const subjectId = event.target.value === '' ? '' : Number(event.target.value)
+                setTopicFilter('')
                 setValues((current) => ({
                   ...current,
                   subjectId,
@@ -126,47 +137,21 @@ export function PracticeForm({
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="practice-mode" className="text-xs font-medium uppercase tracking-wider text-slate-500">
-              Hình thức
-            </label>
-            <select
-              id="practice-mode"
-              value={values.examMode}
-              onChange={(event) =>
-                setValues((current) => ({
-                  ...current,
-                  examMode: event.target.value as PracticeFormValues['examMode'],
-                }))
-              }
-              className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-            >
-              <option value="ONLINE">Trực tuyến</option>
-              <option value="OMR_PAPER">OMR giấy</option>
-            </select>
+            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Hình thức</p>
+            <p className="flex h-10 items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700">
+              Trực tuyến (cố định)
+            </p>
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="practice-max-score" className="text-xs font-medium uppercase tracking-wider text-slate-500">
-              Thang điểm
-            </label>
-            <Input
-              id="practice-max-score"
-              type="number"
-              min={1}
-              value={values.maxScore}
-              onChange={(event) =>
-                setValues((current) => ({
-                  ...current,
-                  maxScore: event.target.value === '' ? '' : Number(event.target.value),
-                }))
-              }
-            />
-            {errors.maxScore ? <p className="text-xs text-red-600">{errors.maxScore}</p> : null}
+            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Thang điểm</p>
+            <p className="flex h-10 items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700">
+              10 (cố định)
+            </p>
           </div>
         </div>
 
         <PracticeConfigSection
-          showScoreToStudent={values.config.showScoreToStudent}
           timeLimitEnabled={values.config.timeLimitEnabled}
           duration={values.duration}
           maxAttempts={values.config.maxAttempts}
@@ -177,10 +162,6 @@ export function PracticeForm({
               duration: patch.duration !== undefined ? patch.duration : current.duration,
               config: {
                 ...current.config,
-                showScoreToStudent:
-                  patch.showScoreToStudent !== undefined
-                    ? patch.showScoreToStudent
-                    : current.config.showScoreToStudent,
                 timeLimitEnabled:
                   patch.timeLimitEnabled !== undefined
                     ? patch.timeLimitEnabled
@@ -195,10 +176,26 @@ export function PracticeForm({
         {mode === 'create' ? (
           <div className="space-y-2">
             <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Câu hỏi</p>
+            {values.subjectId !== '' ? (
+              <select
+                value={topicFilter}
+                onChange={(event) =>
+                  setTopicFilter(event.target.value === '' ? '' : Number(event.target.value))
+                }
+                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+              >
+                <option value="">Tất cả chủ đề</option>
+                {topics.map((topic) => (
+                  <option key={topic.id} value={topic.id}>
+                    {topic.name}
+                  </option>
+                ))}
+              </select>
+            ) : null}
             {values.subjectId === '' ? (
               <p className="text-sm text-slate-500">Chọn môn học trước để tải câu hỏi.</p>
             ) : filteredQuestions.length === 0 ? (
-              <p className="text-sm text-slate-500">Môn này chưa có câu hỏi mock.</p>
+              <p className="text-sm text-slate-500">Không có câu hỏi phù hợp.</p>
             ) : (
               <div className="max-h-48 space-y-2 overflow-y-auto rounded-xl border border-slate-200 p-2">
                 {filteredQuestions.map((question) => {
@@ -299,40 +296,6 @@ export function PracticeForm({
               />
               Trộn đáp án
             </label>
-            <label className="flex items-center gap-2 text-sm text-slate-700">
-              <input
-                type="checkbox"
-                checked={values.config.allowEdit}
-                onChange={(event) =>
-                  setValues((current) => ({
-                    ...current,
-                    config: { ...current.config, allowEdit: event.target.checked },
-                  }))
-                }
-              />
-              Cho phép sửa sau tạo mã
-            </label>
-            <div className="space-y-1.5">
-              <label htmlFor="practice-paper-count" className="text-xs font-medium uppercase tracking-wider text-slate-500">
-                Số mã đề (paperCount)
-              </label>
-              <Input
-                id="practice-paper-count"
-                type="number"
-                min={1}
-                value={values.config.paperCount}
-                onChange={(event) =>
-                  setValues((current) => ({
-                    ...current,
-                    config: {
-                      ...current.config,
-                      paperCount: event.target.value === '' ? '' : Number(event.target.value),
-                    },
-                  }))
-                }
-              />
-              {errors.paperCount ? <p className="text-xs text-red-600">{errors.paperCount}</p> : null}
-            </div>
             <div className="space-y-1.5">
               <label htmlFor="practice-semester" className="text-xs font-medium uppercase tracking-wider text-slate-500">
                 Học kỳ
@@ -365,13 +328,9 @@ export function PracticeForm({
             </div>
           </div>
         </details>
-
-        <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-          Loại A: form gửi cứng <code className="font-mono">purpose: &quot;PRACTICE&quot;</code> khi nối API (Loại B).
-        </p>
       </div>
 
-      <div className="flex gap-2 border-t border-slate-200 px-5 py-4">
+      <div className="flex shrink-0 gap-2 border-t border-slate-200 bg-white px-5 py-4">
         <Button type="button" variant="secondary" className="flex-1" onClick={onCancel}>
           Huỷ
         </Button>

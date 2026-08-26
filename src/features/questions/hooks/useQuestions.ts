@@ -13,11 +13,18 @@ export const questionKeys = {
   count: (subjectId: number) => [...questionKeys.counts(), subjectId] as const,
 }
 
+function isQuestionsParamsEnabled(params: GetQuestionsParams | undefined) {
+  if (!params) return false
+  if (params.topicId !== undefined && params.topicId > 0) return true
+  if (params.subjectId !== undefined && params.subjectId > 0) return true
+  return false
+}
+
 export function useQuestions(params: GetQuestionsParams | undefined) {
   return useQuery({
     queryKey: questionKeys.list(params ?? { subjectId: -1, page: 0, size: 10 }),
     queryFn: () => getQuestions(params!),
-    enabled: params !== undefined && params.subjectId > 0,
+    enabled: isQuestionsParamsEnabled(params),
     staleTime: STALE_TIME.list,
   })
 }
@@ -43,6 +50,7 @@ export function useCreateQuestion() {
     mutationFn: (payload: QuestionPayload) => createQuestion(payload),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: questionKeys.all })
+      void queryClient.invalidateQueries({ queryKey: ['topics'] })
     },
   })
 }
@@ -54,6 +62,7 @@ export function useUpdateQuestion() {
     mutationFn: ({ id, payload }: { id: number; payload: QuestionPayload }) => updateQuestion(id, payload),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: questionKeys.all })
+      void queryClient.invalidateQueries({ queryKey: ['topics'] })
     },
   })
 }
@@ -65,6 +74,7 @@ export function useDeleteQuestion() {
     mutationFn: (id: number) => deleteQuestion(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: questionKeys.all })
+      void queryClient.invalidateQueries({ queryKey: ['topics'] })
     },
   })
 }

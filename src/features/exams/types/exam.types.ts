@@ -51,6 +51,8 @@ export type QuestionPickItem = {
   type: QuestionType
   difficulty?: string
   subjectId: number
+  topicId?: number | null
+  topicName?: string | null
 }
 
 export type SubjectOption = {
@@ -81,6 +83,7 @@ export type ExamCreateFormValues = {
     semester: string
     academicYear: string
     allowEdit: boolean
+    showScoreToStudent: boolean
   }
 }
 
@@ -299,6 +302,7 @@ const defaultConfig = (partial?: Partial<ExamConfig>): ExamConfig => ({
   shuffleAnswers: false,
   paperCount: 1,
   allowEdit: false,
+  showScoreToStudent: true,
   semester: '1',
   academicYear: '2025-2026',
   ...partial,

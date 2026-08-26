@@ -11,6 +11,8 @@ type QuestionDto = {
   questionId?: number
   id?: number
   subjectId?: number
+  topicId?: number | null
+  topicName?: string | null
   content?: string
   difficulty?: Difficulty | null
   explanation?: string | null
@@ -33,6 +35,8 @@ function normalizeQuestion(dto: QuestionDto): QuestionItem | null {
   return {
     questionId,
     subjectId: dto.subjectId,
+    topicId: dto.topicId ?? null,
+    topicName: dto.topicName ?? null,
     content: dto.content,
     difficulty: dto.difficulty ?? null,
     explanation: dto.explanation ?? null,
@@ -41,7 +45,13 @@ function normalizeQuestion(dto: QuestionDto): QuestionItem | null {
   }
 }
 
-function unwrapPage(data: unknown): { items: QuestionDto[]; totalElements: number; totalPages: number; page: number; size: number } {
+function unwrapPage(data: unknown): {
+  items: QuestionDto[]
+  totalElements: number
+  totalPages: number
+  page: number
+  size: number
+} {
   if (Array.isArray(data)) {
     return {
       items: data as QuestionDto[],
@@ -85,7 +95,8 @@ function unwrapPage(data: unknown): { items: QuestionDto[]; totalElements: numbe
 }
 
 export type GetQuestionsParams = {
-  subjectId: number
+  subjectId?: number
+  topicId?: number
   page?: number
   size?: number
 }
@@ -93,7 +104,8 @@ export type GetQuestionsParams = {
 export async function getQuestions(params: GetQuestionsParams): Promise<QuestionsPageResult> {
   const response = await apiClient.get<unknown>('/v1/questions', {
     params: {
-      subjectId: params.subjectId,
+      ...(params.topicId !== undefined ? { topicId: params.topicId } : {}),
+      ...(params.subjectId !== undefined ? { subjectId: params.subjectId } : {}),
       page: params.page ?? 0,
       size: params.size ?? 10,
     },
@@ -121,6 +133,8 @@ export async function createQuestion(payload: QuestionPayload) {
   return {
     questionId: Date.now(),
     subjectId: payload.subjectId,
+    topicId: payload.topicId ?? null,
+    topicName: null,
     content: payload.content,
     difficulty: payload.difficulty,
     explanation: payload.explanation || null,
@@ -137,6 +151,8 @@ export async function updateQuestion(id: number, payload: QuestionPayload) {
   return {
     questionId: id,
     subjectId: payload.subjectId,
+    topicId: payload.topicId ?? null,
+    topicName: null,
     content: payload.content,
     difficulty: payload.difficulty,
     explanation: payload.explanation || null,
