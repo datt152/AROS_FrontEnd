@@ -43,6 +43,7 @@ export type ExamItem = {
   /** Có khi GET detail nhúng danh sách câu hỏi */
   questions?: QuestionPickItem[]
   hasSubmissions?: boolean
+  sourceTemplateId?: number | null
 }
 
 export type QuestionPickItem = {

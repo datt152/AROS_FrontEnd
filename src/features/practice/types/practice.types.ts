@@ -36,6 +36,7 @@ export type PracticeItem = {
   questionIds: number[]
   startAt?: string | null
   endAt?: string | null
+  sourceTemplateId?: number | null
 }
 
 export type PracticeSubjectOption = {
@@ -184,6 +185,7 @@ export function examToPracticeItem(exam: ExamItem): PracticeItem {
     questionIds: exam.questionIds ?? [],
     startAt: exam.startAt,
     endAt: exam.endAt,
+    sourceTemplateId: exam.sourceTemplateId ?? null,
     config: {
       showScoreToStudent: exam.config?.showScoreToStudent ?? true,
       timeLimitEnabled: exam.config?.timeLimitEnabled ?? false,

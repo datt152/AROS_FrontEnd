@@ -1,5 +1,6 @@
 import { Plus, X } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 
 import { Button } from '../../../components/ui/Button'
 import { EmptyState } from '../../../components/ui/EmptyState'
@@ -27,6 +28,7 @@ import {
   useExams,
   useExamVersions,
   useExamVersionsMany,
+  useSaveExamAsTemplate,
   useUpdateExam,
   useUpdateExamClassrooms,
 } from '../../exams/hooks/useExams'
@@ -65,6 +67,7 @@ function buildUpdatePayload(exam: ExamItemType, patch: Partial<ExamUpdatePayload
 }
 
 export function PracticeListPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const subjectsQuery = useSubjects()
   const classroomsQuery = useClassrooms()
   const examsQuery = useExams({ page: 0, size: FETCH_SIZE, purpose: 'PRACTICE' })
@@ -74,6 +77,7 @@ export function PracticeListPage() {
   const deleteExam = useDeleteExam()
   const updateClassrooms = useUpdateExamClassrooms()
   const createVersions = useCreateExamVersions()
+  const saveAsTemplate = useSaveExamAsTemplate()
 
   const [subjectId, setSubjectId] = useState<number | ''>('')
   const [classroomId, setClassroomId] = useState<number | ''>('')
@@ -89,11 +93,29 @@ export function PracticeListPage() {
   const [assignError, setAssignError] = useState<string | null>(null)
   const [versionError, setVersionError] = useState<string | null>(null)
   const [openError, setOpenError] = useState<string | null>(null)
+  const [saveAsTemplateError, setSaveAsTemplateError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
 
   const detailQuery = useExam(detailId ?? undefined)
   const detailVersionsQuery = useExamVersions(detailId ?? undefined)
   const openVersionsQuery = useExamVersions(openExam?.id)
+
+  useEffect(() => {
+    if (!toast) return
+    const timer = window.setTimeout(() => setToast(null), 3500)
+    return () => window.clearTimeout(timer)
+  }, [toast])
+
+  useEffect(() => {
+    const detailParam = searchParams.get('detail')
+    if (!detailParam) return
+    const id = Number(detailParam)
+    if (!Number.isFinite(id) || id <= 0) return
+    setDetailId(id)
+    const next = new URLSearchParams(searchParams)
+    next.delete('detail')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams])
 
   const questionsQuery = useQuestions(
     formSubjectId || editing?.subjectId
@@ -568,6 +590,8 @@ export function PracticeListPage() {
       {detailPractice ? (
         <PracticeDetailPanel
           item={detailPractice}
+          isSavingAsTemplate={saveAsTemplate.isPending}
+          saveAsTemplateError={saveAsTemplateError}
           onClose={() => setDetailId(null)}
           onEdit={(practice) => {
             setDetailId(null)
@@ -588,6 +612,17 @@ export function PracticeListPage() {
             setOpenExam({ ...toExamForModal(practice), versionCodes: practice.versionCodes })
           }}
           onClosePractice={(practice) => void handleClose(practice)}
+          onSaveAsTemplate={() => {
+            setSaveAsTemplateError(null)
+            void saveAsTemplate
+              .mutateAsync(detailPractice.id)
+              .then(() => {
+                setToast('Đã lưu thành template — xem Thư viện đề')
+              })
+              .catch((error) => {
+                setSaveAsTemplateError(getApiErrorMessage(error, 'Không thể lưu thành template'))
+              })
+          }}
         />
       ) : null}
 

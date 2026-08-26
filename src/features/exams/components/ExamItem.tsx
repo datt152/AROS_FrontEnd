@@ -142,6 +142,11 @@ export function ExamItem(props: ExamItemProps) {
       <div className="min-w-0">
         <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Tiêu đề</p>
         <p className="font-medium text-slate-900">{exam.title}</p>
+        {exam.sourceTemplateId ? (
+          <span className="mt-1 inline-flex rounded-lg bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700">
+            Từ thư viện
+          </span>
+        ) : null}
       </div>
       <div>
         <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Trạng thái</p>
@@ -179,6 +184,7 @@ export function ExamTableRow(props: ExamItemProps) {
         </p>
         <p className="mt-0.5 truncate text-xs text-slate-500">
           {exam.duration} phút · {exam.totalQuestions} câu · {exam.maxScore} điểm
+          {exam.sourceTemplateId ? ' · Từ thư viện' : ''}
         </p>
       </TableCell>
       <TableCell className="py-3.5" align="center">

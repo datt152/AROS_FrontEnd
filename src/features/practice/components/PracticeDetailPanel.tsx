@@ -1,28 +1,36 @@
-import { FileCode2, Lock, Pencil, Play, Users, X } from 'lucide-react'
+import { BookmarkPlus, FileCode2, Lock, Pencil, Play, Users, X } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 import { Button } from '../../../components/ui/Button'
+import { ROUTES } from '../../../routes/routes.config'
 import type { PracticeItem } from '../types/practice.types'
 import { formatMaxAttempts, formatTimeLimit } from '../types/practice.types'
 import { PracticeStatusBadge } from './PracticeStatusBadge'
 
 type PracticeDetailPanelProps = {
   item: PracticeItem
+  isSavingAsTemplate?: boolean
+  saveAsTemplateError?: string | null
   onClose: () => void
   onEdit: (item: PracticeItem) => void
   onAssign: (item: PracticeItem) => void
   onGenerateVersions: (item: PracticeItem) => void
   onOpen: (item: PracticeItem) => void
   onClosePractice: (item: PracticeItem) => void
+  onSaveAsTemplate: () => void
 }
 
 export function PracticeDetailPanel({
   item,
+  isSavingAsTemplate = false,
+  saveAsTemplateError = null,
   onClose,
   onEdit,
   onAssign,
   onGenerateVersions,
   onOpen,
   onClosePractice,
+  onSaveAsTemplate,
 }: PracticeDetailPanelProps) {
   const isDraft = item.status === 'DRAFT'
   const isOpen = item.status === 'ONGOING' || item.status === 'UPCOMING'
@@ -50,6 +58,11 @@ export function PracticeDetailPanel({
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <PracticeStatusBadge status={item.status} />
+            {item.sourceTemplateId ? (
+              <span className="inline-flex rounded-lg bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700">
+                Từ thư viện
+              </span>
+            ) : null}
             <span className="text-xs text-slate-400">Trạng thái đề (không phải trạng thái từng SV)</span>
           </div>
         </div>
@@ -117,7 +130,18 @@ export function PracticeDetailPanel({
                 Đóng bài
               </Button>
             ) : null}
+            <Button variant="secondary" disabled={isSavingAsTemplate} onClick={onSaveAsTemplate}>
+              <BookmarkPlus className="h-3.5 w-3.5" strokeWidth={1.75} />
+              {isSavingAsTemplate ? 'Đang lưu...' : 'Lưu thành template'}
+            </Button>
           </div>
+          {saveAsTemplateError ? <p className="text-sm text-red-600">{saveAsTemplateError}</p> : null}
+          <p className="text-xs text-slate-500">
+            Xem tại{' '}
+            <Link to={ROUTES.teacher.examTemplates} className="font-medium text-blue-600 hover:text-blue-700">
+              Thư viện đề
+            </Link>
+          </p>
         </div>
       </aside>
     </div>

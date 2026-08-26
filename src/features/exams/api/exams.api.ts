@@ -58,6 +58,7 @@ type ExamDto = {
   config?: ExamConfigDto | null
   questionIds?: Array<number | string>
   questions?: Array<number | string | ExamQuestionRefDto>
+  sourceTemplateId?: number | null
 }
 
 type ClassroomDto = {
@@ -217,6 +218,7 @@ export function normalizeExam(dto: ExamDto): ExamItem | null {
     config: normalizeConfig(dto.config),
     questionIds,
     questions,
+    sourceTemplateId: dto.sourceTemplateId ?? null,
   }
 }
 
@@ -342,6 +344,14 @@ export async function updateExam(id: number, payload: ExamUpdatePayload) {
 
 export async function deleteExam(id: number) {
   await apiClient.delete(`/v1/exams/${id}`)
+}
+
+export async function saveExamAsTemplate(id: number) {
+  const response = await apiClient.post<{ id?: number; title?: string }>(`/v1/exams/${id}/save-as-template`)
+  return {
+    id: response.data?.id,
+    title: response.data?.title,
+  }
 }
 
 export async function updateExamClassrooms(id: number, classroomIds: number[]) {

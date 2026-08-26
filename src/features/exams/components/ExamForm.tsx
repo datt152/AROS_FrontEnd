@@ -1,7 +1,12 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
+import { Spinner } from '../../../components/ui/Spinner'
+import {
+  useExamTemplate,
+  useExamTemplates,
+} from '../../exam-templates/hooks/useExamTemplates'
 import type {
   ClassroomOption,
   ExamCreateFormValues,
@@ -13,6 +18,8 @@ import type {
   SubjectOption,
 } from '../types/exam.types'
 import { EXAM_MODE_LABEL, QUESTION_TYPE_LABEL } from '../types/exam.types'
+
+type QuestionPickMode = 'manual' | 'template'
 
 type ExamFormProps = {
   mode: 'create' | 'edit'
@@ -94,12 +101,39 @@ export function ExamForm({
   const [step, setStep] = useState(1)
   const [showRawPoints, setShowRawPoints] = useState(false)
   const [topicFilter, setTopicFilter] = useState<number | ''>('')
+  const [questionPickMode, setQuestionPickMode] = useState<QuestionPickMode>('manual')
+  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null)
   const [createValues, setCreateValues] = useState<ExamCreateFormValues>(() => toCreateValues(initialValues))
   const [updateValues, setUpdateValues] = useState<ExamUpdateFormValues>(() => toUpdateValues(initialValues))
   const [errors, setErrors] = useState<ExamFormErrors>({})
 
   const selectedSubjectId = mode === 'create' ? createValues.subjectId : updateValues.subjectId
   const selectedMode = mode === 'create' ? createValues.examMode : updateValues.examMode
+
+  const templatesQuery = useExamTemplates(
+    {
+      subjectId: typeof selectedSubjectId === 'number' ? selectedSubjectId : undefined,
+      page: 0,
+      size: 50,
+    },
+    { enabled: mode === 'create' && typeof selectedSubjectId === 'number' && selectedSubjectId > 0 },
+  )
+  const templateDetailQuery = useExamTemplate(
+    questionPickMode === 'template' ? (selectedTemplateId ?? undefined) : undefined,
+  )
+
+  useEffect(() => {
+    if (questionPickMode !== 'template' || !templateDetailQuery.data) return
+    const template = templateDetailQuery.data
+    const questionIds = template.questionIds ?? []
+    const rawPoints = Object.fromEntries(questionIds.map((id) => [id, 1]))
+    setCreateValues((current) => ({
+      ...current,
+      questionIds,
+      rawPoints,
+    }))
+    setErrors((current) => ({ ...current, questionIds: undefined }))
+  }, [questionPickMode, templateDetailQuery.data])
 
   const availableQuestions = useMemo(() => {
     if (!selectedSubjectId) return []
@@ -111,6 +145,8 @@ export function ExamForm({
     })
   }, [questionOptions, selectedSubjectId, selectedMode, topicFilter])
 
+  const subjectTemplates = templatesQuery.data?.items ?? []
+
   function updateCreateField<K extends keyof ExamCreateFormValues>(key: K, value: ExamCreateFormValues[K]) {
     setCreateValues((current) => {
       const next = { ...current, [key]: value }
@@ -121,7 +157,11 @@ export function ExamForm({
       }
       return next
     })
-    if (key === 'subjectId') setTopicFilter('')
+    if (key === 'subjectId') {
+      setTopicFilter('')
+      setSelectedTemplateId(null)
+      setQuestionPickMode('manual')
+    }
     if (key === 'subjectId' && typeof value === 'number' && value > 0) {
       onSubjectChange?.(value)
     }
@@ -381,88 +421,181 @@ export function ExamForm({
           <div>
             <p className="text-sm font-medium text-slate-800">Chọn câu hỏi</p>
             <p className="mt-0.5 text-xs text-slate-500">
-              {selectedMode === 'OMR_PAPER'
-                ? 'Chế độ OMR chỉ cho phép câu một đáp án.'
-                : 'Chọn ít nhất một câu hỏi thuộc môn đã chọn.'}
+              Chọn thủ công từng câu hoặc lấy nguyên bộ từ thư viện đề.
             </p>
           </div>
-          <div className="space-y-1.5">
-            <label htmlFor="topicFilter" className="text-sm font-medium text-slate-700">
-              Lọc theo chủ đề
-            </label>
-            <select
-              id="topicFilter"
-              value={topicFilter}
-              disabled={isSubmitting || !selectedSubjectId}
-              onChange={(event) =>
-                setTopicFilter(event.target.value === '' ? '' : Number(event.target.value))
-              }
-              className={selectClassName(false)}
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => {
+                setQuestionPickMode('manual')
+                setSelectedTemplateId(null)
+                setCreateValues((current) => ({ ...current, questionIds: [], rawPoints: {} }))
+              }}
+              className={`rounded-xl border px-3 py-2.5 text-sm font-medium transition ${
+                questionPickMode === 'manual'
+                  ? 'border-blue-300 bg-blue-50 text-blue-800'
+                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+              }`}
             >
-              <option value="">Tất cả chủ đề</option>
-              {topicOptions.map((topic) => (
-                <option key={topic.id} value={topic.id}>
-                  {topic.name}
-                </option>
-              ))}
-            </select>
+              Chọn thủ công
+            </button>
+            <button
+              type="button"
+              disabled={isSubmitting || !selectedSubjectId}
+              onClick={() => {
+                setQuestionPickMode('template')
+                setCreateValues((current) => ({ ...current, questionIds: [], rawPoints: {} }))
+              }}
+              className={`rounded-xl border px-3 py-2.5 text-sm font-medium transition ${
+                questionPickMode === 'template'
+                  ? 'border-blue-300 bg-blue-50 text-blue-800'
+                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              Theo bộ đề
+            </button>
           </div>
-          {errors.questionIds ? <p className="text-sm text-red-500">{errors.questionIds}</p> : null}
-          {availableQuestions.length === 0 ? (
-            <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-4 text-sm text-slate-500">
-              Không có câu hỏi phù hợp.
-            </p>
-          ) : (
-            <ul className="max-h-72 space-y-2 overflow-y-auto rounded-2xl border border-slate-200 p-2">
-              {availableQuestions.map((question) => (
-                <li key={question.questionId}>
-                  <label className="flex cursor-pointer items-start gap-3 rounded-xl px-3 py-2.5 hover:bg-slate-50">
-                    <input
-                      type="checkbox"
-                      checked={createValues.questionIds.includes(question.questionId)}
-                      disabled={isSubmitting}
-                      onChange={() => toggleQuestion(question.questionId)}
-                      className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-slate-900">{question.content}</p>
-                      <p className="mt-1 text-xs text-slate-500">{QUESTION_TYPE_LABEL[question.type]}</p>
-                    </div>
-                  </label>
-                </li>
-              ))}
-            </ul>
-          )}
-          <button
-            type="button"
-            className="text-sm font-medium text-blue-600 hover:text-blue-700"
-            onClick={() => setShowRawPoints((value) => !value)}
-          >
-            {showRawPoints ? 'Ẩn điểm thô' : 'Hiện điểm thô (nâng cao)'}
-          </button>
-          {showRawPoints ? (
-            <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
-              {createValues.questionIds.map((questionId) => (
-                <div key={questionId} className="flex items-center gap-3">
-                  <p className="min-w-0 flex-1 truncate text-xs text-slate-600">#{questionId}</p>
-                  <Input
-                    type="number"
-                    min={0}
-                    step="0.25"
-                    className="w-24"
-                    value={createValues.rawPoints[questionId] ?? 1}
-                    disabled={isSubmitting}
-                    onChange={(event) =>
-                      updateCreateField('rawPoints', {
-                        ...createValues.rawPoints,
-                        [questionId]: Number(event.target.value) || 0,
-                      })
-                    }
-                  />
-                </div>
-              ))}
+
+          {questionPickMode === 'template' ? (
+            <div className="space-y-3">
+              {templatesQuery.isLoading ? <Spinner label="Đang tải bộ đề..." /> : null}
+              {templatesQuery.isError ? (
+                <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                  Không thể tải thư viện đề.
+                </p>
+              ) : null}
+              {templatesQuery.isSuccess && subjectTemplates.length === 0 ? (
+                <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-4 text-sm text-slate-500">
+                  Môn này chưa có template. Tạo trong Thư viện đề hoặc chọn thủ công.
+                </p>
+              ) : null}
+              {subjectTemplates.length > 0 ? (
+                <ul className="max-h-72 space-y-2 overflow-y-auto rounded-2xl border border-slate-200 p-2">
+                  {subjectTemplates.map((template) => {
+                    const selected = selectedTemplateId === template.id
+                    const questionCount = template.totalQuestions || template.questionIds.length
+                    return (
+                      <li key={template.id}>
+                        <label
+                          className={`flex cursor-pointer items-start gap-3 rounded-xl px-3 py-2.5 ${
+                            selected ? 'bg-blue-50' : 'hover:bg-slate-50'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="exam-template"
+                            checked={selected}
+                            disabled={isSubmitting || questionCount < 1}
+                            onChange={() => setSelectedTemplateId(template.id)}
+                            className="mt-1"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-slate-900">{template.title}</p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              {questionCount} câu
+                              {questionCount < 1 ? ' · chưa có câu hỏi' : ''}
+                            </p>
+                          </div>
+                        </label>
+                      </li>
+                    )
+                  })}
+                </ul>
+              ) : null}
+              {selectedTemplateId && templateDetailQuery.isLoading ? (
+                <Spinner label="Đang tải câu hỏi bộ đề..." />
+              ) : null}
+              {selectedTemplateId && createValues.questionIds.length > 0 ? (
+                <p className="text-xs text-emerald-700">
+                  Đã lấy {createValues.questionIds.length} câu từ bộ đề đã chọn.
+                </p>
+              ) : null}
+              {errors.questionIds ? <p className="text-sm text-red-500">{errors.questionIds}</p> : null}
             </div>
-          ) : null}
+          ) : (
+            <>
+              <div className="space-y-1.5">
+                <label htmlFor="topicFilter" className="text-sm font-medium text-slate-700">
+                  Lọc theo chủ đề
+                </label>
+                <select
+                  id="topicFilter"
+                  value={topicFilter}
+                  disabled={isSubmitting || !selectedSubjectId}
+                  onChange={(event) =>
+                    setTopicFilter(event.target.value === '' ? '' : Number(event.target.value))
+                  }
+                  className={selectClassName(false)}
+                >
+                  <option value="">Tất cả chủ đề</option>
+                  {topicOptions.map((topic) => (
+                    <option key={topic.id} value={topic.id}>
+                      {topic.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {errors.questionIds ? <p className="text-sm text-red-500">{errors.questionIds}</p> : null}
+              {availableQuestions.length === 0 ? (
+                <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-4 text-sm text-slate-500">
+                  Không có câu hỏi phù hợp.
+                </p>
+              ) : (
+                <ul className="max-h-72 space-y-2 overflow-y-auto rounded-2xl border border-slate-200 p-2">
+                  {availableQuestions.map((question) => (
+                    <li key={question.questionId}>
+                      <label className="flex cursor-pointer items-start gap-3 rounded-xl px-3 py-2.5 hover:bg-slate-50">
+                        <input
+                          type="checkbox"
+                          checked={createValues.questionIds.includes(question.questionId)}
+                          disabled={isSubmitting}
+                          onChange={() => toggleQuestion(question.questionId)}
+                          className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-slate-900">{question.content}</p>
+                          <p className="mt-1 text-xs text-slate-500">{QUESTION_TYPE_LABEL[question.type]}</p>
+                        </div>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <button
+                type="button"
+                className="text-sm font-medium text-blue-600 hover:text-blue-700"
+                onClick={() => setShowRawPoints((value) => !value)}
+              >
+                {showRawPoints ? 'Ẩn điểm thô' : 'Hiện điểm thô (nâng cao)'}
+              </button>
+              {showRawPoints ? (
+                <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+                  {createValues.questionIds.map((questionId) => (
+                    <div key={questionId} className="flex items-center gap-3">
+                      <p className="min-w-0 flex-1 truncate text-xs text-slate-600">#{questionId}</p>
+                      <Input
+                        type="number"
+                        min={0}
+                        step="0.25"
+                        className="w-24"
+                        value={createValues.rawPoints[questionId] ?? 1}
+                        disabled={isSubmitting}
+                        onChange={(event) =>
+                          updateCreateField('rawPoints', {
+                            ...createValues.rawPoints,
+                            [questionId]: Number(event.target.value) || 0,
+                          })
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </>
+          )}
         </div>
       ) : null}
 

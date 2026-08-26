@@ -10,6 +10,7 @@ import {
   getExams,
   getExamVersionDetail,
   getExamVersions,
+  saveExamAsTemplate,
   submitExam,
   takeExam,
   updateExam,
@@ -131,6 +132,17 @@ export function useDeleteExam() {
     mutationFn: (id: number) => deleteExam(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: examKeys.all })
+    },
+  })
+}
+
+export function useSaveExamAsTemplate() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: number) => saveExamAsTemplate(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['exam-templates'] })
     },
   })
 }

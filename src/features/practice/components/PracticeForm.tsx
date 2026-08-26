@@ -1,7 +1,12 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 
 import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
+import { Spinner } from '../../../components/ui/Spinner'
+import {
+  useExamTemplate,
+  useExamTemplates,
+} from '../../exam-templates/hooks/useExamTemplates'
 import type {
   PracticeClassroomOption,
   PracticeFormErrors,
@@ -12,6 +17,8 @@ import type {
 } from '../types/practice.types'
 import { emptyPracticeFormValues, practiceToFormValues } from '../types/practice.types'
 import { PracticeConfigSection } from './PracticeConfigSection'
+
+type QuestionPickMode = 'manual' | 'template'
 
 type PracticeFormProps = {
   mode: 'create' | 'edit'
@@ -41,6 +48,30 @@ export function PracticeForm({
   )
   const [errors, setErrors] = useState<PracticeFormErrors>({})
   const [topicFilter, setTopicFilter] = useState<number | ''>('')
+  const [questionPickMode, setQuestionPickMode] = useState<QuestionPickMode>('manual')
+  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null)
+
+  const templatesQuery = useExamTemplates(
+    {
+      subjectId: typeof values.subjectId === 'number' ? values.subjectId : undefined,
+      page: 0,
+      size: 50,
+    },
+    { enabled: mode === 'create' && typeof values.subjectId === 'number' && values.subjectId > 0 },
+  )
+  const templateDetailQuery = useExamTemplate(
+    questionPickMode === 'template' ? (selectedTemplateId ?? undefined) : undefined,
+  )
+
+  useEffect(() => {
+    if (questionPickMode !== 'template' || !templateDetailQuery.data) return
+    const template = templateDetailQuery.data
+    setValues((current) => ({
+      ...current,
+      questionIds: template.questionIds ?? [],
+    }))
+    setErrors((current) => ({ ...current, questionIds: undefined }))
+  }, [questionPickMode, templateDetailQuery.data])
 
   const filteredQuestions = useMemo(() => {
     if (values.subjectId === '') return []
@@ -55,6 +86,8 @@ export function PracticeForm({
     if (values.subjectId === '') return []
     return classrooms.filter((classroom) => classroom.subjectId === values.subjectId)
   }, [classrooms, values.subjectId])
+
+  const subjectTemplates = templatesQuery.data?.items ?? []
 
   function validate(): boolean {
     const next: PracticeFormErrors = {}
@@ -114,6 +147,8 @@ export function PracticeForm({
               onChange={(event) => {
                 const subjectId = event.target.value === '' ? '' : Number(event.target.value)
                 setTopicFilter('')
+                setSelectedTemplateId(null)
+                setQuestionPickMode('manual')
                 setValues((current) => ({
                   ...current,
                   subjectId,
@@ -176,53 +211,138 @@ export function PracticeForm({
         {mode === 'create' ? (
           <div className="space-y-2">
             <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Câu hỏi</p>
-            {values.subjectId !== '' ? (
-              <select
-                value={topicFilter}
-                onChange={(event) =>
-                  setTopicFilter(event.target.value === '' ? '' : Number(event.target.value))
-                }
-                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setQuestionPickMode('manual')
+                  setSelectedTemplateId(null)
+                  setValues((current) => ({ ...current, questionIds: [] }))
+                }}
+                className={`rounded-xl border px-3 py-2 text-sm font-medium ${
+                  questionPickMode === 'manual'
+                    ? 'border-blue-300 bg-blue-50 text-blue-800'
+                    : 'border-slate-200 bg-white text-slate-600'
+                }`}
               >
-                <option value="">Tất cả chủ đề</option>
-                {topics.map((topic) => (
-                  <option key={topic.id} value={topic.id}>
-                    {topic.name}
-                  </option>
-                ))}
-              </select>
-            ) : null}
-            {values.subjectId === '' ? (
-              <p className="text-sm text-slate-500">Chọn môn học trước để tải câu hỏi.</p>
-            ) : filteredQuestions.length === 0 ? (
-              <p className="text-sm text-slate-500">Không có câu hỏi phù hợp.</p>
-            ) : (
-              <div className="max-h-48 space-y-2 overflow-y-auto rounded-xl border border-slate-200 p-2">
-                {filteredQuestions.map((question) => {
-                  const checked = values.questionIds.includes(question.questionId)
-                  return (
-                    <label
-                      key={question.questionId}
-                      className="flex cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() =>
-                          setValues((current) => ({
-                            ...current,
-                            questionIds: checked
-                              ? current.questionIds.filter((id) => id !== question.questionId)
-                              : [...current.questionIds, question.questionId],
-                          }))
-                        }
-                        className="mt-1"
-                      />
-                      <span className="text-sm text-slate-800">{question.content}</span>
-                    </label>
-                  )
-                })}
+                Chọn thủ công
+              </button>
+              <button
+                type="button"
+                disabled={values.subjectId === ''}
+                onClick={() => {
+                  setQuestionPickMode('template')
+                  setValues((current) => ({ ...current, questionIds: [] }))
+                }}
+                className={`rounded-xl border px-3 py-2 text-sm font-medium disabled:opacity-50 ${
+                  questionPickMode === 'template'
+                    ? 'border-blue-300 bg-blue-50 text-blue-800'
+                    : 'border-slate-200 bg-white text-slate-600'
+                }`}
+              >
+                Theo bộ đề
+              </button>
+            </div>
+
+            {questionPickMode === 'template' ? (
+              <div className="space-y-2">
+                {values.subjectId === '' ? (
+                  <p className="text-sm text-slate-500">Chọn môn học trước.</p>
+                ) : templatesQuery.isLoading ? (
+                  <Spinner label="Đang tải bộ đề..." />
+                ) : subjectTemplates.length === 0 ? (
+                  <p className="text-sm text-slate-500">
+                    Chưa có template cho môn này. Tạo trong Thư viện đề hoặc chọn thủ công.
+                  </p>
+                ) : (
+                  <div className="max-h-48 space-y-2 overflow-y-auto rounded-xl border border-slate-200 p-2">
+                    {subjectTemplates.map((template) => {
+                      const selected = selectedTemplateId === template.id
+                      const questionCount = template.totalQuestions || template.questionIds.length
+                      return (
+                        <label
+                          key={template.id}
+                          className={`flex cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 ${
+                            selected ? 'bg-blue-50' : 'hover:bg-slate-50'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="practice-template"
+                            checked={selected}
+                            disabled={questionCount < 1}
+                            onChange={() => setSelectedTemplateId(template.id)}
+                            className="mt-1"
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-sm text-slate-800">{template.title}</span>
+                            <span className="block text-xs text-slate-500">{questionCount} câu</span>
+                          </span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                )}
+                {selectedTemplateId && templateDetailQuery.isLoading ? (
+                  <Spinner label="Đang tải câu hỏi..." />
+                ) : null}
+                {selectedTemplateId && values.questionIds.length > 0 ? (
+                  <p className="text-xs text-emerald-700">
+                    Đã lấy {values.questionIds.length} câu từ bộ đề.
+                  </p>
+                ) : null}
               </div>
+            ) : (
+              <>
+                {values.subjectId !== '' ? (
+                  <select
+                    value={topicFilter}
+                    onChange={(event) =>
+                      setTopicFilter(event.target.value === '' ? '' : Number(event.target.value))
+                    }
+                    className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+                  >
+                    <option value="">Tất cả chủ đề</option>
+                    {topics.map((topic) => (
+                      <option key={topic.id} value={topic.id}>
+                        {topic.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
+                {values.subjectId === '' ? (
+                  <p className="text-sm text-slate-500">Chọn môn học trước để tải câu hỏi.</p>
+                ) : filteredQuestions.length === 0 ? (
+                  <p className="text-sm text-slate-500">Không có câu hỏi phù hợp.</p>
+                ) : (
+                  <div className="max-h-48 space-y-2 overflow-y-auto rounded-xl border border-slate-200 p-2">
+                    {filteredQuestions.map((question) => {
+                      const checked = values.questionIds.includes(question.questionId)
+                      return (
+                        <label
+                          key={question.questionId}
+                          className="flex cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() =>
+                              setValues((current) => ({
+                                ...current,
+                                questionIds: checked
+                                  ? current.questionIds.filter((id) => id !== question.questionId)
+                                  : [...current.questionIds, question.questionId],
+                              }))
+                            }
+                            className="mt-1"
+                          />
+                          <span className="text-sm text-slate-800">{question.content}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                )}
+              </>
             )}
             {errors.questionIds ? <p className="text-xs text-red-600">{errors.questionIds}</p> : null}
           </div>

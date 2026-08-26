@@ -1,7 +1,9 @@
-import { FileCode2, Play, Users, X } from 'lucide-react'
+import { BookmarkPlus, FileCode2, Play, Users, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import { Button } from '../../../components/ui/Button'
+import { ROUTES } from '../../../routes/routes.config'
 import type { ClassroomOption, ExamItem, QuestionPickItem } from '../types/exam.types'
 import {
   EXAM_MODE_BADGE_CLASS,
@@ -22,11 +24,14 @@ type ExamDetailPanelProps = {
   classroomOptions: ClassroomOption[]
   questionOptions: QuestionPickItem[]
   questionsLoading?: boolean
+  isSavingAsTemplate?: boolean
+  saveAsTemplateError?: string | null
   onClose: () => void
   onAssignClassrooms: () => void
   onGenerateVersions: () => void
   onOpenExam: () => void
   onPreviewVersion: (versionCode: string) => void
+  onSaveAsTemplate: () => void
 }
 
 export function ExamDetailPanel({
@@ -34,11 +39,14 @@ export function ExamDetailPanel({
   classroomOptions,
   questionOptions,
   questionsLoading = false,
+  isSavingAsTemplate = false,
+  saveAsTemplateError = null,
   onClose,
   onAssignClassrooms,
   onGenerateVersions,
   onOpenExam,
   onPreviewVersion,
+  onSaveAsTemplate,
 }: ExamDetailPanelProps) {
   const [tab, setTab] = useState<DetailTab>('info')
   const readiness = canOpenExam(exam)
@@ -90,6 +98,11 @@ export function ExamDetailPanel({
                 <span className={`inline-flex rounded-lg px-2 py-1 text-xs font-medium ${EXAM_MODE_BADGE_CLASS[exam.examMode]}`}>
                   {EXAM_MODE_LABEL[exam.examMode]}
                 </span>
+                {exam.sourceTemplateId ? (
+                  <span className="inline-flex rounded-lg bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700">
+                    Từ thư viện
+                  </span>
+                ) : null}
               </div>
             </div>
             <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100" aria-label="Đóng">
@@ -272,16 +285,49 @@ export function ExamDetailPanel({
         </div>
 
         {exam.status === 'DRAFT' ? (
-          <div className="border-t border-slate-200 px-5 py-4">
+          <div className="space-y-2 border-t border-slate-200 px-5 py-4">
             <span title={openBlockReason ?? undefined} className="block">
               <Button className="w-full" disabled={!readiness.ready} onClick={onOpenExam}>
                 <Play className="h-4 w-4" strokeWidth={1.75} />
                 Mở thi
               </Button>
             </span>
-            {!readiness.ready ? <p className="mt-2 text-center text-xs text-slate-500">{openBlockReason}</p> : null}
+            {!readiness.ready ? <p className="text-center text-xs text-slate-500">{openBlockReason}</p> : null}
+            <Button
+              variant="secondary"
+              className="w-full"
+              disabled={isSavingAsTemplate}
+              onClick={onSaveAsTemplate}
+            >
+              <BookmarkPlus className="h-4 w-4" strokeWidth={1.75} />
+              {isSavingAsTemplate ? 'Đang lưu...' : 'Lưu thành template'}
+            </Button>
+            {saveAsTemplateError ? (
+              <p className="text-center text-xs text-red-600">{saveAsTemplateError}</p>
+            ) : null}
           </div>
-        ) : null}
+        ) : (
+          <div className="space-y-2 border-t border-slate-200 px-5 py-4">
+            <Button
+              variant="secondary"
+              className="w-full"
+              disabled={isSavingAsTemplate}
+              onClick={onSaveAsTemplate}
+            >
+              <BookmarkPlus className="h-4 w-4" strokeWidth={1.75} />
+              {isSavingAsTemplate ? 'Đang lưu...' : 'Lưu thành template'}
+            </Button>
+            {saveAsTemplateError ? (
+              <p className="text-center text-xs text-red-600">{saveAsTemplateError}</p>
+            ) : null}
+            <p className="text-center text-xs text-slate-500">
+              Xem tại{' '}
+              <Link to={ROUTES.teacher.examTemplates} className="font-medium text-blue-600 hover:text-blue-700">
+                Thư viện đề
+              </Link>
+            </p>
+          </div>
+        )}
       </aside>
     </div>
   )

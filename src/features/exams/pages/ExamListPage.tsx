@@ -1,5 +1,6 @@
 import { BarChart3, ClipboardList, Plus, Printer, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 
 import { Button } from '../../../components/ui/Button'
 import { EmptyState } from '../../../components/ui/EmptyState'
@@ -15,6 +16,7 @@ import {
   TableRow,
 } from '../../../components/ui/Table'
 import { getApiErrorMessage } from '../../../lib/apiError'
+import { ROUTES } from '../../../routes/routes.config'
 import { useClassrooms } from '../../classrooms/hooks/useClassrooms'
 import { useQuestions } from '../../questions/hooks/useQuestions'
 import { useTopics } from '../../questions/hooks/useTopics'
@@ -37,6 +39,7 @@ import {
   useExamVersionDetail,
   useExamVersions,
   useExamVersionsMany,
+  useSaveExamAsTemplate,
   useUpdateExam,
   useUpdateExamClassrooms,
 } from '../hooks/useExams'
@@ -75,6 +78,7 @@ function buildUpdatePayload(
 }
 
 export function ExamListPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const subjectsQuery = useSubjects()
   const classroomsQuery = useClassrooms()
   const examsQuery = useExams({ page: 0, size: FETCH_SIZE, purpose: 'EXAM' })
@@ -84,6 +88,7 @@ export function ExamListPage() {
   const deleteExam = useDeleteExam()
   const updateClassrooms = useUpdateExamClassrooms()
   const createVersions = useCreateExamVersions()
+  const saveAsTemplate = useSaveExamAsTemplate()
 
   const [subjectFilter, setSubjectFilter] = useState<number | ''>('')
   const [modeFilter, setModeFilter] = useState<ExamMode | ''>('')
@@ -98,6 +103,7 @@ export function ExamListPage() {
   const [assignExam, setAssignExam] = useState<ExamItemType | null>(null)
   const [openExam, setOpenExam] = useState<ExamItemType | null>(null)
   const [previewCode, setPreviewCode] = useState<string | null>(null)
+  const [saveAsTemplateError, setSaveAsTemplateError] = useState<string | null>(null)
 
   const [formSubjectId, setFormSubjectId] = useState<number | undefined>(undefined)
   const [formError, setFormError] = useState<string | null>(null)
@@ -256,6 +262,17 @@ export function ExamListPage() {
     const timer = window.setTimeout(() => setToast(null), 3200)
     return () => window.clearTimeout(timer)
   }, [toast])
+
+  useEffect(() => {
+    const detailParam = searchParams.get('detail')
+    if (!detailParam) return
+    const id = Number(detailParam)
+    if (!Number.isFinite(id) || id <= 0) return
+    setDetailExamId(id)
+    const next = new URLSearchParams(searchParams)
+    next.delete('detail')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams])
 
   const isMutating =
     createExam.isPending ||
@@ -451,7 +468,10 @@ export function ExamListPage() {
     <section className="space-y-5">
       {toast ? (
         <div className="fixed right-4 top-4 z-[80] rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-lg">
-          {toast}
+          {toast}{' '}
+          <Link to={ROUTES.teacher.examTemplates} className="font-medium text-blue-600 hover:text-blue-700">
+            Mở thư viện
+          </Link>
         </div>
       ) : null}
 
@@ -721,6 +741,8 @@ export function ExamListPage() {
             detailQuestionsVersionQuery.isLoading ||
             (Boolean(detailExamId) && detailVersionsQuery.isLoading && !(detailExam.questions?.length))
           }
+          isSavingAsTemplate={saveAsTemplate.isPending}
+          saveAsTemplateError={saveAsTemplateError}
           onClose={() => setDetailExamId(null)}
           onAssignClassrooms={() => {
             setAssignError(null)
@@ -735,6 +757,17 @@ export function ExamListPage() {
             setOpenExam(detailExam)
           }}
           onPreviewVersion={(versionCode) => setPreviewCode(versionCode)}
+          onSaveAsTemplate={() => {
+            setSaveAsTemplateError(null)
+            void saveAsTemplate
+              .mutateAsync(detailExam.id)
+              .then(() => {
+                setToast('Đã lưu thành template — xem Thư viện đề')
+              })
+              .catch((error) => {
+                setSaveAsTemplateError(getApiErrorMessage(error, 'Không thể lưu thành template'))
+              })
+          }}
         />
       ) : null}
 
