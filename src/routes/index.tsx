@@ -17,6 +17,9 @@ import { NotFoundPage } from '../pages/NotFoundPage'
 import { UnauthorizedPage } from '../pages/UnauthorizedPage'
 import { ExamStatsPage } from '../features/exam-stats/pages/ExamStatsPage'
 import { GradingPage } from '../features/grading/pages/GradingPage'
+import { PracticeListPage } from '../features/practice/pages/PracticeListPage'
+import { PracticeTakePage } from '../features/practice/pages/PracticeTakePage'
+import { StudentPracticeListPage } from '../features/practice/pages/StudentPracticeListPage'
 import { GuestRoute } from './GuestRoute'
 import { ProtectedRoute } from './ProtectedRoute'
 import { RoleRoute } from './RoleRoute'
@@ -29,11 +32,15 @@ function teacherPageForPath(path: string) {
   if (path === ROUTES.teacher.exams) return <ExamListPage />
   if (path === ROUTES.teacher.grading) return <GradingPage />
   if (path === ROUTES.teacher.examStats) return <ExamStatsPage />
+  if (path === ROUTES.teacher.practice) return <PracticeListPage />
+  if (path === ROUTES.teacher.createPractice) return <PracticeListPage />
   return null
 }
 
 function studentPageForPath(path: string) {
   if (path === ROUTES.student.takeExam) return <ExamTakePage />
+  if (path === ROUTES.student.practice) return <StudentPracticeListPage />
+  if (path === ROUTES.student.takePractice) return <PracticeTakePage />
   return null
 }
 

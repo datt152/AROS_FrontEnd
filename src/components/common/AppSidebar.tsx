@@ -34,7 +34,8 @@ const iconByLabel: Record<string, ComponentType<{ className?: string; strokeWidt
   'Ngân hàng câu hỏi': HelpCircle,
   'Tạo bài thi': FileText,
   'Tải lên OMR': FileText,
-  'Tạo bài luyện tập': FileText,
+  'Bài luyện tập': BookOpen,
+  'Tạo bài luyện tập': BookOpen,
   'Thống kê bài thi': ClipboardCheck,
 }
 
