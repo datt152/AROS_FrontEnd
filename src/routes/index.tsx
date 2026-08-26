@@ -15,6 +15,7 @@ import { TeacherLayout } from '../layouts/TeacherLayout'
 import { HomePage } from '../pages/HomePage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { UnauthorizedPage } from '../pages/UnauthorizedPage'
+import { ExamStatsPage } from '../features/exam-stats/pages/ExamStatsPage'
 import { GradingPage } from '../features/grading/pages/GradingPage'
 import { GuestRoute } from './GuestRoute'
 import { ProtectedRoute } from './ProtectedRoute'
@@ -27,6 +28,7 @@ function teacherPageForPath(path: string) {
   if (path === ROUTES.teacher.questionBank) return <QuestionListPage />
   if (path === ROUTES.teacher.exams) return <ExamListPage />
   if (path === ROUTES.teacher.grading) return <GradingPage />
+  if (path === ROUTES.teacher.examStats) return <ExamStatsPage />
   return null
 }
 
