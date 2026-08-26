@@ -1,7 +1,8 @@
 import { Search } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import { EmptyState } from '../../../components/ui/EmptyState'
+import { ErrorState } from '../../../components/ui/ErrorState'
 import { Input } from '../../../components/ui/Input'
 import { Spinner } from '../../../components/ui/Spinner'
 import {
@@ -13,89 +14,82 @@ import {
   TableHeader,
   TableRow,
 } from '../../../components/ui/Table'
+import { getApiErrorMessage } from '../../../lib/apiError'
+import { useClassrooms } from '../../classrooms/hooks/useClassrooms'
+import { useExams } from '../../exams/hooks/useExams'
+import { useSubjects } from '../../subjects/hooks/useSubjects'
 import { GradingFilterBar } from '../components/GradingFilterBar'
 import { GradingStudentCard, GradingStudentTableRow } from '../components/GradingStudentRow'
 import { GradingSummary } from '../components/GradingSummary'
 import { SubmissionDetailDrawer } from '../components/SubmissionDetailDrawer'
-import type { GradingStudentRow, SubmissionDetail } from '../types/grading.types'
-import {
-  MOCK_GRADING_CLASSROOMS,
-  MOCK_GRADING_EXAMS,
-  MOCK_GRADING_SHEET,
-  MOCK_GRADING_SUBJECTS,
-  MOCK_SUBMISSION_DETAILS,
-  summarizeGradingStudents,
-} from '../types/grading.types'
+import { useExamGrading, useSubmissionDetail } from '../hooks/useGrading'
+import type { GradingStudentRow } from '../types/grading.types'
+import { summarizeGradingStudents } from '../types/grading.types'
 
-/** Skeleton UI — Chấm điểm GV (mock). API wiring: Loại B */
 export function GradingPage() {
   const [subjectId, setSubjectId] = useState<number | ''>('')
   const [classroomId, setClassroomId] = useState<number | ''>('')
   const [examId, setExamId] = useState<number | ''>('')
   const [searchQuery, setSearchQuery] = useState('')
-  const [isSheetLoading, setIsSheetLoading] = useState(false)
-  const [sheetError, setSheetError] = useState<string | null>(null)
-  const [detail, setDetail] = useState<SubmissionDetail | null>(null)
-  const [detailLoading, setDetailLoading] = useState(false)
+  const [selectedSubmissionId, setSelectedSubmissionId] = useState<number | undefined>(undefined)
 
-  const classroomsForSubject = useMemo(
-    () =>
-      subjectId === ''
-        ? []
-        : MOCK_GRADING_CLASSROOMS.filter((classroom) => classroom.subjectId === subjectId),
-    [subjectId],
+  const subjectsQuery = useSubjects()
+  const classroomsQuery = useClassrooms(typeof subjectId === 'number' ? subjectId : undefined, {
+    enabled: subjectId !== '',
+  })
+  const examsQuery = useExams(
+    {
+      page: 0,
+      size: 50,
+      classroomId: typeof classroomId === 'number' ? classroomId : undefined,
+    },
+    { enabled: classroomId !== '' },
+  )
+  const sheetQuery = useExamGrading(
+    typeof examId === 'number' ? examId : undefined,
+    typeof classroomId === 'number' ? classroomId : undefined,
+  )
+  const detailQuery = useSubmissionDetail(selectedSubmissionId)
+
+  const subjects = useMemo(
+    () => (subjectsQuery.data ?? []).map((item) => ({ id: item.id, subjectName: item.subjectName })),
+    [subjectsQuery.data],
   )
 
-  const examsForClassroom = useMemo(
+  const classrooms = useMemo(
     () =>
-      classroomId === ''
-        ? []
-        : MOCK_GRADING_EXAMS.filter((exam) => exam.classroomIds.includes(classroomId)),
-    [classroomId],
+      (classroomsQuery.data ?? []).map((item) => ({
+        id: item.id,
+        className: item.className,
+        subjectId: item.subjectId,
+      })),
+    [classroomsQuery.data],
   )
 
-  const selectedSubject = MOCK_GRADING_SUBJECTS.find((item) => item.id === subjectId)
-  const selectedClassroom = classroomsForSubject.find((item) => item.id === classroomId)
-  const selectedExam = examsForClassroom.find((item) => item.id === examId)
+  const exams = useMemo(
+    () =>
+      (examsQuery.data?.items ?? []).map((item) => ({
+        id: item.id,
+        title: item.title,
+        status: item.status,
+        startAt: item.startAt,
+        endAt: item.endAt,
+        maxScore: item.maxScore,
+        classroomIds: item.classroomIds ?? [],
+      })),
+    [examsQuery.data],
+  )
+
+  const selectedSubject = subjects.find((item) => item.id === subjectId)
+  const selectedClassroom = classrooms.find((item) => item.id === classroomId)
+  const selectedExam = exams.find((item) => item.id === examId)
 
   const sheetReady = subjectId !== '' && classroomId !== '' && examId !== ''
+  const classroomSelected = classroomId !== ''
+  const examsEmpty =
+    classroomSelected && !examsQuery.isLoading && !examsQuery.isError && exams.length === 0
 
-  // Mock load sheet khi chọn đủ 3 filter
-  useEffect(() => {
-    if (!sheetReady) {
-      setIsSheetLoading(false)
-      setSheetError(null)
-      return
-    }
-
-    setIsSheetLoading(true)
-    setSheetError(null)
-    const timer = window.setTimeout(() => {
-      // Mock: exam 201 (CSDL) → empty students để demo empty
-      if (examId === 201) {
-        setIsSheetLoading(false)
-        return
-      }
-      setIsSheetLoading(false)
-    }, 400)
-
-    return () => window.clearTimeout(timer)
-  }, [sheetReady, examId])
-
-  const sheetStudents = useMemo(() => {
-    if (!sheetReady || isSheetLoading) return []
-    if (examId === 201) return []
-    // Demo empty exams list already handled; for classroom without matching sheet use mock
-    if (examId === 101 || examId === 102) {
-      return MOCK_GRADING_SHEET.students.map((student) =>
-        examId === 102 && student.status === 'IN_PROGRESS'
-          ? { ...student, status: 'EXPIRED' as const, score: null, submitTime: null }
-          : student,
-      )
-    }
-    return MOCK_GRADING_SHEET.students
-  }, [sheetReady, isSheetLoading, examId])
-
+  const sheetStudents = sheetQuery.data?.students ?? []
   const filteredStudents = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
     const list = [...sheetStudents].sort((a, b) => a.fullName.localeCompare(b.fullName, 'vi'))
@@ -109,59 +103,32 @@ export function GradingPage() {
   }, [sheetStudents, searchQuery])
 
   const summary = useMemo(() => summarizeGradingStudents(sheetStudents), [sheetStudents])
-  const maxScore = selectedExam?.maxScore ?? MOCK_GRADING_SHEET.maxScore
+  const maxScore = sheetQuery.data?.maxScore ?? selectedExam?.maxScore ?? 0
 
   function handleSubjectChange(next: number | '') {
     setSubjectId(next)
     setClassroomId('')
     setExamId('')
     setSearchQuery('')
-    setDetail(null)
-    setSheetError(null)
+    setSelectedSubmissionId(undefined)
   }
 
   function handleClassroomChange(next: number | '') {
     setClassroomId(next)
     setExamId('')
     setSearchQuery('')
-    setDetail(null)
-    setSheetError(null)
+    setSelectedSubmissionId(undefined)
   }
 
   function handleExamChange(next: number | '') {
     setExamId(next)
     setSearchQuery('')
-    setDetail(null)
-    setSheetError(null)
+    setSelectedSubmissionId(undefined)
   }
 
   function openSubmission(student: GradingStudentRow) {
     if (!student.submissionId) return
-    setDetailLoading(true)
-    window.setTimeout(() => {
-      const found = MOCK_SUBMISSION_DETAILS[student.submissionId!]
-      setDetail(
-        found ?? {
-          submissionId: student.submissionId!,
-          examId: selectedExam?.id ?? 0,
-          examTitle: selectedExam?.title ?? '',
-          versionCode: student.versionCode ?? '—',
-          studentId: student.studentId,
-          fullName: student.fullName,
-          email: student.email,
-          studentCode: student.studentCode,
-          status: student.status,
-          score: student.score,
-          maxScore,
-          correctQuestions: 0,
-          totalQuestions: 0,
-          startTime: student.startTime,
-          submitTime: student.submitTime,
-          details: [],
-        },
-      )
-      setDetailLoading(false)
-    }, 250)
+    setSelectedSubmissionId(student.submissionId)
   }
 
   return (
@@ -180,54 +147,122 @@ export function GradingPage() {
             {selectedClassroom?.className ?? 'Lớp học'}
           </span>
           <span className="text-slate-300">/</span>
-          <span className={selectedExam ? 'font-medium text-slate-800' : ''}>
-            {selectedExam?.title ?? 'Đề thi'}
+          <span className={selectedExam || sheetQuery.data ? 'font-medium text-slate-800' : ''}>
+            {selectedExam?.title ?? sheetQuery.data?.examTitle ?? 'Đề thi'}
           </span>
         </nav>
       </div>
 
-      <GradingFilterBar
-        subjects={MOCK_GRADING_SUBJECTS}
-        classrooms={classroomsForSubject}
-        exams={examsForClassroom}
-        subjectId={subjectId}
-        classroomId={classroomId}
-        examId={examId}
-        onSubjectChange={handleSubjectChange}
-        onClassroomChange={handleClassroomChange}
-        onExamChange={handleExamChange}
-      />
+      {subjectsQuery.isLoading ? <Spinner label="Đang tải môn học..." /> : null}
 
-      {!sheetReady ? (
+      {subjectsQuery.isError ? (
+        <ErrorState
+          title="Không tải được môn học"
+          message={getApiErrorMessage(subjectsQuery.error, 'Không thể tải danh sách môn học')}
+          action={
+            <button
+              type="button"
+              onClick={() => void subjectsQuery.refetch()}
+              className="h-9 rounded-xl bg-red-600 px-4 text-sm font-medium text-white hover:bg-red-700"
+            >
+              Thử lại
+            </button>
+          }
+        />
+      ) : null}
+
+      {!subjectsQuery.isLoading && !subjectsQuery.isError ? (
+        <GradingFilterBar
+          subjects={subjects}
+          classrooms={classrooms}
+          exams={exams}
+          subjectId={subjectId}
+          classroomId={classroomId}
+          examId={examId}
+          onSubjectChange={handleSubjectChange}
+          onClassroomChange={handleClassroomChange}
+          onExamChange={handleExamChange}
+        />
+      ) : null}
+
+      {subjectId !== '' && classroomsQuery.isLoading ? <Spinner label="Đang tải lớp học..." /> : null}
+
+      {subjectId !== '' && classroomsQuery.isError ? (
+        <ErrorState
+          title="Không tải được lớp học"
+          message={getApiErrorMessage(classroomsQuery.error, 'Không thể tải danh sách lớp')}
+          action={
+            <button
+              type="button"
+              onClick={() => void classroomsQuery.refetch()}
+              className="h-9 rounded-xl bg-red-600 px-4 text-sm font-medium text-white hover:bg-red-700"
+            >
+              Thử lại
+            </button>
+          }
+        />
+      ) : null}
+
+      {classroomSelected && examsQuery.isLoading ? <Spinner label="Đang tải đề thi..." /> : null}
+
+      {classroomSelected && examsQuery.isError ? (
+        <ErrorState
+          title="Không tải được đề thi"
+          message={getApiErrorMessage(examsQuery.error, 'Không thể tải danh sách đề theo lớp')}
+          action={
+            <button
+              type="button"
+              onClick={() => void examsQuery.refetch()}
+              className="h-9 rounded-xl bg-red-600 px-4 text-sm font-medium text-white hover:bg-red-700"
+            >
+              Thử lại
+            </button>
+          }
+        />
+      ) : null}
+
+      {!sheetReady && !examsEmpty ? (
         <EmptyState
           title="Chọn môn, lớp và đề thi"
           description="Bảng chấm điểm chỉ hiện khi đã chọn đủ ba bộ lọc phía trên."
         />
       ) : null}
 
-      {sheetReady && examsForClassroom.length === 0 ? (
+      {examsEmpty ? (
         <EmptyState
           title="Lớp chưa có đề thi"
           description="Chưa có đề nào được giao cho lớp này. Tạo hoặc giao đề ở mục Quản lý bài thi."
         />
       ) : null}
 
-      {sheetReady && selectedExam ? (
+      {sheetReady ? (
         <>
-          {sheetError ? (
-            <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">{sheetError}</p>
+          {sheetQuery.isError ? (
+            <ErrorState
+              title="Không tải được bảng chấm điểm"
+              message={getApiErrorMessage(sheetQuery.error, 'Không thể tải bảng grading')}
+              action={
+                <button
+                  type="button"
+                  onClick={() => void sheetQuery.refetch()}
+                  className="h-9 rounded-xl bg-red-600 px-4 text-sm font-medium text-white hover:bg-red-700"
+                >
+                  Thử lại
+                </button>
+              }
+            />
           ) : null}
 
-          {isSheetLoading ? <Spinner label="Đang tải bảng chấm điểm..." /> : null}
+          {sheetQuery.isLoading ? <Spinner label="Đang tải bảng chấm điểm..." /> : null}
 
-          {!isSheetLoading && sheetStudents.length === 0 ? (
+          {!sheetQuery.isLoading && !sheetQuery.isError && sheetStudents.length === 0 ? (
             <EmptyState
               title="Lớp chưa có sinh viên"
               description="Không có sinh viên nào trong bảng grading của đề này."
             />
           ) : null}
 
-          {!isSheetLoading && sheetStudents.length > 0 ? (
+          {!sheetQuery.isLoading && !sheetQuery.isError && sheetStudents.length > 0 ? (
             <div className="space-y-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <GradingSummary counts={summary} />
@@ -243,10 +278,7 @@ export function GradingPage() {
               </div>
 
               {filteredStudents.length === 0 ? (
-                <EmptyState
-                  title="Không tìm thấy sinh viên"
-                  description="Thử đổi từ khóa tìm kiếm."
-                />
+                <EmptyState title="Không tìm thấy sinh viên" description="Thử đổi từ khóa tìm kiếm." />
               ) : (
                 <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                   <div className="divide-y divide-slate-200 md:hidden">
@@ -307,13 +339,42 @@ export function GradingPage() {
         </>
       ) : null}
 
-      {detailLoading ? (
+      {selectedSubmissionId !== undefined && detailQuery.isLoading ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40">
           <Spinner label="Đang tải bài nộp..." />
         </div>
       ) : null}
 
-      {detail ? <SubmissionDetailDrawer detail={detail} onClose={() => setDetail(null)} /> : null}
+      {selectedSubmissionId !== undefined && detailQuery.isError ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-xl">
+            <ErrorState
+              title="Không tải được bài nộp"
+              message={getApiErrorMessage(detailQuery.error, 'Không thể tải chi tiết bài nộp')}
+              action={
+                <button
+                  type="button"
+                  onClick={() => void detailQuery.refetch()}
+                  className="h-9 rounded-xl bg-red-600 px-4 text-sm font-medium text-white hover:bg-red-700"
+                >
+                  Thử lại
+                </button>
+              }
+            />
+            <button
+              type="button"
+              onClick={() => setSelectedSubmissionId(undefined)}
+              className="mt-3 h-10 w-full rounded-xl border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {detailQuery.data ? (
+        <SubmissionDetailDrawer detail={detailQuery.data} onClose={() => setSelectedSubmissionId(undefined)} />
+      ) : null}
     </section>
   )
 }

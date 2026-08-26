@@ -278,6 +278,7 @@ function unwrapClassroomList(data: unknown): ClassroomDto[] {
 export type GetExamsParams = {
   page?: number
   size?: number
+  classroomId?: number
 }
 
 export async function getExams(params: GetExamsParams = {}): Promise<ExamsPageResult> {
@@ -285,6 +286,7 @@ export async function getExams(params: GetExamsParams = {}): Promise<ExamsPageRe
     params: {
       page: params.page ?? 0,
       size: params.size ?? 10,
+      ...(params.classroomId !== undefined ? { classroomId: params.classroomId } : {}),
     },
   })
 

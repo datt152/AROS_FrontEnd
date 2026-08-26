@@ -35,11 +35,12 @@ export const examKeys = {
   take: (id: number) => [...examKeys.all, 'take', id] as const,
 }
 
-export function useExams(params: GetExamsParams) {
+export function useExams(params: GetExamsParams, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: examKeys.list(params),
     queryFn: () => getExams(params),
     staleTime: STALE_TIME.list,
+    enabled: options?.enabled ?? true,
   })
 }
 

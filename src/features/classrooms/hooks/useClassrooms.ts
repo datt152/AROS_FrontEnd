@@ -22,11 +22,12 @@ export const classroomKeys = {
   students: (classroomId: number) => [...classroomKeys.all, 'students', classroomId] as const,
 }
 
-export function useClassrooms(subjectId?: number) {
+export function useClassrooms(subjectId?: number, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: classroomKeys.list(subjectId),
-    queryFn: () => getClassrooms({ subjectId }),
+    queryFn: () => getClassrooms({ subjectId, page: 0, size: 50 }),
     staleTime: STALE_TIME.reference,
+    enabled: options?.enabled ?? true,
   })
 }
 
