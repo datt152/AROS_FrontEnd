@@ -42,6 +42,7 @@ export function GradingPage() {
       page: 0,
       size: 50,
       classroomId: typeof classroomId === 'number' ? classroomId : undefined,
+      purpose: 'EXAM',
     },
     { enabled: classroomId !== '' },
   )

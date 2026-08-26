@@ -25,6 +25,9 @@ type ExamConfigDto = {
   shuffleAnswers?: boolean
   paperCount?: number
   allowEdit?: boolean
+  showScoreToStudent?: boolean
+  timeLimitEnabled?: boolean
+  maxAttempts?: number | null
 }
 
 type ExamQuestionRefDto = {
@@ -41,6 +44,7 @@ type ExamDto = {
   title?: string
   duration?: number
   examMode?: ExamMode
+  purpose?: 'EXAM' | 'PRACTICE'
   status?: ExamStatus
   subjectId?: number
   subjectName?: string
@@ -83,6 +87,11 @@ type ExamTakeDto = {
   duration?: number
   versionCode?: string
   startTime?: string
+  purpose?: 'EXAM' | 'PRACTICE'
+  timeLimitEnabled?: boolean
+  showScoreToStudent?: boolean
+  attemptNo?: number
+  maxAttempts?: number | null
   questions?: {
     questionId?: number
     content?: string
@@ -94,10 +103,12 @@ type ExamTakeDto = {
 type SubmissionResultDto = {
   submissionId?: number
   id?: number
-  totalScore?: number
-  maxScore?: number
-  correctQuestions?: number
-  totalQuestions?: number
+  attemptNo?: number
+  scoreVisible?: boolean
+  totalScore?: number | null
+  maxScore?: number | null
+  correctQuestions?: number | null
+  totalQuestions?: number | null
 }
 
 export type ExamsPageResult = {
@@ -120,6 +131,9 @@ function normalizeConfig(dto?: ExamConfigDto | null): ExamConfig | undefined {
     shuffleAnswers: dto.shuffleAnswers,
     paperCount: dto.paperCount,
     allowEdit: dto.allowEdit,
+    showScoreToStudent: dto.showScoreToStudent,
+    timeLimitEnabled: dto.timeLimitEnabled,
+    maxAttempts: dto.maxAttempts ?? null,
   }
 }
 
@@ -189,6 +203,7 @@ export function normalizeExam(dto: ExamDto): ExamItem | null {
     title: dto.title,
     duration: dto.duration,
     examMode: dto.examMode,
+    purpose: dto.purpose === 'PRACTICE' ? 'PRACTICE' : 'EXAM',
     status: dto.status ?? 'DRAFT',
     subjectId: dto.subjectId,
     subjectName: dto.subjectName,
@@ -279,6 +294,7 @@ export type GetExamsParams = {
   page?: number
   size?: number
   classroomId?: number
+  purpose?: 'EXAM' | 'PRACTICE'
 }
 
 export async function getExams(params: GetExamsParams = {}): Promise<ExamsPageResult> {
@@ -287,6 +303,7 @@ export async function getExams(params: GetExamsParams = {}): Promise<ExamsPageRe
       page: params.page ?? 0,
       size: params.size ?? 10,
       ...(params.classroomId !== undefined ? { classroomId: params.classroomId } : {}),
+      ...(params.purpose !== undefined ? { purpose: params.purpose } : {}),
     },
   })
 
@@ -389,6 +406,11 @@ export async function takeExam(id: number): Promise<ExamTakeItem> {
     duration: data.duration ?? 0,
     versionCode: data.versionCode,
     startTime: data.startTime,
+    purpose: data.purpose === 'PRACTICE' ? 'PRACTICE' : data.purpose === 'EXAM' ? 'EXAM' : undefined,
+    timeLimitEnabled: data.timeLimitEnabled,
+    showScoreToStudent: data.showScoreToStudent,
+    attemptNo: data.attemptNo,
+    maxAttempts: data.maxAttempts ?? null,
     questions: (data.questions ?? []).map((question) => ({
       questionId: question.questionId ?? 0,
       content: question.content ?? '',
@@ -405,16 +427,23 @@ export async function submitExam(payload: SubmissionPayload): Promise<Submission
   const response = await apiClient.post<SubmissionResultDto>('/v1/submissions', payload)
   const data = response.data
   const submissionId = data.submissionId ?? data.id
-  if (submissionId === undefined || data.totalScore === undefined || data.maxScore === undefined) {
+  if (submissionId === undefined) {
+    throw new Error('Nộp bài thất bại')
+  }
+
+  const scoreVisible = data.scoreVisible !== false
+  if (scoreVisible && (data.totalScore === undefined || data.totalScore === null || data.maxScore === undefined || data.maxScore === null)) {
     throw new Error('Nộp bài thất bại')
   }
 
   return {
     submissionId,
-    totalScore: data.totalScore,
-    maxScore: data.maxScore,
-    correctQuestions: data.correctQuestions ?? 0,
-    totalQuestions: data.totalQuestions ?? 0,
+    attemptNo: data.attemptNo,
+    scoreVisible,
+    totalScore: data.totalScore ?? null,
+    maxScore: data.maxScore ?? null,
+    correctQuestions: data.correctQuestions ?? null,
+    totalQuestions: data.totalQuestions ?? null,
   }
 }
 

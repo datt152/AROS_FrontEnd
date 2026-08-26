@@ -2,6 +2,8 @@ export type ExamMode = 'ONLINE' | 'OMR_PAPER'
 
 export type ExamStatus = 'DRAFT' | 'UPCOMING' | 'ONGOING' | 'COMPLETED' | 'CLOSED'
 
+export type ExamPurpose = 'EXAM' | 'PRACTICE'
+
 export type QuestionType = 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE'
 
 export type ExamConfig = {
@@ -14,6 +16,9 @@ export type ExamConfig = {
   shuffleAnswers?: boolean
   paperCount?: number
   allowEdit?: boolean
+  showScoreToStudent?: boolean
+  timeLimitEnabled?: boolean
+  maxAttempts?: number | null
 }
 
 export type ExamItem = {
@@ -21,6 +26,7 @@ export type ExamItem = {
   title: string
   duration: number
   examMode: ExamMode
+  purpose?: ExamPurpose
   status: ExamStatus
   subjectId: number
   subjectName?: string
@@ -95,6 +101,7 @@ export type ExamCreatePayload = {
   title: string
   duration: number
   examMode: ExamMode
+  purpose?: ExamPurpose
   subjectId: number
   questionIds: number[]
   maxScore: number
@@ -107,6 +114,9 @@ export type ExamCreatePayload = {
     shuffleAnswers?: boolean
     paperCount?: number
     allowEdit?: boolean
+    showScoreToStudent?: boolean
+    timeLimitEnabled?: boolean
+    maxAttempts?: number | null
   }
 }
 
@@ -127,6 +137,9 @@ export type ExamUpdatePayload = {
     shuffleAnswers?: boolean | null
     paperCount?: number | null
     allowEdit?: boolean | null
+    showScoreToStudent?: boolean | null
+    timeLimitEnabled?: boolean | null
+    maxAttempts?: number | null
   } | null
 }
 
@@ -197,6 +210,11 @@ export type ExamTakeItem = {
   duration: number
   versionCode: string
   startTime: string
+  purpose?: ExamPurpose
+  timeLimitEnabled?: boolean
+  showScoreToStudent?: boolean
+  attemptNo?: number
+  maxAttempts?: number | null
   questions: {
     questionId: number
     content: string
@@ -207,10 +225,12 @@ export type ExamTakeItem = {
 
 export type SubmissionResultItem = {
   submissionId: number
-  totalScore: number
-  maxScore: number
-  correctQuestions: number
-  totalQuestions: number
+  attemptNo?: number
+  scoreVisible?: boolean
+  totalScore?: number | null
+  maxScore?: number | null
+  correctQuestions?: number | null
+  totalQuestions?: number | null
 }
 
 export const EXAM_MODE_LABEL: Record<ExamMode, string> = {

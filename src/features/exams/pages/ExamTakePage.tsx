@@ -31,7 +31,7 @@ export function ExamTakePage() {
   }, [exam])
 
   useEffect(() => {
-    if (result || !exam) return
+    if (result || !exam || exam.timeLimitEnabled === false) return
     const timer = window.setInterval(() => setNow(Date.now()), 1000)
     return () => window.clearInterval(timer)
   }, [result, exam])
@@ -104,20 +104,33 @@ export function ExamTakePage() {
   }
 
   if (result) {
+    const scoreVisible = result.scoreVisible !== false
     return (
       <section className="mx-auto max-w-lg space-y-5 py-8">
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center">
           <p className="text-xs font-medium uppercase tracking-wider text-emerald-700">Kết quả bài làm</p>
-          <h1 className="mt-2 text-3xl font-semibold text-slate-900">
-            {result.totalScore}/{result.maxScore}
-          </h1>
-          <p className="mt-2 text-sm text-slate-600">
-            Đúng {result.correctQuestions}/{result.totalQuestions} câu · Mã nộp #{result.submissionId}
-          </p>
+          {scoreVisible ? (
+            <>
+              <h1 className="mt-2 text-3xl font-semibold text-slate-900">
+                {result.totalScore}/{result.maxScore}
+              </h1>
+              <p className="mt-2 text-sm text-slate-600">
+                Đúng {result.correctQuestions}/{result.totalQuestions} câu · Mã nộp #{result.submissionId}
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="mt-2 text-xl font-semibold text-slate-900">Nộp thành công</h1>
+              <p className="mt-2 text-sm text-slate-600">Mã nộp #{result.submissionId}. Điểm không được hiển thị.</p>
+            </>
+          )}
         </div>
       </section>
     )
   }
+
+  const timeLimited = exam.timeLimitEnabled !== false
+  const canSubmit = !submitExam.isPending && (!timeLimited || secondsLeft > 0)
 
   return (
     <section className="mx-auto max-w-3xl space-y-5 py-6">
@@ -127,12 +140,18 @@ export function ExamTakePage() {
           <h1 className="mt-1 text-xl font-semibold text-slate-900">{exam.title}</h1>
           <p className="mt-0.5 text-sm text-slate-500">Mã đề {exam.versionCode}</p>
         </div>
-        <div className="rounded-xl bg-slate-900 px-4 py-2 text-center text-white">
-          <p className="text-[11px] uppercase tracking-wider text-slate-300">Thời gian còn</p>
-          <p className="text-lg font-semibold tabular-nums">
-            {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
-          </p>
-        </div>
+        {timeLimited ? (
+          <div className="rounded-xl bg-slate-900 px-4 py-2 text-center text-white">
+            <p className="text-[11px] uppercase tracking-wider text-slate-300">Thời gian còn</p>
+            <p className="text-lg font-semibold tabular-nums">
+              {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+            </p>
+          </div>
+        ) : (
+          <span className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800">
+            Không giới hạn giờ
+          </span>
+        )}
       </div>
 
       {submitError ? (
@@ -193,12 +212,8 @@ export function ExamTakePage() {
       </div>
 
       <div className="sticky bottom-4">
-        <Button
-          className="w-full shadow-lg"
-          disabled={submitExam.isPending || secondsLeft === 0}
-          onClick={() => void handleSubmit()}
-        >
-          {submitExam.isPending ? 'Đang nộp...' : secondsLeft === 0 ? 'Hết giờ' : 'Nộp bài'}
+        <Button className="w-full shadow-lg" disabled={!canSubmit} onClick={() => void handleSubmit()}>
+          {submitExam.isPending ? 'Đang nộp...' : timeLimited && secondsLeft === 0 ? 'Hết giờ' : 'Nộp bài'}
         </Button>
       </div>
     </section>

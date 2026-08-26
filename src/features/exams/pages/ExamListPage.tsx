@@ -76,7 +76,7 @@ function buildUpdatePayload(
 export function ExamListPage() {
   const subjectsQuery = useSubjects()
   const classroomsQuery = useClassrooms()
-  const examsQuery = useExams({ page: 0, size: FETCH_SIZE })
+  const examsQuery = useExams({ page: 0, size: FETCH_SIZE, purpose: 'EXAM' })
 
   const createExam = useCreateExam()
   const updateExam = useUpdateExam()
@@ -278,6 +278,7 @@ export function ExamListPage() {
         title: values.title,
         duration: Number(values.duration),
         examMode: values.examMode as ExamMode,
+        purpose: 'EXAM',
         subjectId: Number(values.subjectId),
         questionIds: values.questionIds,
         maxScore: Number(values.maxScore),

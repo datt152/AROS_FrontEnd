@@ -19,6 +19,7 @@ type PracticeFormProps = {
   subjects: PracticeSubjectOption[]
   classrooms: PracticeClassroomOption[]
   questions: PracticeQuestionOption[]
+  onSubjectChange?: (subjectId: number | undefined) => void
   onSubmit: (values: PracticeFormValues) => void
   onCancel: () => void
 }
@@ -29,6 +30,7 @@ export function PracticeForm({
   subjects,
   classrooms,
   questions,
+  onSubjectChange,
   onSubmit,
   onCancel,
 }: PracticeFormProps) {
@@ -107,6 +109,7 @@ export function PracticeForm({
                   questionIds: [],
                   classroomIds: [],
                 }))
+                onSubjectChange?.(typeof subjectId === 'number' ? subjectId : undefined)
               }}
               className={`h-10 w-full rounded-xl border bg-white px-3 text-sm outline-none focus:ring-4 disabled:bg-slate-50 ${
                 errors.subjectId ? 'border-red-400' : 'border-slate-200 focus:border-blue-400 focus:ring-blue-100'

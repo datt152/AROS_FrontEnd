@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 
 import { Button } from '../../../components/ui/Button'
 import { EmptyState } from '../../../components/ui/EmptyState'
+import { ErrorState } from '../../../components/ui/ErrorState'
 import { Spinner } from '../../../components/ui/Spinner'
 import {
   Table,
@@ -13,131 +14,345 @@ import {
   TableHeader,
   TableRow,
 } from '../../../components/ui/Table'
+import { getApiErrorMessage } from '../../../lib/apiError'
+import { useClassrooms } from '../../classrooms/hooks/useClassrooms'
+import { ExamAssignClassroomsModal } from '../../exams/components/ExamAssignClassroomsModal'
+import { ExamOpenModal } from '../../exams/components/ExamOpenModal'
+import { ExamVersionGenerateModal } from '../../exams/components/ExamVersionGenerateModal'
+import {
+  useCreateExam,
+  useCreateExamVersions,
+  useDeleteExam,
+  useExam,
+  useExams,
+  useExamVersions,
+  useExamVersionsMany,
+  useUpdateExam,
+  useUpdateExamClassrooms,
+} from '../../exams/hooks/useExams'
+import type {
+  ExamItem as ExamItemType,
+  ExamMode,
+  ExamOpenValues,
+  ExamUpdatePayload,
+  ExamVersionCreateValues,
+} from '../../exams/types/exam.types'
+import { useQuestions } from '../../questions/hooks/useQuestions'
+import { useSubjects } from '../../subjects/hooks/useSubjects'
 import { PracticeDetailPanel } from '../components/PracticeDetailPanel'
 import { PracticeFilterBar } from '../components/PracticeFilterBar'
 import { PracticeForm } from '../components/PracticeForm'
 import { PracticeTableRow } from '../components/PracticeTableRow'
 import type { PracticeFormValues, PracticeItem, PracticeStatus } from '../types/practice.types'
-import {
-  MOCK_PRACTICE_CLASSROOMS,
-  MOCK_PRACTICE_QUESTIONS,
-  MOCK_PRACTICE_SUBJECTS,
-  MOCK_PRACTICES,
-} from '../types/practice.types'
+import { examToPracticeItem } from '../types/practice.types'
 
 type DrawerMode = 'create' | 'edit' | null
 
-/** Skeleton UI — Bài luyện tập GV (mock). API wiring: Loại B */
+const FETCH_SIZE = 100
+
+function buildUpdatePayload(exam: ExamItemType, patch: Partial<ExamUpdatePayload>): ExamUpdatePayload {
+  return {
+    title: patch.title ?? exam.title,
+    duration: patch.duration ?? exam.duration,
+    examMode: patch.examMode ?? exam.examMode,
+    subjectId: patch.subjectId ?? exam.subjectId,
+    maxScore: patch.maxScore ?? exam.maxScore,
+    status: patch.status === undefined ? undefined : patch.status,
+    startAt: patch.startAt === undefined ? exam.startAt ?? null : patch.startAt,
+    endAt: patch.endAt === undefined ? exam.endAt ?? null : patch.endAt,
+    config: patch.config === undefined ? exam.config ?? null : patch.config,
+  }
+}
+
 export function PracticeListPage() {
-  const [items, setItems] = useState<PracticeItem[]>(MOCK_PRACTICES)
+  const subjectsQuery = useSubjects()
+  const classroomsQuery = useClassrooms()
+  const examsQuery = useExams({ page: 0, size: FETCH_SIZE, purpose: 'PRACTICE' })
+
+  const createExam = useCreateExam()
+  const updateExam = useUpdateExam()
+  const deleteExam = useDeleteExam()
+  const updateClassrooms = useUpdateExamClassrooms()
+  const createVersions = useCreateExamVersions()
+
   const [subjectId, setSubjectId] = useState<number | ''>('')
   const [classroomId, setClassroomId] = useState<number | ''>('')
   const [status, setStatus] = useState<PracticeStatus | ''>('')
-  const [isLoading] = useState(false)
   const [drawerMode, setDrawerMode] = useState<DrawerMode>(null)
   const [editing, setEditing] = useState<PracticeItem | null>(null)
-  const [detail, setDetail] = useState<PracticeItem | null>(null)
+  const [detailId, setDetailId] = useState<number | null>(null)
+  const [assignExam, setAssignExam] = useState<ExamItemType | null>(null)
+  const [versionExam, setVersionExam] = useState<ExamItemType | null>(null)
+  const [openExam, setOpenExam] = useState<ExamItemType | null>(null)
+  const [formSubjectId, setFormSubjectId] = useState<number | undefined>(undefined)
+  const [formError, setFormError] = useState<string | null>(null)
+  const [assignError, setAssignError] = useState<string | null>(null)
+  const [versionError, setVersionError] = useState<string | null>(null)
+  const [openError, setOpenError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
 
-  const classroomsForFilter = useMemo(
+  const detailQuery = useExam(detailId ?? undefined)
+  const detailVersionsQuery = useExamVersions(detailId ?? undefined)
+  const openVersionsQuery = useExamVersions(openExam?.id)
+
+  const questionsQuery = useQuestions(
+    formSubjectId || editing?.subjectId
+      ? { subjectId: formSubjectId ?? editing!.subjectId, page: 0, size: 500 }
+      : undefined,
+  )
+
+  const draftIds = useMemo(
+    () => (examsQuery.data?.items ?? []).filter((item) => item.status === 'DRAFT').map((item) => item.id),
+    [examsQuery.data?.items],
+  )
+  const versionQueries = useExamVersionsMany(draftIds)
+
+  const examsWithVersions = useMemo(() => {
+    const codeById = new Map<number, string[]>()
+    draftIds.forEach((id, index) => {
+      const codes = versionQueries[index]?.data
+      if (codes) codeById.set(id, codes)
+    })
+    return (examsQuery.data?.items ?? []).map((exam) =>
+      codeById.has(exam.id) ? { ...exam, versionCodes: codeById.get(exam.id) } : exam,
+    )
+  }, [examsQuery.data?.items, draftIds, versionQueries])
+
+  const practices = useMemo(() => examsWithVersions.map(examToPracticeItem), [examsWithVersions])
+
+  const subjects = useMemo(
+    () => (subjectsQuery.data ?? []).map((item) => ({ id: item.id, subjectName: item.subjectName })),
+    [subjectsQuery.data],
+  )
+
+  const classrooms = useMemo(
     () =>
-      subjectId === ''
-        ? MOCK_PRACTICE_CLASSROOMS
-        : MOCK_PRACTICE_CLASSROOMS.filter((classroom) => classroom.subjectId === subjectId),
-    [subjectId],
+      (classroomsQuery.data ?? []).map((item) => ({
+        id: item.id,
+        className: item.className,
+        subjectId: item.subjectId,
+      })),
+    [classroomsQuery.data],
+  )
+
+  const classroomsForFilter = useMemo(
+    () => (subjectId === '' ? classrooms : classrooms.filter((item) => item.subjectId === subjectId)),
+    [classrooms, subjectId],
+  )
+
+  const classroomOptions = useMemo(
+    () =>
+      (classroomsQuery.data ?? []).map((item) => ({
+        id: item.id,
+        className: item.className,
+        subjectId: item.subjectId,
+        subjectName: item.subjectName,
+      })),
+    [classroomsQuery.data],
+  )
+
+  const questions = useMemo(
+    () =>
+      (questionsQuery.data?.items ?? []).map((item) => ({
+        questionId: item.questionId,
+        content: item.content,
+        type: item.type,
+        subjectId: item.subjectId,
+      })),
+    [questionsQuery.data?.items],
   )
 
   const filtered = useMemo(() => {
-    return items.filter((item) => {
+    return practices.filter((item) => {
       if (subjectId !== '' && item.subjectId !== subjectId) return false
       if (classroomId !== '' && !item.classroomIds.includes(classroomId)) return false
       if (status !== '' && item.status !== status) return false
       return true
     })
-  }, [items, subjectId, classroomId, status])
+  }, [practices, subjectId, classroomId, status])
+
+  const detailPractice = useMemo(() => {
+    if (!detailQuery.data) return null
+    return examToPracticeItem({
+      ...detailQuery.data,
+      versionCodes: detailVersionsQuery.data ?? detailQuery.data.versionCodes,
+    })
+  }, [detailQuery.data, detailVersionsQuery.data])
+
+  const editingExamRaw = useMemo(
+    () => (editing ? examsWithVersions.find((item) => item.id === editing.id) : undefined),
+    [editing, examsWithVersions],
+  )
 
   function showToast(message: string) {
     setToast(message)
     window.setTimeout(() => setToast(null), 2200)
   }
 
-  function handleCreate(values: PracticeFormValues) {
-    const subject = MOCK_PRACTICE_SUBJECTS.find((item) => item.id === values.subjectId)
-    const classroomNames = MOCK_PRACTICE_CLASSROOMS.filter((classroom) =>
-      values.classroomIds.includes(classroom.id),
-    ).map((classroom) => classroom.className)
-
-    const next: PracticeItem = {
-      id: Date.now(),
-      title: values.title.trim(),
-      purpose: 'PRACTICE',
-      duration: Number(values.duration) || 30,
-      examMode: values.examMode === '' ? 'ONLINE' : values.examMode,
-      status: 'DRAFT',
-      subjectId: Number(values.subjectId),
-      subjectName: subject?.subjectName ?? '',
-      maxScore: Number(values.maxScore) || 10,
-      totalQuestions: values.questionIds.length,
-      classroomIds: values.classroomIds,
-      classroomNames,
-      createdAt: new Date().toISOString(),
-      versionCodes: [],
-      questionIds: values.questionIds,
-      config: {
-        showScoreToStudent: values.config.showScoreToStudent,
-        timeLimitEnabled: values.config.timeLimitEnabled,
-        maxAttempts: values.config.maxAttempts === '' ? null : Number(values.config.maxAttempts),
-        shuffleQuestions: values.config.shuffleQuestions,
-        shuffleAnswers: values.config.shuffleAnswers,
-        paperCount: Number(values.config.paperCount) || 1,
-        allowEdit: values.config.allowEdit,
-        semester: values.config.semester,
-        academicYear: values.config.academicYear,
-      },
+  async function handleCreate(values: PracticeFormValues) {
+    setFormError(null)
+    try {
+      await createExam.mutateAsync({
+        title: values.title.trim(),
+        duration: Number(values.duration) || 30,
+        examMode: (values.examMode || 'ONLINE') as ExamMode,
+        purpose: 'PRACTICE',
+        subjectId: Number(values.subjectId),
+        questionIds: values.questionIds,
+        maxScore: Number(values.maxScore) || 10,
+        classroomIds: values.classroomIds.length > 0 ? values.classroomIds : undefined,
+        config: {
+          showScoreToStudent: values.config.showScoreToStudent,
+          timeLimitEnabled: values.config.timeLimitEnabled,
+          maxAttempts: values.config.maxAttempts === '' ? null : Number(values.config.maxAttempts),
+          shuffleQuestions: values.config.shuffleQuestions,
+          shuffleAnswers: values.config.shuffleAnswers,
+          paperCount: Number(values.config.paperCount) || 1,
+          allowEdit: values.config.allowEdit,
+          semester: values.config.semester || undefined,
+          academicYear: values.config.academicYear || undefined,
+        },
+      })
+      setDrawerMode(null)
+      showToast('Đã tạo bài luyện tập')
+    } catch (error) {
+      setFormError(getApiErrorMessage(error, 'Không thể tạo bài luyện tập'))
     }
-
-    setItems((current) => [next, ...current])
-    setDrawerMode(null)
-    showToast('Đã tạo bài luyện tập (mock)')
   }
 
-  function handleUpdate(values: PracticeFormValues) {
-    if (!editing) return
-    setItems((current) =>
-      current.map((item) =>
-        item.id === editing.id
-          ? {
-              ...item,
-              title: values.title.trim(),
-              duration: Number(values.duration) || item.duration,
-              examMode: values.examMode === '' ? item.examMode : values.examMode,
-              maxScore: Number(values.maxScore) || item.maxScore,
-              classroomIds: values.classroomIds,
-              classroomNames: MOCK_PRACTICE_CLASSROOMS.filter((classroom) =>
-                values.classroomIds.includes(classroom.id),
-              ).map((classroom) => classroom.className),
-              config: {
-                ...item.config,
-                showScoreToStudent: values.config.showScoreToStudent,
-                timeLimitEnabled: values.config.timeLimitEnabled,
-                maxAttempts:
-                  values.config.maxAttempts === '' ? null : Number(values.config.maxAttempts),
-                shuffleQuestions: values.config.shuffleQuestions,
-                shuffleAnswers: values.config.shuffleAnswers,
-                paperCount: Number(values.config.paperCount) || 1,
-                allowEdit: values.config.allowEdit,
-                semester: values.config.semester,
-                academicYear: values.config.academicYear,
-              },
-            }
-          : item,
-      ),
+  async function handleUpdate(values: PracticeFormValues) {
+    if (!editing || !editingExamRaw) return
+    setFormError(null)
+    try {
+      await updateExam.mutateAsync({
+        id: editing.id,
+        payload: buildUpdatePayload(editingExamRaw, {
+          title: values.title.trim(),
+          duration: Number(values.duration) || editing.duration,
+          examMode: (values.examMode || editing.examMode) as ExamMode,
+          subjectId: Number(values.subjectId) || editing.subjectId,
+          maxScore: Number(values.maxScore) || editing.maxScore,
+          config: {
+            showScoreToStudent: values.config.showScoreToStudent,
+            timeLimitEnabled: values.config.timeLimitEnabled,
+            maxAttempts: values.config.maxAttempts === '' ? null : Number(values.config.maxAttempts),
+            shuffleQuestions: values.config.shuffleQuestions,
+            shuffleAnswers: values.config.shuffleAnswers,
+            paperCount: Number(values.config.paperCount) || 1,
+            allowEdit: values.config.allowEdit,
+            semester: values.config.semester,
+            academicYear: values.config.academicYear,
+          },
+        }),
+      })
+      if (values.classroomIds.join(',') !== editing.classroomIds.join(',')) {
+        await updateClassrooms.mutateAsync({ id: editing.id, classroomIds: values.classroomIds })
+      }
+      setDrawerMode(null)
+      setEditing(null)
+      showToast('Đã lưu bài luyện tập')
+    } catch (error) {
+      setFormError(getApiErrorMessage(error, 'Không thể lưu bài luyện tập'))
+    }
+  }
+
+  async function handleAssign(classroomIds: number[]) {
+    if (!assignExam) return
+    setAssignError(null)
+    try {
+      await updateClassrooms.mutateAsync({ id: assignExam.id, classroomIds })
+      setAssignExam(null)
+      showToast('Đã giao lớp')
+    } catch (error) {
+      setAssignError(getApiErrorMessage(error, 'Không thể giao lớp'))
+    }
+  }
+
+  async function handleGenerateVersions(values: ExamVersionCreateValues) {
+    if (!versionExam) return
+    setVersionError(null)
+    try {
+      await createVersions.mutateAsync({
+        examId: versionExam.id,
+        ...(values.mode === 'manual'
+          ? { manualVersionCodes: values.manualVersionCodes }
+          : { autoGenerateCount: Number(values.autoGenerateCount) }),
+        replaceExisting: values.replaceExisting,
+      })
+      setVersionExam(null)
+      showToast('Đã sinh mã đề')
+    } catch (error) {
+      setVersionError(getApiErrorMessage(error, 'Không thể sinh mã đề'))
+    }
+  }
+
+  async function handleOpen(values: ExamOpenValues) {
+    if (!openExam) return
+    setOpenError(null)
+    try {
+      await updateExam.mutateAsync({
+        id: openExam.id,
+        payload: buildUpdatePayload(openExam, {
+          status: values.status,
+          startAt: values.startAt,
+          endAt: values.endAt,
+        }),
+      })
+      setOpenExam(null)
+      showToast('Đã mở luyện tập')
+    } catch (error) {
+      setOpenError(getApiErrorMessage(error, 'Không thể mở luyện tập'))
+    }
+  }
+
+  async function handleClose(item: PracticeItem) {
+    const raw = examsWithVersions.find((exam) => exam.id === item.id)
+    if (!raw) return
+    try {
+      await updateExam.mutateAsync({
+        id: item.id,
+        payload: buildUpdatePayload(raw, { status: 'CLOSED' }),
+      })
+      setDetailId(null)
+      showToast('Đã đóng bài luyện tập')
+    } catch (error) {
+      showToast(getApiErrorMessage(error, 'Không thể đóng bài'))
+    }
+  }
+
+  async function handleDelete(item: PracticeItem) {
+    try {
+      await deleteExam.mutateAsync(item.id)
+      showToast('Đã xoá bài luyện tập')
+    } catch (error) {
+      showToast(getApiErrorMessage(error, 'Không thể xoá'))
+    }
+  }
+
+  function toExamForModal(item: PracticeItem): ExamItemType {
+    const raw = examsWithVersions.find((exam) => exam.id === item.id)
+    return (
+      raw ?? {
+        id: item.id,
+        title: item.title,
+        duration: item.duration,
+        examMode: item.examMode,
+        purpose: 'PRACTICE',
+        status: item.status,
+        subjectId: item.subjectId,
+        subjectName: item.subjectName,
+        createdAt: item.createdAt,
+        totalQuestions: item.totalQuestions,
+        maxScore: item.maxScore,
+        classroomIds: item.classroomIds,
+        versionCodes: item.versionCodes,
+        questionIds: item.questionIds,
+        config: item.config,
+      }
     )
-    setDrawerMode(null)
-    setEditing(null)
-    setDetail(null)
-    showToast('Đã lưu bài luyện tập (mock)')
   }
+
+  const isLoading = examsQuery.isLoading || subjectsQuery.isLoading
 
   return (
     <section className="space-y-5">
@@ -146,12 +361,14 @@ export function PracticeListPage() {
           <p className="text-xs font-medium uppercase tracking-wider text-blue-600">Luyện tập</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">Bài luyện tập</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Quản lý bài luyện tập (mở/đóng đề). Không theo dõi trạng thái từng sinh viên — phần đó thuộc Chấm điểm.
+            Quản lý bài luyện tập (mở/đóng đề). Không theo dõi trạng thái từng sinh viên.
           </p>
         </div>
         <Button
           onClick={() => {
             setEditing(null)
+            setFormSubjectId(undefined)
+            setFormError(null)
             setDrawerMode('create')
           }}
         >
@@ -160,26 +377,44 @@ export function PracticeListPage() {
         </Button>
       </div>
 
-      <PracticeFilterBar
-        subjects={MOCK_PRACTICE_SUBJECTS}
-        classrooms={classroomsForFilter}
-        subjectId={subjectId}
-        classroomId={classroomId}
-        status={status}
-        onSubjectChange={(value) => {
-          setSubjectId(value)
-          setClassroomId('')
-        }}
-        onClassroomChange={setClassroomId}
-        onStatusChange={setStatus}
-      />
+      {examsQuery.isError ? (
+        <ErrorState
+          title="Không tải được bài luyện tập"
+          message={getApiErrorMessage(examsQuery.error, 'Không thể tải danh sách')}
+          action={
+            <button
+              type="button"
+              onClick={() => void examsQuery.refetch()}
+              className="h-9 rounded-xl bg-red-600 px-4 text-sm font-medium text-white hover:bg-red-700"
+            >
+              Thử lại
+            </button>
+          }
+        />
+      ) : null}
+
+      {!examsQuery.isError ? (
+        <PracticeFilterBar
+          subjects={subjects}
+          classrooms={classroomsForFilter}
+          subjectId={subjectId}
+          classroomId={classroomId}
+          status={status}
+          onSubjectChange={(value) => {
+            setSubjectId(value)
+            setClassroomId('')
+          }}
+          onClassroomChange={setClassroomId}
+          onStatusChange={setStatus}
+        />
+      ) : null}
 
       {isLoading ? <Spinner label="Đang tải bài luyện tập..." /> : null}
 
-      {!isLoading && filtered.length === 0 ? (
+      {!isLoading && !examsQuery.isError && filtered.length === 0 ? (
         <EmptyState
           title="Chưa có bài luyện tập"
-          description="Tạo bài mới hoặc đổi bộ lọc môn / lớp / trạng thái."
+          description="Tạo bài mới hoặc đổi bộ lọc môn / lớp / trạng thái đề."
           action={
             <Button
               onClick={() => {
@@ -193,7 +428,7 @@ export function PracticeListPage() {
         />
       ) : null}
 
-      {!isLoading && filtered.length > 0 ? (
+      {!isLoading && !examsQuery.isError && filtered.length > 0 ? (
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="overflow-x-auto">
             <Table>
@@ -222,48 +457,30 @@ export function PracticeListPage() {
                   <PracticeTableRow
                     key={item.id}
                     item={item}
-                    onDetail={setDetail}
+                    onDetail={(practice) => setDetailId(practice.id)}
                     onEdit={(practice) => {
                       setEditing(practice)
+                      setFormSubjectId(practice.subjectId)
+                      setFormError(null)
                       setDrawerMode('edit')
                     }}
-                    onDelete={(practice) => {
-                      setItems((current) => current.filter((row) => row.id !== practice.id))
-                      showToast('Đã xoá (mock)')
+                    onDelete={(practice) => void handleDelete(practice)}
+                    onAssign={(practice) => {
+                      setAssignError(null)
+                      setAssignExam(toExamForModal(practice))
                     }}
-                    onAssign={() => showToast('Giao lớp — mock (Loại B: PUT /exams/{id}/classrooms)')}
                     onGenerateVersions={(practice) => {
-                      setItems((current) =>
-                        current.map((row) =>
-                          row.id === practice.id
-                            ? {
-                                ...row,
-                                versionCodes:
-                                  row.versionCodes.length > 0 ? row.versionCodes : ['001', '002'],
-                              }
-                            : row,
-                        ),
-                      )
-                      showToast('Đã sinh mã đề (mock)')
+                      setVersionError(null)
+                      setVersionExam(toExamForModal(practice))
                     }}
                     onOpen={(practice) => {
-                      setItems((current) =>
-                        current.map((row) =>
-                          row.id === practice.id ? { ...row, status: 'ONGOING' as const } : row,
-                        ),
-                      )
-                      setDetail(null)
-                      showToast('Đã mở luyện tập (mock)')
+                      setOpenError(null)
+                      setOpenExam({
+                        ...toExamForModal(practice),
+                        versionCodes: practice.versionCodes,
+                      })
                     }}
-                    onClose={(practice) => {
-                      setItems((current) =>
-                        current.map((row) =>
-                          row.id === practice.id ? { ...row, status: 'CLOSED' as const } : row,
-                        ),
-                      )
-                      setDetail(null)
-                      showToast('Đã đóng bài luyện tập (mock)')
-                    }}
+                    onClose={(practice) => void handleClose(practice)}
                   />
                 ))}
               </TableBody>
@@ -305,59 +522,97 @@ export function PracticeListPage() {
                 <X className="h-4 w-4" />
               </button>
             </div>
+            {formError ? (
+              <p className="mx-5 mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                {formError}
+              </p>
+            ) : null}
             <PracticeForm
               mode={drawerMode}
               initialValues={editing ?? undefined}
-              subjects={MOCK_PRACTICE_SUBJECTS}
-              classrooms={MOCK_PRACTICE_CLASSROOMS}
-              questions={MOCK_PRACTICE_QUESTIONS}
+              subjects={subjects}
+              classrooms={classrooms}
+              questions={questions}
+              onSubjectChange={setFormSubjectId}
               onCancel={() => {
                 setDrawerMode(null)
                 setEditing(null)
               }}
-              onSubmit={drawerMode === 'create' ? handleCreate : handleUpdate}
+              onSubmit={(values) => {
+                if (drawerMode === 'create') {
+                  void handleCreate(values)
+                } else {
+                  void handleUpdate(values)
+                }
+              }}
             />
           </aside>
         </div>
       ) : null}
 
-      {detail ? (
+      {detailId !== null && detailQuery.isLoading ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40">
+          <Spinner label="Đang tải chi tiết..." />
+        </div>
+      ) : null}
+
+      {detailPractice ? (
         <PracticeDetailPanel
-          item={items.find((row) => row.id === detail.id) ?? detail}
-          onClose={() => setDetail(null)}
+          item={detailPractice}
+          onClose={() => setDetailId(null)}
           onEdit={(practice) => {
-            setDetail(null)
+            setDetailId(null)
             setEditing(practice)
+            setFormSubjectId(practice.subjectId)
             setDrawerMode('edit')
           }}
-          onAssign={() => showToast('Giao lớp — mock')}
+          onAssign={(practice) => {
+            setAssignError(null)
+            setAssignExam(toExamForModal(practice))
+          }}
           onGenerateVersions={(practice) => {
-            setItems((current) =>
-              current.map((row) =>
-                row.id === practice.id
-                  ? {
-                      ...row,
-                      versionCodes: row.versionCodes.length > 0 ? row.versionCodes : ['001', '002'],
-                    }
-                  : row,
-              ),
-            )
-            showToast('Đã sinh mã đề (mock)')
+            setVersionError(null)
+            setVersionExam(toExamForModal(practice))
           }}
           onOpen={(practice) => {
-            setItems((current) =>
-              current.map((row) => (row.id === practice.id ? { ...row, status: 'ONGOING' as const } : row)),
-            )
-            setDetail(null)
-            showToast('Đã mở luyện tập (mock)')
+            setOpenError(null)
+            setOpenExam({ ...toExamForModal(practice), versionCodes: practice.versionCodes })
           }}
-          onClosePractice={(practice) => {
-            setItems((current) =>
-              current.map((row) => (row.id === practice.id ? { ...row, status: 'CLOSED' as const } : row)),
-            )
-            setDetail(null)
-            showToast('Đã đóng bài luyện tập (mock)')
+          onClosePractice={(practice) => void handleClose(practice)}
+        />
+      ) : null}
+
+      {assignExam ? (
+        <ExamAssignClassroomsModal
+          exam={assignExam}
+          classroomOptions={classroomOptions}
+          isSubmitting={updateClassrooms.isPending}
+          submitError={assignError}
+          onClose={() => setAssignExam(null)}
+          onSubmit={(ids) => void handleAssign(ids)}
+        />
+      ) : null}
+
+      {versionExam ? (
+        <ExamVersionGenerateModal
+          examTitle={versionExam.title}
+          isSubmitting={createVersions.isPending}
+          submitError={versionError}
+          onClose={() => setVersionExam(null)}
+          onSubmit={(values) => void handleGenerateVersions(values)}
+        />
+      ) : null}
+
+      {openExam ? (
+        <ExamOpenModal
+          exam={{
+            ...openExam,
+            versionCodes: openVersionsQuery.data ?? openExam.versionCodes,
           }}
+          isSubmitting={updateExam.isPending}
+          submitError={openError}
+          onClose={() => setOpenExam(null)}
+          onSubmit={(values) => void handleOpen(values)}
         />
       ) : null}
 
