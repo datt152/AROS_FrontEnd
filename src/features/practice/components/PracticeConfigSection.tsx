@@ -75,12 +75,12 @@ export function PracticeConfigSection({
         checked={timeLimitEnabled}
         onChange={(checked) => onChange({ timeLimitEnabled: checked })}
         label="Giới hạn thời gian làm bài"
-        description="Tắt: không countdown / không auto-nộp hết giờ (duration vẫn gửi backend ≥ 1)."
+        description="Tắt: không countdown / không auto-nộp hết giờ."
       />
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <label htmlFor="practice-duration" className="text-xs font-medium uppercase tracking-wider text-slate-500">
+          <label htmlFor="practice-duration" className="text-sm font-medium text-slate-700">
             Thời lượng (phút)
           </label>
           <input
@@ -99,13 +99,13 @@ export function PracticeConfigSection({
             }`}
           />
           {!timeLimitEnabled ? (
-            <p className="text-xs text-slate-500">Không áp dụng — giữ giá trị mặc định để thỏa backend.</p>
+            <p className="text-xs text-slate-500">Không áp dụng</p>
           ) : null}
           {errors?.duration ? <p className="text-xs text-red-600">{errors.duration}</p> : null}
         </div>
 
         <div className="space-y-1.5">
-          <label htmlFor="practice-max-attempts" className="text-xs font-medium uppercase tracking-wider text-slate-500">
+          <label htmlFor="practice-max-attempts" className="text-sm font-medium text-slate-700">
             Số lần làm tối đa
           </label>
           <input

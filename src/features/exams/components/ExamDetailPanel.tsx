@@ -137,11 +137,10 @@ export function ExamDetailPanel({
               key={item.id}
               type="button"
               onClick={() => setTab(item.id)}
-              className={`shrink-0 rounded-t-xl px-3 py-2 text-sm font-medium transition ${
-                tab === item.id
-                  ? 'bg-white text-blue-700 shadow-[inset_0_-2px_0_0_#2563eb]'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
+              className={`shrink-0 rounded-t-xl px-3 py-2 text-sm font-medium transition ${tab === item.id
+                ? 'bg-white text-blue-700 shadow-[inset_0_-2px_0_0_#2563eb]'
+                : 'text-slate-500 hover:text-slate-800'
+                }`}
             >
               {item.label}
             </button>
@@ -197,7 +196,7 @@ export function ExamDetailPanel({
             ) : examQuestions.length === 0 ? (
               <p className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
                 {exam.totalQuestions > 0 || (exam.questionIds?.length ?? 0) > 0
-                  ? `Đề có ${exam.totalQuestions || exam.questionIds?.length} câu nhưng API không trả đủ nội dung để hiển thị. Thử xem trước qua tab Mã đề.`
+                  ? `Đề có ${exam.totalQuestions || exam.questionIds?.length} câu. Hãy tạo mã đề trước để xem danh sách câu hỏi.`
                   : 'Chưa có câu hỏi gắn với đề.'}
               </p>
             ) : (
@@ -253,10 +252,13 @@ export function ExamDetailPanel({
                 <p className="text-sm font-medium text-slate-800">
                   Mã đề <span className="text-slate-400">({versionCodes.length})</span>
                 </p>
-                <Button variant="secondary" className="h-9" onClick={onGenerateVersions}>
-                  <FileCode2 className="h-3.5 w-3.5" strokeWidth={1.75} />
-                  Sinh mã đề
-                </Button>
+
+                {exam.status === 'DRAFT' ? (
+                  <Button variant="secondary" className="h-9" onClick={onGenerateVersions}>
+                    <FileCode2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+                    Sinh mã đề
+                  </Button>
+                ) : null}
               </div>
               {versionCodes.length === 0 ? (
                 <p className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">

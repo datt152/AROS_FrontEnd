@@ -122,14 +122,14 @@ export function PracticeForm({
     <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-4">
         <div className="space-y-1.5">
-          <label htmlFor="practice-title" className="text-xs font-medium uppercase tracking-wider text-slate-500">
+          <label htmlFor="practice-title" className="text-sm font-medium text-slate-700">
             Tiêu đề
           </label>
           <Input
             id="practice-title"
             value={values.title}
             onChange={(event) => setValues((current) => ({ ...current, title: event.target.value }))}
-            placeholder="VD: Luyện chương 1"
+            placeholder="Vui lòng nhập tiêu đề"
             className={errors.title ? 'border-red-400' : ''}
           />
           {errors.title ? <p className="text-xs text-red-600">{errors.title}</p> : null}
@@ -137,7 +137,7 @@ export function PracticeForm({
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <label htmlFor="practice-subject" className="text-xs font-medium uppercase tracking-wider text-slate-500">
+            <label htmlFor="practice-subject" className="text-sm font-medium text-slate-700">
               Môn học
             </label>
             <select
@@ -172,14 +172,14 @@ export function PracticeForm({
           </div>
 
           <div className="space-y-1.5">
-            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Hình thức</p>
+            <p className="text-sm font-medium text-slate-700">Hình thức</p>
             <p className="flex h-10 items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700">
               Trực tuyến (cố định)
             </p>
           </div>
 
           <div className="space-y-1.5">
-            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Thang điểm</p>
+            <p className="text-sm font-medium text-slate-700">Thang điểm</p>
             <p className="flex h-10 items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700">
               10 (cố định)
             </p>
@@ -210,7 +210,7 @@ export function PracticeForm({
 
         {mode === 'create' ? (
           <div className="space-y-2">
-            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Câu hỏi</p>
+            <p className="text-sm font-medium text-slate-700">Câu hỏi</p>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -353,7 +353,7 @@ export function PracticeForm({
         )}
 
         <div className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Giao lớp (tuỳ chọn)</p>
+          <p className="text-sm font-medium text-slate-700">Giao lớp (tuỳ chọn)</p>
           {values.subjectId === '' ? (
             <p className="text-sm text-slate-500">Chọn môn trước.</p>
           ) : (

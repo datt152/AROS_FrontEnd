@@ -1,4 +1,4 @@
-import { Eye, FileCode2, Lock, Pencil, Play, Trash2, Users } from 'lucide-react'
+import { Eye, Lock, Pencil, Trash2 } from 'lucide-react'
 
 import { Button } from '../../../components/ui/Button'
 import { TableCell, TableRow } from '../../../components/ui/Table'
@@ -8,9 +8,7 @@ import {
   EXAM_MODE_LABEL,
   EXAM_STATUS_BADGE_CLASS,
   EXAM_STATUS_LABEL,
-  canOpenExam,
   formatExamSchedule,
-  getOpenExamBlockReason,
 } from '../types/exam.types'
 
 type ExamItemProps = {
@@ -18,9 +16,6 @@ type ExamItemProps = {
   onDetail: (exam: ExamItemType) => void
   onEdit: (exam: ExamItemType) => void
   onDelete: (exam: ExamItemType) => void
-  onAssignClassrooms: (exam: ExamItemType) => void
-  onGenerateVersions: (exam: ExamItemType) => void
-  onOpenExam: (exam: ExamItemType) => void
   onCloseExam: (exam: ExamItemType) => void
 }
 
@@ -45,17 +40,12 @@ function ExamActions({
   onDetail,
   onEdit,
   onDelete,
-  onAssignClassrooms,
-  onGenerateVersions,
-  onOpenExam,
   onCloseExam,
   spread = false,
 }: ExamItemProps & { spread?: boolean }) {
   const isDraft = exam.status === 'DRAFT'
   const isOngoing = exam.status === 'ONGOING' || exam.status === 'UPCOMING'
   const canDelete = !exam.hasSubmissions && (isDraft || exam.status === 'CLOSED')
-  const openReady = canOpenExam(exam).ready
-  const openBlockReason = getOpenExamBlockReason(exam)
 
   return (
     <div className={`flex items-center ${spread ? 'w-full flex-wrap justify-evenly gap-1' : 'flex-wrap gap-2'}`}>
@@ -69,27 +59,14 @@ function ExamActions({
       </Button>
 
       {isDraft ? (
-        <>
-          <Button
-            variant="ghost"
-            className="h-8 border border-amber-200 bg-amber-50 px-2 text-xs text-amber-800 hover:bg-amber-100"
-            onClick={() => onEdit(exam)}
-          >
-            <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
-            Sửa
-          </Button>
-          <span title={openBlockReason ?? undefined}>
-            <Button
-              variant="ghost"
-              className="h-8 border border-emerald-200 bg-emerald-50 px-2 text-xs text-emerald-700 hover:bg-emerald-100"
-              disabled={!openReady}
-              onClick={() => onOpenExam(exam)}
-            >
-              <Play className="h-3.5 w-3.5" strokeWidth={1.75} />
-              Mở thi
-            </Button>
-          </span>
-        </>
+        <Button
+          variant="ghost"
+          className="h-8 border border-amber-200 bg-amber-50 px-2 text-xs text-amber-800 hover:bg-amber-100"
+          onClick={() => onEdit(exam)}
+        >
+          <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+          Sửa
+        </Button>
       ) : null}
 
       {isOngoing ? (

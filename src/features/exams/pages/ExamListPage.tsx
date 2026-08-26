@@ -1,4 +1,4 @@
-import { BarChart3, ClipboardList, Plus, Printer, X } from 'lucide-react'
+import { Plus, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 
@@ -448,18 +448,6 @@ export function ExamListPage() {
     onDelete: (item: ExamItemType) => {
       setDeleteError(null)
       setDeletingExam(item)
-    },
-    onAssignClassrooms: (item: ExamItemType) => {
-      setAssignError(null)
-      setAssignExam(item)
-    },
-    onGenerateVersions: (item: ExamItemType) => {
-      setVersionError(null)
-      setVersionExam(item)
-    },
-    onOpenExam: (item: ExamItemType) => {
-      setOpenError(null)
-      setOpenExam(item)
     },
     onCloseExam: (item: ExamItemType) => void handleCloseExam(item),
   }
