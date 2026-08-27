@@ -16,7 +16,7 @@ export const ROUTES = {
     exams: '/student/exams',
     examBySubject: '/student/exams/:subjectId',
     examResult: '/student/exam-result',
-    takeExam: '/student/take-exam/:examId',
+    takeExam: '/student/take-exam',
     history: '/student/history',
     practice: '/student/practice',
     examDetail: '/student/exam-detail/:id',

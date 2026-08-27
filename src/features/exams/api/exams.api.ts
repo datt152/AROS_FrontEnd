@@ -14,6 +14,7 @@ import type {
   SubmissionPayload,
   SubmissionResultItem,
 } from '../types/exam.types'
+import type { StudentExamListItem, StudentExamStatus, StudentMyStatus } from '../types/studentExam.types'
 
 type ExamConfigDto = {
   id?: number
@@ -110,6 +111,27 @@ type SubmissionResultDto = {
   maxScore?: number | null
   correctQuestions?: number | null
   totalQuestions?: number | null
+}
+
+type MyExamDto = {
+  id?: number
+  examId?: number
+  title?: string
+  duration?: number
+  totalQuestions?: number
+  maxScore?: number
+  startAt?: string | null
+  endAt?: string | null
+  examStatus?: StudentExamStatus | ExamStatus
+  status?: ExamStatus
+  myStatus?: StudentMyStatus
+  canTake?: boolean
+  showScoreToStudent?: boolean
+  scoreVisible?: boolean
+  myScore?: number | null
+  score?: number | null
+  totalScore?: number | null
+  config?: ExamConfigDto | null
 }
 
 export type ExamsPageResult = {
@@ -299,6 +321,67 @@ export type GetExamsParams = {
   purpose?: 'EXAM' | 'PRACTICE'
 }
 
+export type GetMyExamsParams = {
+  classroomId: number
+  purpose?: 'EXAM' | 'PRACTICE'
+}
+
+const STUDENT_EXAM_STATUSES: StudentExamStatus[] = ['UPCOMING', 'ONGOING', 'COMPLETED', 'CLOSED']
+const STUDENT_MY_STATUSES: StudentMyStatus[] = ['NOT_STARTED', 'IN_PROGRESS', 'EXPIRED', 'SUBMITTED']
+
+function toStudentExamStatus(value: unknown): StudentExamStatus {
+  if (typeof value === 'string' && STUDENT_EXAM_STATUSES.includes(value as StudentExamStatus)) {
+    return value as StudentExamStatus
+  }
+  if (value === 'DRAFT') return 'UPCOMING'
+  return 'CLOSED'
+}
+
+function toStudentMyStatus(value: unknown): StudentMyStatus {
+  if (typeof value === 'string' && STUDENT_MY_STATUSES.includes(value as StudentMyStatus)) {
+    return value as StudentMyStatus
+  }
+  return 'NOT_STARTED'
+}
+
+function normalizeMyExam(dto: MyExamDto): StudentExamListItem | null {
+  const id = dto.id ?? dto.examId
+  if (id === undefined || !dto.title) return null
+
+  const examStatus = toStudentExamStatus(dto.examStatus ?? dto.status)
+  const myStatus = toStudentMyStatus(dto.myStatus)
+  const rawCanTake = dto.canTake
+  const canTake =
+    typeof rawCanTake === 'boolean'
+      ? rawCanTake
+      : examStatus === 'ONGOING' && (myStatus === 'NOT_STARTED' || myStatus === 'IN_PROGRESS')
+
+  const showScoreToStudent =
+    dto.showScoreToStudent ??
+    dto.scoreVisible ??
+    dto.config?.showScoreToStudent ??
+    false
+
+  const rawScore = dto.myScore ?? dto.score ?? dto.totalScore
+  const myScore =
+    typeof rawScore === 'number' && Number.isFinite(rawScore) ? rawScore : null
+
+  return {
+    id,
+    title: dto.title,
+    duration: dto.duration ?? 0,
+    totalQuestions: dto.totalQuestions ?? 0,
+    maxScore: dto.maxScore ?? 0,
+    startAt: dto.startAt ?? null,
+    endAt: dto.endAt ?? null,
+    examStatus,
+    myStatus,
+    canTake,
+    showScoreToStudent: Boolean(showScoreToStudent),
+    myScore,
+  }
+}
+
 export async function getExams(params: GetExamsParams = {}): Promise<ExamsPageResult> {
   const response = await apiClient.get<unknown>('/v1/exams', {
     params: {
@@ -319,6 +402,21 @@ export async function getExams(params: GetExamsParams = {}): Promise<ExamsPageRe
     page: pageData.page,
     size: pageData.size,
   }
+}
+
+/** Đề giao cho SV trong lớp — GET /v1/exams/my */
+export async function getMyExams(params: GetMyExamsParams): Promise<StudentExamListItem[]> {
+  const response = await apiClient.get<unknown>('/v1/exams/my', {
+    params: {
+      classroomId: params.classroomId,
+      purpose: params.purpose ?? 'EXAM',
+    },
+  })
+
+  const pageData = unwrapPage(response.data)
+  return pageData.items
+    .map((item) => normalizeMyExam(item as MyExamDto))
+    .filter((item): item is StudentExamListItem => item !== null)
 }
 
 export async function getExam(id: number) {

@@ -8,6 +8,7 @@ import {
   getClassroom,
   getClassrooms,
   getClassroomStudents,
+  getMyClasses,
   removeStudentFromClass,
   updateClassroom,
 } from '../api/classrooms.api'
@@ -17,6 +18,7 @@ export const classroomKeys = {
   all: ['classrooms'] as const,
   lists: () => [...classroomKeys.all, 'list'] as const,
   list: (subjectId?: number) => [...classroomKeys.lists(), { subjectId }] as const,
+  mine: () => [...classroomKeys.all, 'mine'] as const,
   details: () => [...classroomKeys.all, 'detail'] as const,
   detail: (id: number) => [...classroomKeys.details(), id] as const,
   students: (classroomId: number) => [...classroomKeys.all, 'students', classroomId] as const,
@@ -26,6 +28,15 @@ export function useClassrooms(subjectId?: number, options?: { enabled?: boolean 
   return useQuery({
     queryKey: classroomKeys.list(subjectId),
     queryFn: () => getClassrooms({ subjectId, page: 0, size: 50 }),
+    staleTime: STALE_TIME.reference,
+    enabled: options?.enabled ?? true,
+  })
+}
+
+export function useMyClasses(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: classroomKeys.mine(),
+    queryFn: getMyClasses,
     staleTime: STALE_TIME.reference,
     enabled: options?.enabled ?? true,
   })

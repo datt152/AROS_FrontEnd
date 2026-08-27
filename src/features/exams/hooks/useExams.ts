@@ -10,13 +10,14 @@ import {
   getExams,
   getExamVersionDetail,
   getExamVersions,
+  getMyExams,
   saveExamAsTemplate,
   submitExam,
   takeExam,
   updateExam,
   updateExamClassrooms,
 } from '../api/exams.api'
-import type { GetExamsParams } from '../api/exams.api'
+import type { GetExamsParams, GetMyExamsParams } from '../api/exams.api'
 import type {
   ExamCreatePayload,
   ExamUpdatePayload,
@@ -28,6 +29,8 @@ export const examKeys = {
   all: ['exams'] as const,
   lists: () => [...examKeys.all, 'list'] as const,
   list: (params: GetExamsParams) => [...examKeys.lists(), params] as const,
+  mine: () => [...examKeys.all, 'mine'] as const,
+  myList: (params: GetMyExamsParams) => [...examKeys.mine(), params] as const,
   details: () => [...examKeys.all, 'detail'] as const,
   detail: (id: number) => [...examKeys.details(), id] as const,
   versions: (id: number) => [...examKeys.all, 'versions', id] as const,
@@ -42,6 +45,15 @@ export function useExams(params: GetExamsParams, options?: { enabled?: boolean }
     queryFn: () => getExams(params),
     staleTime: STALE_TIME.list,
     enabled: options?.enabled ?? true,
+  })
+}
+
+export function useMyExams(params: GetMyExamsParams | undefined, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: examKeys.myList(params ?? { classroomId: -1, purpose: 'EXAM' }),
+    queryFn: () => getMyExams(params!),
+    staleTime: STALE_TIME.list,
+    enabled: (options?.enabled ?? true) && params !== undefined && params.classroomId > 0,
   })
 }
 
@@ -178,8 +190,9 @@ export function useSubmitExam() {
 
   return useMutation({
     mutationFn: (payload: SubmissionPayload) => submitExam(payload),
-    onSuccess: (_data, variables) => {
-      void queryClient.invalidateQueries({ queryKey: examKeys.take(variables.examId) })
+    onSuccess: () => {
+      // Không invalidate take — refetch sẽ 400 “đã nộp” và che màn kết quả.
+      void queryClient.invalidateQueries({ queryKey: examKeys.mine() })
     },
   })
 }

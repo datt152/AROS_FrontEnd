@@ -15,6 +15,8 @@ type ClassroomDto = {
   isActive?: boolean
   subjectId?: number
   subjectName?: string
+  teacherName?: string
+  teacherEmail?: string
 }
 
 type ClassroomStudentDto = {
@@ -49,6 +51,8 @@ function normalizeClassroom(dto: ClassroomDto): ClassroomItem | null {
     isActive: dto.isActive ?? true,
     subjectId: dto.subjectId,
     subjectName: dto.subjectName ?? '',
+    teacherName: dto.teacherName?.trim() || undefined,
+    teacherEmail: dto.teacherEmail?.trim() || undefined,
   }
 }
 
@@ -88,6 +92,14 @@ export async function getClassrooms(params: GetClassroomsParams = {}) {
     },
   })
 
+  return unwrapPage(response.data)
+    .map(normalizeClassroom)
+    .filter((item): item is ClassroomItem => item !== null)
+}
+
+/** Lớp sinh viên đang học — GET /v1/classes/my */
+export async function getMyClasses() {
+  const response = await apiClient.get<unknown>('/v1/classes/my')
   return unwrapPage(response.data)
     .map(normalizeClassroom)
     .filter((item): item is ClassroomItem => item !== null)

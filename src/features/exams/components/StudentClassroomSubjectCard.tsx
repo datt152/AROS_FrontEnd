@@ -1,18 +1,16 @@
 import { BookOpen, ChevronRight, Users } from 'lucide-react'
 
-import type { StudentClassroomSubject } from '../types/studentExam.types'
+import type { ClassroomItem } from '../../classrooms/types/classroom.types'
 
-type StudentClassroomSubjectCardProps = {
-  item: StudentClassroomSubject
+type StudentClassroomCardProps = {
+  item: ClassroomItem
   selected: boolean
-  onSelect: (item: StudentClassroomSubject) => void
+  onSelect: (item: ClassroomItem) => void
 }
 
-export function StudentClassroomSubjectCard({
-  item,
-  selected,
-  onSelect,
-}: StudentClassroomSubjectCardProps) {
+export function StudentClassroomSubjectCard({ item, selected, onSelect }: StudentClassroomCardProps) {
+  const teacherLabel = item.teacherName || item.teacherEmail || 'Giáo viên'
+
   return (
     <button
       type="button"
@@ -31,17 +29,16 @@ export function StudentClassroomSubjectCard({
         <BookOpen className="h-5 w-5" strokeWidth={1.75} />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate font-semibold text-slate-900">{item.subjectName}</span>
+        <span className="block truncate font-semibold text-slate-900">
+          {item.subjectName || `Môn #${item.subjectId}`}
+        </span>
         <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-500">
           <span className="inline-flex items-center gap-1">
             <Users className="h-3.5 w-3.5" strokeWidth={1.75} />
-            {item.classroomName}
+            {item.className}
           </span>
           <span aria-hidden>·</span>
-          <span className="truncate">{item.teacherName}</span>
-        </span>
-        <span className="mt-2 inline-flex rounded-lg border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-600">
-          {item.examCount} bài thi
+          <span className="truncate">{teacherLabel}</span>
         </span>
       </span>
       <ChevronRight

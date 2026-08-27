@@ -1,5 +1,5 @@
 import { Clock, FileQuestion, Play } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
 import { Button } from '../../../components/ui/Button'
 import { ROUTES } from '../../../routes/routes.config'
@@ -8,9 +8,12 @@ import {
   STUDENT_EXAM_STATUS_LABEL,
   STUDENT_MY_STATUS_BADGE,
   STUDENT_MY_STATUS_LABEL,
+  canShowStudentScoreOnCard,
   formatStudentExamSchedule,
+  formatStudentScore,
   getStudentTakeBlockReason,
   type StudentExamListItem,
+  type TakeExamLocationState,
 } from '../types/studentExam.types'
 
 type StudentExamCardProps = {
@@ -18,8 +21,14 @@ type StudentExamCardProps = {
 }
 
 export function StudentExamCard({ exam }: StudentExamCardProps) {
+  const navigate = useNavigate()
   const blockReason = getStudentTakeBlockReason(exam)
-  const takePath = ROUTES.student.takeExam.replace(':examId', String(exam.id))
+  const showScore = canShowStudentScoreOnCard(exam)
+
+  function handleTake() {
+    const state: TakeExamLocationState = { examId: exam.id }
+    void navigate(ROUTES.student.takeExam, { state })
+  }
 
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -55,8 +64,19 @@ export function StudentExamCard({ exam }: StudentExamCardProps) {
         </div>
       </div>
 
+      {showScore ? (
+        <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+          <p className="text-xs font-medium text-emerald-700">Điểm của bạn</p>
+          <p className="mt-0.5 text-lg font-semibold tabular-nums text-slate-900">
+            {formatStudentScore(exam.myScore!, exam.maxScore)}
+          </p>
+        </div>
+      ) : null}
+
       <div className="mt-4 flex flex-col gap-2 border-t border-slate-100 pt-3 sm:flex-row sm:items-center sm:justify-between">
-        {blockReason ? (
+        {showScore ? (
+          <p className="text-sm text-slate-500">Bạn đã nộp bài</p>
+        ) : blockReason ? (
           <p className="text-sm text-slate-500">{blockReason}</p>
         ) : (
           <p className="text-sm text-emerald-700">
@@ -65,12 +85,10 @@ export function StudentExamCard({ exam }: StudentExamCardProps) {
         )}
 
         {exam.canTake ? (
-          <Link to={takePath} className="sm:shrink-0">
-            <Button className="w-full sm:w-auto">
-              <Play className="h-4 w-4" strokeWidth={1.75} />
-              {exam.myStatus === 'IN_PROGRESS' ? 'Tiếp tục làm' : 'Vào làm bài'}
-            </Button>
-          </Link>
+          <Button className="w-full sm:w-auto" onClick={handleTake}>
+            <Play className="h-4 w-4" strokeWidth={1.75} />
+            {exam.myStatus === 'IN_PROGRESS' ? 'Tiếp tục làm' : 'Vào làm bài'}
+          </Button>
         ) : (
           <Button className="w-full sm:w-auto" disabled>
             Không thể làm

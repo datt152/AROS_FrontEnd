@@ -1,18 +1,6 @@
-/** Types + mock cho UI bài thi sinh viên (Loại A — chưa nối API). */
-
 export type StudentExamStatus = 'UPCOMING' | 'ONGOING' | 'COMPLETED' | 'CLOSED'
 
 export type StudentMyStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'EXPIRED' | 'SUBMITTED'
-
-export type StudentClassroomSubject = {
-  id: string
-  classroomId: number
-  classroomName: string
-  subjectId: number
-  subjectName: string
-  teacherName: string
-  examCount: number
-}
 
 export type StudentExamListItem = {
   id: number
@@ -20,13 +8,21 @@ export type StudentExamListItem = {
   duration: number
   totalQuestions: number
   maxScore: number
-  startAt: string
-  endAt: string
+  startAt: string | null
+  endAt: string | null
   examStatus: StudentExamStatus
   myStatus: StudentMyStatus
-  /** true chỉ khi lịch/status cho phép làm (đóng / hết hạn / DRAFT → false) */
+  /** true chỉ khi lịch/status cho phép làm (đóng/hết hạn/DRAFT → false) */
   canTake: boolean
-  classroomSubjectId: string
+  /** Cấu hình đề / response cho phép SV xem điểm */
+  showScoreToStudent: boolean
+  /** Điểm SV (chỉ có khi đã nộp; null nếu chưa có hoặc không trả) */
+  myScore: number | null
+}
+
+/** Truyền qua router state — không gắn examId lên URL */
+export type TakeExamLocationState = {
+  examId: number
 }
 
 export const STUDENT_EXAM_STATUS_LABEL: Record<StudentExamStatus, string> = {
@@ -57,160 +53,8 @@ export const STUDENT_MY_STATUS_BADGE: Record<StudentMyStatus, string> = {
   SUBMITTED: 'bg-violet-50 text-violet-800 border-violet-200',
 }
 
-export const MOCK_STUDENT_CLASSROOM_SUBJECTS: StudentClassroomSubject[] = [
-  {
-    id: 'cs-1',
-    classroomId: 101,
-    classroomName: 'SE1722',
-    subjectId: 3,
-    subjectName: 'Cấu trúc dữ liệu',
-    teacherName: 'Nguyễn Văn A',
-    examCount: 4,
-  },
-  {
-    id: 'cs-2',
-    classroomId: 102,
-    classroomName: 'SE1723',
-    subjectId: 5,
-    subjectName: 'Cơ sở dữ liệu',
-    teacherName: 'Trần Thị B',
-    examCount: 3,
-  },
-  {
-    id: 'cs-3',
-    classroomId: 103,
-    classroomName: 'AI1701',
-    subjectId: 8,
-    subjectName: 'Trí tuệ nhân tạo',
-    teacherName: 'Lê Minh C',
-    examCount: 2,
-  },
-]
-
-/** Đủ tổ hợp examStatus × myStatus × canTake để test UI */
-export const MOCK_STUDENT_EXAMS: StudentExamListItem[] = [
-  {
-    id: 1001,
-    title: 'Giữa kỳ — Cây và đồ thị',
-    duration: 60,
-    totalQuestions: 40,
-    maxScore: 10,
-    startAt: '2026-09-01T08:00:00+07:00',
-    endAt: '2026-09-01T09:30:00+07:00',
-    examStatus: 'ONGOING',
-    myStatus: 'NOT_STARTED',
-    canTake: true,
-    classroomSubjectId: 'cs-1',
-  },
-  {
-    id: 1002,
-    title: 'Quiz tuần 3 — Sorting',
-    duration: 30,
-    totalQuestions: 20,
-    maxScore: 10,
-    startAt: '2026-08-20T13:00:00+07:00',
-    endAt: '2026-08-20T13:45:00+07:00',
-    examStatus: 'ONGOING',
-    myStatus: 'IN_PROGRESS',
-    canTake: true,
-    classroomSubjectId: 'cs-1',
-  },
-  {
-    id: 1003,
-    title: 'Kiểm tra nhanh — Linked list',
-    duration: 20,
-    totalQuestions: 15,
-    maxScore: 10,
-    startAt: '2026-09-10T09:00:00+07:00',
-    endAt: '2026-09-10T09:30:00+07:00',
-    examStatus: 'UPCOMING',
-    myStatus: 'NOT_STARTED',
-    canTake: false,
-    classroomSubjectId: 'cs-1',
-  },
-  {
-    id: 1004,
-    title: 'Cuối kỳ — Ôn tập tổng hợp',
-    duration: 90,
-    totalQuestions: 50,
-    maxScore: 10,
-    startAt: '2026-07-15T08:00:00+07:00',
-    endAt: '2026-07-15T10:00:00+07:00',
-    examStatus: 'COMPLETED',
-    myStatus: 'SUBMITTED',
-    canTake: false,
-    classroomSubjectId: 'cs-1',
-  },
-  {
-    id: 2001,
-    title: 'Giữa kỳ — SQL cơ bản',
-    duration: 45,
-    totalQuestions: 30,
-    maxScore: 10,
-    startAt: '2026-08-25T14:00:00+07:00',
-    endAt: '2026-08-25T15:00:00+07:00',
-    examStatus: 'CLOSED',
-    myStatus: 'EXPIRED',
-    canTake: false,
-    classroomSubjectId: 'cs-2',
-  },
-  {
-    id: 2002,
-    title: 'Lab — Normalization',
-    duration: 40,
-    totalQuestions: 25,
-    maxScore: 10,
-    startAt: '2026-08-18T10:00:00+07:00',
-    endAt: '2026-08-18T11:00:00+07:00',
-    examStatus: 'COMPLETED',
-    myStatus: 'SUBMITTED',
-    canTake: false,
-    classroomSubjectId: 'cs-2',
-  },
-  {
-    id: 2003,
-    title: 'Quiz — Index & Transaction',
-    duration: 25,
-    totalQuestions: 18,
-    maxScore: 10,
-    startAt: '2026-09-05T15:00:00+07:00',
-    endAt: '2026-09-05T15:40:00+07:00',
-    examStatus: 'UPCOMING',
-    myStatus: 'NOT_STARTED',
-    canTake: false,
-    classroomSubjectId: 'cs-2',
-  },
-  {
-    id: 3001,
-    title: 'Mini test — Search algorithms',
-    duration: 35,
-    totalQuestions: 22,
-    maxScore: 10,
-    startAt: '2026-08-26T09:00:00+07:00',
-    endAt: '2026-08-26T10:00:00+07:00',
-    examStatus: 'ONGOING',
-    myStatus: 'NOT_STARTED',
-    canTake: true,
-    classroomSubjectId: 'cs-3',
-  },
-  {
-    id: 3002,
-    title: 'Đề đóng sớm — Neural nets',
-    duration: 50,
-    totalQuestions: 35,
-    maxScore: 10,
-    startAt: '2026-08-10T08:00:00+07:00',
-    endAt: '2026-08-10T09:00:00+07:00',
-    examStatus: 'CLOSED',
-    myStatus: 'NOT_STARTED',
-    canTake: false,
-    classroomSubjectId: 'cs-3',
-  },
-]
-
-export function formatStudentExamSchedule(startAt: string, endAt: string) {
-  const start = new Date(startAt)
-  const end = new Date(endAt)
+export function formatStudentExamSchedule(startAt: string | null, endAt: string | null) {
+  if (!startAt && !endAt) return 'Chưa có lịch'
   const dateFmt = new Intl.DateTimeFormat('vi-VN', {
     day: '2-digit',
     month: '2-digit',
@@ -220,7 +64,17 @@ export function formatStudentExamSchedule(startAt: string, endAt: string) {
     hour: '2-digit',
     minute: '2-digit',
   })
-  return `${dateFmt.format(start)} · ${timeFmt.format(start)} – ${timeFmt.format(end)}`
+  if (startAt && endAt) {
+    const start = new Date(startAt)
+    const end = new Date(endAt)
+    return `${dateFmt.format(start)} · ${timeFmt.format(start)} – ${timeFmt.format(end)}`
+  }
+  if (startAt) {
+    const start = new Date(startAt)
+    return `${dateFmt.format(start)} · ${timeFmt.format(start)}`
+  }
+  const end = new Date(endAt!)
+  return `Đến ${dateFmt.format(end)} · ${timeFmt.format(end)}`
 }
 
 export function getStudentTakeBlockReason(exam: StudentExamListItem): string | null {
@@ -231,4 +85,20 @@ export function getStudentTakeBlockReason(exam: StudentExamListItem): string | n
   if (exam.examStatus === 'CLOSED') return 'Đề đã đóng'
   if (exam.examStatus === 'COMPLETED') return 'Kỳ thi đã kết thúc'
   return 'Không thể vào làm bài'
+}
+
+/** Hiện điểm trên card khi đã nộp và đề cho xem điểm */
+export function canShowStudentScoreOnCard(exam: StudentExamListItem): boolean {
+  return (
+    exam.myStatus === 'SUBMITTED' &&
+    exam.showScoreToStudent &&
+    exam.myScore !== null &&
+    Number.isFinite(exam.myScore)
+  )
+}
+
+export function formatStudentScore(score: number, maxScore: number) {
+  const scoreText = Number.isInteger(score) ? String(score) : score.toFixed(2)
+  const maxText = Number.isInteger(maxScore) ? String(maxScore) : maxScore.toFixed(2)
+  return `${scoreText}/${maxText}`
 }

@@ -1,29 +1,41 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { Button } from '../../../components/ui/Button'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { Spinner } from '../../../components/ui/Spinner'
 import { getApiErrorMessage } from '../../../lib/apiError'
+import { ROUTES } from '../../../routes/routes.config'
+import type { TakeExamLocationState } from '../types/studentExam.types'
 import { useSubmitExam, useTakeExam } from '../hooks/useExams'
 import {
   answersToSubmitPayload,
   mapExamTakeError,
+  type ExamTakeItem,
   type SubmissionResultItem,
 } from '../types/exam.types'
 
-export function ExamTakePage() {
-  const { examId: examIdParam } = useParams<{ examId: string }>()
-  const examId = Number(examIdParam)
-  const takeQuery = useTakeExam(Number.isFinite(examId) && examId > 0 ? examId : undefined)
-  const submitExam = useSubmitExam()
+function readExamIdFromState(state: unknown): number | undefined {
+  if (!state || typeof state !== 'object') return undefined
+  const examId = (state as TakeExamLocationState).examId
+  return typeof examId === 'number' && Number.isFinite(examId) && examId > 0 ? examId : undefined
+}
 
-  const [answers, setAnswers] = useState<Record<number, string | string[]>>({})
+export function ExamTakePage() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const examId = readExamIdFromState(location.state)
+
   const [result, setResult] = useState<SubmissionResultItem | null>(null)
+  const [submittedExam, setSubmittedExam] = useState<ExamTakeItem | null>(null)
+  const [answers, setAnswers] = useState<Record<number, string | string[]>>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [now, setNow] = useState(Date.now())
 
-  const exam = takeQuery.data
+  const takeQuery = useTakeExam(examId, !result)
+  const submitExam = useSubmitExam()
+
+  const exam = submittedExam ?? takeQuery.data
 
   const deadline = useMemo(() => {
     if (!exam) return 0
@@ -63,17 +75,68 @@ export function ExamTakePage() {
         versionCode: exam.versionCode,
         answers: answersToSubmitPayload(answers),
       })
+      setSubmittedExam(exam)
       setResult(data)
+      // Xóa state URL để F5/back không giữ phiên làm bài cũ
+      void navigate(ROUTES.student.takeExam, { replace: true, state: null })
     } catch (error) {
       const message = getApiErrorMessage(error, 'Không thể nộp bài')
       setSubmitError(mapExamTakeError(message))
     }
   }
 
-  if (!Number.isFinite(examId) || examId <= 0) {
+  if (result && exam) {
+    const scoreVisible =
+      result.scoreVisible !== false && exam.showScoreToStudent !== false
+
+    return (
+      <section className="mx-auto max-w-lg space-y-5 py-8">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center">
+          <p className="text-xs font-medium uppercase tracking-wider text-emerald-700">Nộp bài</p>
+          <h1 className="mt-2 text-xl font-semibold text-slate-900">Nộp bài thành công</h1>
+          <p className="mt-1 text-sm text-slate-600">{exam.title}</p>
+
+          {scoreVisible ? (
+            <div className="mt-6 rounded-2xl border border-emerald-200 bg-white px-4 py-5">
+              <p className="text-sm text-slate-600">Đây là điểm số của bạn</p>
+              <p className="mt-2 text-3xl font-semibold tabular-nums text-slate-900">
+                {result.totalScore?.toFixed(2)}/{result.maxScore}
+              </p>
+              {result.correctQuestions != null && result.totalQuestions != null ? (
+                <p className="mt-2 text-sm text-slate-500">
+                  Đúng {result.correctQuestions}/{result.totalQuestions} câu
+                </p>
+              ) : null}
+            </div>
+          ) : (
+            <p className="mt-6 rounded-xl border border-emerald-200 bg-white px-4 py-3 text-sm text-slate-600">
+              Bài làm của bạn đã được ghi nhận.
+            </p>
+          )}
+
+        </div>
+
+        <Link to={ROUTES.student.exams} className="block">
+          <Button variant="secondary" className="w-full">
+            Quay lại bài thi
+          </Button>
+        </Link>
+      </section>
+    )
+  }
+
+  if (examId === undefined) {
     return (
       <section className="mx-auto max-w-lg py-10">
-        <EmptyState title="Không tìm thấy đề thi" description="Đường dẫn không hợp lệ." />
+        <EmptyState
+          title="Chưa chọn bài thi"
+          description="Vào làm bài từ danh sách bài thi. Không mở trang này trực tiếp bằng URL."
+          action={
+            <Link to={ROUTES.student.exams}>
+              <Button variant="secondary">Về danh sách bài thi</Button>
+            </Link>
+          }
+        />
       </section>
     )
   }
@@ -89,8 +152,13 @@ export function ExamTakePage() {
   if (takeQuery.isError) {
     const message = mapExamTakeError(getApiErrorMessage(takeQuery.error, 'Không thể vào làm bài'))
     return (
-      <section className="mx-auto max-w-lg py-10">
+      <section className="mx-auto max-w-lg space-y-4 py-10">
         <EmptyState title="Không thể vào làm bài" description={message} />
+        <Link to={ROUTES.student.exams} className="block">
+          <Button variant="secondary" className="w-full">
+            Quay lại bài thi
+          </Button>
+        </Link>
       </section>
     )
   }
@@ -99,32 +167,6 @@ export function ExamTakePage() {
     return (
       <section className="mx-auto max-w-lg py-10">
         <EmptyState title="Không thể vào làm bài" description="Không tải được dữ liệu bài thi." />
-      </section>
-    )
-  }
-
-  if (result) {
-    const scoreVisible = result.scoreVisible !== false
-    return (
-      <section className="mx-auto max-w-lg space-y-5 py-8">
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center">
-          <p className="text-xs font-medium uppercase tracking-wider text-emerald-700">Kết quả bài làm</p>
-          {scoreVisible ? (
-            <>
-              <h1 className="mt-2 text-3xl font-semibold text-slate-900">
-                {result.totalScore}/{result.maxScore}
-              </h1>
-              <p className="mt-2 text-sm text-slate-600">
-                Đúng {result.correctQuestions}/{result.totalQuestions} câu · Mã nộp #{result.submissionId}
-              </p>
-            </>
-          ) : (
-            <>
-              <h1 className="mt-2 text-xl font-semibold text-slate-900">Nộp thành công</h1>
-              <p className="mt-2 text-sm text-slate-600">Mã nộp #{result.submissionId}. Điểm không được hiển thị.</p>
-            </>
-          )}
-        </div>
       </section>
     )
   }

@@ -8,6 +8,9 @@ export type ClassroomItem = {
   isActive: boolean
   subjectId: number
   subjectName: string
+  /** Có khi GET /v1/classes/my (sinh viên) */
+  teacherName?: string
+  teacherEmail?: string
 }
 
 /** Matches ClassroomRequest from backend */
