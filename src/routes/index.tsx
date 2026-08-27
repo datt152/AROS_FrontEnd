@@ -7,6 +7,7 @@ import { ClassroomListPage } from '../features/classrooms/pages/ClassroomListPag
 import { ExamTemplateListPage } from '../features/exam-templates/pages/ExamTemplateListPage'
 import { ExamListPage } from '../features/exams/pages/ExamListPage'
 import { ExamTakePage } from '../features/exams/pages/ExamTakePage'
+import { StudentExamListPage } from '../features/exams/pages/StudentExamListPage'
 import { QuestionListPage } from '../features/questions/pages/QuestionListPage'
 import { SubjectListPage } from '../features/subjects/pages/SubjectListPage'
 import { AuthLayout } from '../layouts/AuthLayout'
@@ -40,6 +41,7 @@ function teacherPageForPath(path: string) {
 }
 
 function studentPageForPath(path: string) {
+  if (path === ROUTES.student.exams) return <StudentExamListPage />
   if (path === ROUTES.student.takeExam) return <ExamTakePage />
   if (path === ROUTES.student.practice) return <StudentPracticeListPage />
   if (path === ROUTES.student.takePractice) return <PracticeTakePage />
