@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { Button } from '../../../components/ui/Button'
 import { EmptyState } from '../../../components/ui/EmptyState'
@@ -9,25 +9,36 @@ import { useSubmitExam, useTakeExam } from '../../exams/hooks/useExams'
 import {
   answersToSubmitPayload,
   mapExamTakeError,
+  type ExamTakeItem,
   type SubmissionResultItem,
 } from '../../exams/types/exam.types'
+import type { TakeExamLocationState } from '../../exams/types/studentExam.types'
 import { ROUTES } from '../../../routes/routes.config'
 import { PracticeAttemptBadge } from '../components/PracticeAttemptBadge'
 import { canRetryPractice } from '../types/practice.types'
 
-export function PracticeTakePage() {
-  const { practiceId } = useParams<{ practiceId: string }>()
-  const examId = Number(practiceId)
-  const takeQuery = useTakeExam(Number.isFinite(examId) && examId > 0 ? examId : undefined)
-  const submitExam = useSubmitExam()
+function readExamIdFromState(state: unknown): number | undefined {
+  if (!state || typeof state !== 'object') return undefined
+  const examId = (state as TakeExamLocationState).examId
+  return typeof examId === 'number' && Number.isFinite(examId) && examId > 0 ? examId : undefined
+}
 
-  const [answers, setAnswers] = useState<Record<number, string | string[]>>({})
+export function PracticeTakePage() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const examId = readExamIdFromState(location.state)
+
   const [result, setResult] = useState<SubmissionResultItem | null>(null)
+  const [submittedExam, setSubmittedExam] = useState<ExamTakeItem | null>(null)
+  const [answers, setAnswers] = useState<Record<number, string | string[]>>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [now, setNow] = useState(Date.now())
   const [takeKey, setTakeKey] = useState(0)
 
-  const exam = takeQuery.data
+  const takeQuery = useTakeExam(examId, !result)
+  const submitExam = useSubmitExam()
+
+  const exam = submittedExam ?? takeQuery.data
   const timeLimited = exam?.timeLimitEnabled === true
   const attemptNo = exam?.attemptNo ?? 1
   const maxAttempts = exam?.maxAttempts ?? null
@@ -54,24 +65,93 @@ export function PracticeTakePage() {
         versionCode: exam.versionCode,
         answers: answersToSubmitPayload(answers),
       })
+      setSubmittedExam(exam)
       setResult(data)
+      void navigate(ROUTES.student.takePractice, { replace: true, state: null })
     } catch (error) {
       setSubmitError(mapExamTakeError(getApiErrorMessage(error, 'Không thể nộp bài')))
     }
   }
 
   async function handleRetry() {
+    if (!examId && !submittedExam) return
+    const retryId = examId ?? submittedExam?.examId
     setResult(null)
+    setSubmittedExam(null)
     setAnswers({})
     setSubmitError(null)
     setTakeKey((value) => value + 1)
+    if (retryId) {
+      void navigate(ROUTES.student.takePractice, {
+        replace: true,
+        state: { examId: retryId } satisfies TakeExamLocationState,
+      })
+    }
     await takeQuery.refetch()
   }
 
-  if (!Number.isFinite(examId) || examId <= 0) {
+  if (result && exam) {
+    const scoreVisible = result.scoreVisible !== false && exam.showScoreToStudent !== false
+    const canRetry = canRetryPractice(result.attemptNo ?? attemptNo, maxAttempts)
+    return (
+      <section className="mx-auto max-w-lg space-y-4 py-10">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wider text-blue-600">Kết quả luyện tập</p>
+          <h1 className="mt-2 text-xl font-semibold text-slate-900">Nộp bài thành công</h1>
+          <p className="mt-1 text-sm text-slate-500">{exam.title}</p>
+          <div className="mt-3 flex justify-center">
+            <PracticeAttemptBadge attemptNo={result.attemptNo ?? attemptNo} maxAttempts={maxAttempts} />
+          </div>
+
+          {scoreVisible ? (
+            <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-5">
+              <p className="text-sm text-slate-600">Đây là điểm số của bạn</p>
+              <p className="mt-2 text-3xl font-semibold tabular-nums text-slate-900">
+                {result.totalScore}/{result.maxScore}
+              </p>
+              {result.correctQuestions != null && result.totalQuestions != null ? (
+                <p className="mt-2 text-sm text-slate-500">
+                  Đúng {result.correctQuestions}/{result.totalQuestions} câu
+                </p>
+              ) : null}
+            </div>
+          ) : (
+            <p className="mt-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+              Giáo viên đã tắt hiện điểm. Bài của bạn đã được ghi nhận.
+            </p>
+          )}
+
+          <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
+            {canRetry ? (
+              <Button onClick={() => void handleRetry()} disabled={takeQuery.isFetching}>
+                {takeQuery.isFetching ? 'Đang tải...' : 'Làm lại'}
+              </Button>
+            ) : (
+              <p className="text-sm text-slate-500">Bạn đã hết lượt làm lại.</p>
+            )}
+            <Link to={ROUTES.student.practice}>
+              <Button variant="secondary" className="w-full sm:w-auto">
+                Về danh sách luyện tập
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (examId === undefined) {
     return (
       <section className="mx-auto max-w-lg py-10">
-        <EmptyState title="Không tìm thấy bài luyện tập" description="Đường dẫn không hợp lệ." />
+        <EmptyState
+          title="Chưa chọn bài luyện tập"
+          description="Vào làm từ danh sách luyện tập. Không mở trang này trực tiếp bằng URL."
+          action={
+            <Link to={ROUTES.student.practice}>
+              <Button variant="secondary">Về danh sách luyện tập</Button>
+            </Link>
+          }
+        />
       </section>
     )
   }
@@ -88,19 +168,16 @@ export function PracticeTakePage() {
     const message = mapExamTakeError(getApiErrorMessage(takeQuery.error, 'Không thể vào làm bài'))
     const exhausted = /hết|lượt|attempt/i.test(message)
     return (
-      <section className="mx-auto max-w-lg py-10">
+      <section className="mx-auto max-w-lg space-y-4 py-10">
         <EmptyState
           title={exhausted ? 'Đã hết lượt làm bài' : 'Không thể vào làm bài'}
           description={message}
-          action={
-            <Link
-              to={ROUTES.student.practice}
-              className="inline-flex h-10 items-center rounded-xl border border-slate-200 px-4 text-sm font-medium text-slate-700"
-            >
-              Quay lại danh sách
-            </Link>
-          }
         />
+        <Link to={ROUTES.student.practice} className="block">
+          <Button variant="secondary" className="w-full">
+            Quay lại danh sách
+          </Button>
+        </Link>
       </section>
     )
   }
@@ -113,62 +190,6 @@ export function PracticeTakePage() {
     )
   }
 
-  if (result) {
-    const scoreVisible = result.scoreVisible !== false && exam.showScoreToStudent !== false
-    const canRetry = canRetryPractice(result.attemptNo ?? attemptNo, maxAttempts)
-    return (
-      <section className="mx-auto max-w-lg space-y-4 py-10">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wider text-blue-600">Kết quả luyện tập</p>
-          <h1 className="mt-2 text-xl font-semibold text-slate-900">
-            {scoreVisible ? 'Đã nộp bài' : 'Nộp thành công'}
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">{exam.title}</p>
-          <div className="mt-3 flex justify-center">
-            <PracticeAttemptBadge attemptNo={result.attemptNo ?? attemptNo} maxAttempts={maxAttempts} />
-          </div>
-
-          {scoreVisible ? (
-            <div className="mt-6 grid grid-cols-2 gap-3 text-sm">
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <p className="text-xs text-slate-400">Điểm</p>
-                <p className="mt-1 text-lg font-semibold text-slate-900">
-                  {result.totalScore}/{result.maxScore}
-                </p>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <p className="text-xs text-slate-400">Đúng / Tổng</p>
-                <p className="mt-1 text-lg font-semibold text-slate-900">
-                  {result.correctQuestions}/{result.totalQuestions}
-                </p>
-              </div>
-            </div>
-          ) : (
-            <p className="mt-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-              Giáo viên đã tắt hiện điểm. Bài của bạn đã được ghi nhận.
-            </p>
-          )}
-
-          <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
-            {canRetry ? (
-              <Button onClick={() => void handleRetry()} disabled={takeQuery.isFetching}>
-                {takeQuery.isFetching ? 'Đang tải...' : 'Làm lại'}
-              </Button>
-            ) : (
-              <p className="text-sm text-slate-500">Bạn đã hết lượt làm lại.</p>
-            )}
-            <Link
-              to={ROUTES.student.practice}
-              className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
-              Về danh sách luyện tập
-            </Link>
-          </div>
-        </div>
-      </section>
-    )
-  }
-
   return (
     <section className="mx-auto max-w-3xl space-y-5 py-6">
       <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -177,9 +198,6 @@ export function PracticeTakePage() {
           <h1 className="mt-1 text-xl font-semibold text-slate-900">{exam.title}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <PracticeAttemptBadge attemptNo={attemptNo} maxAttempts={maxAttempts} />
-            <span className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">
-              Mã đề {exam.versionCode}
-            </span>
             {!timeLimited ? (
               <span className="rounded-lg bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-800">
                 Không giới hạn giờ

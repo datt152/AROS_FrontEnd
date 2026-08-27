@@ -119,6 +119,8 @@ type MyExamDto = {
   title?: string
   duration?: number
   totalQuestions?: number
+  questionCount?: number
+  questionIds?: Array<number | string>
   maxScore?: number
   startAt?: string | null
   endAt?: string | null
@@ -126,6 +128,7 @@ type MyExamDto = {
   status?: ExamStatus
   myStatus?: StudentMyStatus
   canTake?: boolean
+  timeLimitEnabled?: boolean
   showScoreToStudent?: boolean
   scoreVisible?: boolean
   myScore?: number | null
@@ -344,7 +347,10 @@ function toStudentMyStatus(value: unknown): StudentMyStatus {
   return 'NOT_STARTED'
 }
 
-function normalizeMyExam(dto: MyExamDto): StudentExamListItem | null {
+function normalizeMyExam(
+  dto: MyExamDto,
+  purpose: 'EXAM' | 'PRACTICE' = 'EXAM',
+): StudentExamListItem | null {
   const id = dto.id ?? dto.examId
   if (id === undefined || !dto.title) return null
 
@@ -360,23 +366,37 @@ function normalizeMyExam(dto: MyExamDto): StudentExamListItem | null {
     dto.showScoreToStudent ??
     dto.scoreVisible ??
     dto.config?.showScoreToStudent ??
-    false
+    purpose === 'PRACTICE'
 
   const rawScore = dto.myScore ?? dto.score ?? dto.totalScore
   const myScore =
     typeof rawScore === 'number' && Number.isFinite(rawScore) ? rawScore : null
 
+  const questionIdsCount = Array.isArray(dto.questionIds) ? dto.questionIds.length : 0
+  const totalQuestions =
+    dto.totalQuestions ??
+    dto.questionCount ??
+    dto.config?.totalQuestions ??
+    (questionIdsCount > 0 ? questionIdsCount : 0)
+
+  // PRACTICE mặc định không giới hạn giờ (giống form GV); EXAM mặc định có giờ.
+  const timeLimitEnabled =
+    dto.timeLimitEnabled ??
+    dto.config?.timeLimitEnabled ??
+    purpose !== 'PRACTICE'
+
   return {
     id,
     title: dto.title,
     duration: dto.duration ?? 0,
-    totalQuestions: dto.totalQuestions ?? 0,
+    totalQuestions,
     maxScore: dto.maxScore ?? 0,
     startAt: dto.startAt ?? null,
     endAt: dto.endAt ?? null,
     examStatus,
     myStatus,
     canTake,
+    timeLimitEnabled: Boolean(timeLimitEnabled),
     showScoreToStudent: Boolean(showScoreToStudent),
     myScore,
   }
@@ -406,16 +426,17 @@ export async function getExams(params: GetExamsParams = {}): Promise<ExamsPageRe
 
 /** Đề giao cho SV trong lớp — GET /v1/exams/my */
 export async function getMyExams(params: GetMyExamsParams): Promise<StudentExamListItem[]> {
+  const purpose = params.purpose ?? 'EXAM'
   const response = await apiClient.get<unknown>('/v1/exams/my', {
     params: {
       classroomId: params.classroomId,
-      purpose: params.purpose ?? 'EXAM',
+      purpose,
     },
   })
 
   const pageData = unwrapPage(response.data)
   return pageData.items
-    .map((item) => normalizeMyExam(item as MyExamDto))
+    .map((item) => normalizeMyExam(item as MyExamDto, purpose))
     .filter((item): item is StudentExamListItem => item !== null)
 }
 

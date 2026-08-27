@@ -21,7 +21,7 @@ export const ROUTES = {
     practice: '/student/practice',
     examDetail: '/student/exam-detail/:id',
     practiceBySubject: '/student/practice/:subjectId',
-    takePractice: '/student/practice/take/:practiceId',
+    takePractice: '/student/practice/take',
     practiceResult: '/student/practice-result',
   },
 

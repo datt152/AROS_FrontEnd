@@ -14,6 +14,8 @@ export type StudentExamListItem = {
   myStatus: StudentMyStatus
   /** true chỉ khi lịch/status cho phép làm (đóng/hết hạn/DRAFT → false) */
   canTake: boolean
+  /** false = không countdown (thường PRACTICE) */
+  timeLimitEnabled: boolean
   /** Cấu hình đề / response cho phép SV xem điểm */
   showScoreToStudent: boolean
   /** Điểm SV (chỉ có khi đã nộp; null nếu chưa có hoặc không trả) */

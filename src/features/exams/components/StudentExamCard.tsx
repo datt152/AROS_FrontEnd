@@ -18,17 +18,28 @@ import {
 
 type StudentExamCardProps = {
   exam: StudentExamListItem
+  /** EXAM → take-exam; PRACTICE → practice/take */
+  mode?: 'EXAM' | 'PRACTICE'
 }
 
-export function StudentExamCard({ exam }: StudentExamCardProps) {
+export function StudentExamCard({ exam, mode = 'EXAM' }: StudentExamCardProps) {
   const navigate = useNavigate()
   const blockReason = getStudentTakeBlockReason(exam)
   const showScore = canShowStudentScoreOnCard(exam)
+  const isPractice = mode === 'PRACTICE'
 
   function handleTake() {
     const state: TakeExamLocationState = { examId: exam.id }
-    void navigate(ROUTES.student.takeExam, { state })
+    void navigate(isPractice ? ROUTES.student.takePractice : ROUTES.student.takeExam, { state })
   }
+
+  const takeLabel = exam.myStatus === 'IN_PROGRESS'
+    ? 'Tiếp tục làm'
+    : exam.myStatus === 'SUBMITTED' && exam.canTake
+      ? 'Làm lại'
+      : isPractice
+        ? 'Vào luyện tập'
+        : 'Vào làm bài'
 
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -41,11 +52,12 @@ export function StudentExamCard({ exam }: StudentExamCardProps) {
           <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-600">
             <span className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1">
               <Clock className="h-3.5 w-3.5" strokeWidth={1.75} />
-              {exam.duration} phút
+              {exam.timeLimitEnabled ? `${exam.duration} phút` : 'Không giới hạn giờ'}
             </span>
             <span className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1">
               <FileQuestion className="h-3.5 w-3.5" strokeWidth={1.75} />
-              {exam.totalQuestions} câu · {exam.maxScore} điểm
+              {exam.totalQuestions > 0 ? `${exam.totalQuestions} câu · ` : ''}
+              {exam.maxScore} điểm
             </span>
           </div>
         </div>
@@ -74,20 +86,26 @@ export function StudentExamCard({ exam }: StudentExamCardProps) {
       ) : null}
 
       <div className="mt-4 flex flex-col gap-2 border-t border-slate-100 pt-3 sm:flex-row sm:items-center sm:justify-between">
-        {showScore ? (
+        {showScore && !exam.canTake ? (
           <p className="text-sm text-slate-500">Bạn đã nộp bài</p>
-        ) : blockReason ? (
+        ) : blockReason && !exam.canTake ? (
           <p className="text-sm text-slate-500">{blockReason}</p>
         ) : (
           <p className="text-sm text-emerald-700">
-            {exam.myStatus === 'IN_PROGRESS' ? 'Bạn đang làm dở — tiếp tục vào bài.' : 'Có thể vào làm bài.'}
+            {exam.myStatus === 'IN_PROGRESS'
+              ? 'Bạn đang làm dở — tiếp tục vào bài.'
+              : exam.myStatus === 'SUBMITTED' && exam.canTake
+                ? 'Bạn còn lượt làm lại.'
+                : isPractice
+                  ? 'Có thể vào luyện tập.'
+                  : 'Có thể vào làm bài.'}
           </p>
         )}
 
         {exam.canTake ? (
           <Button className="w-full sm:w-auto" onClick={handleTake}>
             <Play className="h-4 w-4" strokeWidth={1.75} />
-            {exam.myStatus === 'IN_PROGRESS' ? 'Tiếp tục làm' : 'Vào làm bài'}
+            {takeLabel}
           </Button>
         ) : (
           <Button className="w-full sm:w-auto" disabled>
