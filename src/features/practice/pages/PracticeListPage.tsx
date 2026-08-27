@@ -388,12 +388,12 @@ export function PracticeListPage() {
         id: openExam.id,
         payload: buildUpdatePayload(openExam, {
           status: values.status,
-          startAt: values.startAt,
-          endAt: values.endAt,
+          startAt: values.startAt || null,
+          endAt: values.endAt || null,
         }),
       })
       setOpenExam(null)
-      showToast('Đã mở luyện tập')
+      showToast(values.status === 'ONGOING' ? 'Đã mở luyện tập' : 'Đã lên lịch luyện tập')
     } catch (error) {
       setOpenError(getApiErrorMessage(error, 'Không thể mở luyện tập'))
     }
@@ -711,6 +711,7 @@ export function PracticeListPage() {
 
       {openExam ? (
         <ExamOpenModal
+          title="Mở luyện tập"
           exam={{
             ...openExam,
             versionCodes: openVersionsQuery.data ?? openExam.versionCodes,
