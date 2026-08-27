@@ -20,12 +20,14 @@ import { useClassrooms } from '../../classrooms/hooks/useClassrooms'
 import { ExamAssignClassroomsModal } from '../../exams/components/ExamAssignClassroomsModal'
 import { ExamOpenModal } from '../../exams/components/ExamOpenModal'
 import { ExamVersionGenerateModal } from '../../exams/components/ExamVersionGenerateModal'
+import { ExamVersionPreview } from '../../exams/components/ExamVersionPreview'
 import {
   useCreateExam,
   useCreateExamVersions,
   useDeleteExam,
   useExam,
   useExams,
+  useExamVersionDetail,
   useExamVersions,
   useExamVersionsMany,
   useSaveExamAsTemplate,
@@ -95,10 +97,12 @@ export function PracticeListPage() {
   const [openError, setOpenError] = useState<string | null>(null)
   const [saveAsTemplateError, setSaveAsTemplateError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const [previewCode, setPreviewCode] = useState<string | null>(null)
 
   const detailQuery = useExam(detailId ?? undefined)
   const detailVersionsQuery = useExamVersions(detailId ?? undefined)
   const openVersionsQuery = useExamVersions(openExam?.id)
+  const previewQuery = useExamVersionDetail(detailId ?? undefined, previewCode ?? undefined)
 
   useEffect(() => {
     if (!toast) return
@@ -118,8 +122,12 @@ export function PracticeListPage() {
   }, [searchParams, setSearchParams])
 
   const questionsQuery = useQuestions(
-    formSubjectId || editing?.subjectId
-      ? { subjectId: formSubjectId ?? editing!.subjectId, page: 0, size: 500 }
+    formSubjectId || editing?.subjectId || detailQuery.data?.subjectId
+      ? {
+          subjectId: formSubjectId ?? editing?.subjectId ?? detailQuery.data!.subjectId,
+          page: 0,
+          size: 500,
+        }
       : undefined,
   )
 
@@ -204,13 +212,70 @@ export function PracticeListPage() {
     })
   }, [practices, subjectId, classroomId, status])
 
+  const detailQuestionsFromBank = useMemo(() => {
+    const ids = detailQuery.data?.questionIds ?? []
+    if (ids.length === 0) return []
+    const byId = new Map(questions.map((question) => [question.questionId, question]))
+    return ids
+      .map((id) => byId.get(id))
+      .filter((question): question is (typeof questions)[number] => question !== undefined)
+  }, [detailQuery.data?.questionIds, questions])
+
+  const detailFallbackVersionCode =
+    detailId &&
+    !(detailQuery.data?.questions?.length) &&
+    detailQuestionsFromBank.length === 0 &&
+    !questionsQuery.isFetching
+      ? detailVersionsQuery.data?.[0]
+      : undefined
+
+  const detailQuestionsVersionQuery = useExamVersionDetail(
+    detailFallbackVersionCode ? detailId! : undefined,
+    detailFallbackVersionCode,
+  )
+
   const detailPractice = useMemo(() => {
     if (!detailQuery.data) return null
+
+    let practiceQuestions = detailQuery.data.questions?.map((question) => ({
+      questionId: question.questionId,
+      content: question.content,
+      type: question.type,
+      subjectId: question.subjectId,
+      topicId: question.topicId ?? null,
+    }))
+
+    if (!practiceQuestions?.length && detailQuestionsFromBank.length > 0) {
+      practiceQuestions = detailQuestionsFromBank
+    }
+
+    if (!practiceQuestions?.length && detailQuestionsVersionQuery.data?.questions?.length) {
+      practiceQuestions = detailQuestionsVersionQuery.data.questions.map((question) => ({
+        questionId: question.originalQuestionId,
+        content: question.content,
+        type: question.type,
+        subjectId: detailQuery.data.subjectId,
+        topicId: null,
+      }))
+    }
+
     return examToPracticeItem({
       ...detailQuery.data,
       versionCodes: detailVersionsQuery.data ?? detailQuery.data.versionCodes,
+      questions: practiceQuestions?.map((question) => ({
+        questionId: question.questionId,
+        content: question.content,
+        type: question.type,
+        subjectId: question.subjectId,
+        topicId: question.topicId ?? null,
+      })),
     })
-  }, [detailQuery.data, detailVersionsQuery.data])
+  }, [
+    detailQuery.data,
+    detailVersionsQuery.data,
+    detailQuestionsFromBank,
+    detailQuestionsVersionQuery.data,
+  ])
 
   const editingExamRaw = useMemo(
     () => (editing ? examsWithVersions.find((item) => item.id === editing.id) : undefined),
@@ -469,7 +534,7 @@ export function PracticeListPage() {
                 <TableCol width="8rem" />
                 <TableCol width="8rem" />
                 <TableCol width="5rem" />
-                <TableCol width="20rem" />
+                <TableCol width="14rem" />
               </TableColGroup>
               <TableHeader>
                 <TableRow className="border-b-0 hover:bg-transparent">
@@ -495,21 +560,6 @@ export function PracticeListPage() {
                       setDrawerMode('edit')
                     }}
                     onDelete={(practice) => void handleDelete(practice)}
-                    onAssign={(practice) => {
-                      setAssignError(null)
-                      setAssignExam(toExamForModal(practice))
-                    }}
-                    onGenerateVersions={(practice) => {
-                      setVersionError(null)
-                      setVersionExam(toExamForModal(practice))
-                    }}
-                    onOpen={(practice) => {
-                      setOpenError(null)
-                      setOpenExam({
-                        ...toExamForModal(practice),
-                        versionCodes: practice.versionCodes,
-                      })
-                    }}
                     onClose={(practice) => void handleClose(practice)}
                   />
                 ))}
@@ -590,28 +640,36 @@ export function PracticeListPage() {
       {detailPractice ? (
         <PracticeDetailPanel
           item={detailPractice}
+          classroomOptions={classroomOptions}
+          questionOptions={questions}
+          questionsLoading={
+            questionsQuery.isLoading ||
+            questionsQuery.isFetching ||
+            detailQuestionsVersionQuery.isLoading
+          }
           isSavingAsTemplate={saveAsTemplate.isPending}
           saveAsTemplateError={saveAsTemplateError}
-          onClose={() => setDetailId(null)}
-          onEdit={(practice) => {
+          onClose={() => {
             setDetailId(null)
-            setEditing(practice)
-            setFormSubjectId(practice.subjectId)
-            setDrawerMode('edit')
+            setPreviewCode(null)
           }}
-          onAssign={(practice) => {
+          onAssignClassrooms={() => {
             setAssignError(null)
-            setAssignExam(toExamForModal(practice))
+            setAssignExam(toExamForModal(detailPractice))
           }}
-          onGenerateVersions={(practice) => {
+          onGenerateVersions={() => {
             setVersionError(null)
-            setVersionExam(toExamForModal(practice))
+            setVersionExam(toExamForModal(detailPractice))
           }}
-          onOpen={(practice) => {
+          onOpenPractice={() => {
             setOpenError(null)
-            setOpenExam({ ...toExamForModal(practice), versionCodes: practice.versionCodes })
+            setOpenExam({
+              ...toExamForModal(detailPractice),
+              versionCodes: detailPractice.versionCodes,
+            })
           }}
-          onClosePractice={(practice) => void handleClose(practice)}
+          onClosePractice={() => void handleClose(detailPractice)}
+          onPreviewVersion={(versionCode) => setPreviewCode(versionCode)}
           onSaveAsTemplate={() => {
             setSaveAsTemplateError(null)
             void saveAsTemplate
@@ -624,6 +682,10 @@ export function PracticeListPage() {
               })
           }}
         />
+      ) : null}
+
+      {previewCode && previewQuery.data ? (
+        <ExamVersionPreview detail={previewQuery.data} onClose={() => setPreviewCode(null)} />
       ) : null}
 
       {assignExam ? (

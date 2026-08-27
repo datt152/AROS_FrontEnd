@@ -1,4 +1,4 @@
-import { Eye, FileCode2, Lock, Pencil, Play, Trash2, Users } from 'lucide-react'
+import { Eye, Lock, Pencil, Trash2 } from 'lucide-react'
 
 import { Button } from '../../../components/ui/Button'
 import { TableCell, TableRow } from '../../../components/ui/Table'
@@ -11,30 +11,12 @@ type PracticeTableRowProps = {
   onDetail: (item: PracticeItem) => void
   onEdit: (item: PracticeItem) => void
   onDelete: (item: PracticeItem) => void
-  onAssign: (item: PracticeItem) => void
-  onGenerateVersions: (item: PracticeItem) => void
-  onOpen: (item: PracticeItem) => void
   onClose: (item: PracticeItem) => void
 }
 
-function PracticeActions({
-  item,
-  onDetail,
-  onEdit,
-  onDelete,
-  onAssign,
-  onGenerateVersions,
-  onOpen,
-  onClose,
-}: PracticeTableRowProps) {
+function PracticeActions({ item, onDetail, onEdit, onDelete, onClose }: PracticeTableRowProps) {
   const isDraft = item.status === 'DRAFT'
   const isOpen = item.status === 'ONGOING' || item.status === 'UPCOMING'
-  const canOpen = isDraft && item.classroomIds.length > 0 && item.versionCodes.length > 0
-  const openBlockReason = !item.classroomIds.length
-    ? 'Cần giao lớp trước khi mở'
-    : !item.versionCodes.length
-      ? 'Cần sinh mã đề trước khi mở'
-      : undefined
 
   return (
     <div className="flex flex-wrap items-center justify-evenly gap-1">
@@ -48,43 +30,14 @@ function PracticeActions({
       </Button>
 
       {isDraft ? (
-        <>
-          <Button
-            variant="ghost"
-            className="h-8 border border-amber-200 bg-amber-50 px-2 text-xs text-amber-800 hover:bg-amber-100"
-            onClick={() => onEdit(item)}
-          >
-            <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
-            Sửa
-          </Button>
-          <Button
-            variant="ghost"
-            className="h-8 border border-sky-200 bg-sky-50 px-2 text-xs text-sky-700 hover:bg-sky-100"
-            onClick={() => onAssign(item)}
-          >
-            <Users className="h-3.5 w-3.5" strokeWidth={1.75} />
-            Giao lớp
-          </Button>
-          <Button
-            variant="ghost"
-            className="h-8 border border-violet-200 bg-violet-50 px-2 text-xs text-violet-700 hover:bg-violet-100"
-            onClick={() => onGenerateVersions(item)}
-          >
-            <FileCode2 className="h-3.5 w-3.5" strokeWidth={1.75} />
-            Sinh mã
-          </Button>
-          <span title={openBlockReason}>
-            <Button
-              variant="ghost"
-              className="h-8 border border-emerald-200 bg-emerald-50 px-2 text-xs text-emerald-700 hover:bg-emerald-100"
-              disabled={!canOpen}
-              onClick={() => onOpen(item)}
-            >
-              <Play className="h-3.5 w-3.5" strokeWidth={1.75} />
-              Mở luyện tập
-            </Button>
-          </span>
-        </>
+        <Button
+          variant="ghost"
+          className="h-8 border border-amber-200 bg-amber-50 px-2 text-xs text-amber-800 hover:bg-amber-100"
+          onClick={() => onEdit(item)}
+        >
+          <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+          Sửa
+        </Button>
       ) : null}
 
       {isOpen ? (
@@ -122,8 +75,8 @@ export function PracticeTableRow(props: PracticeTableRowProps) {
           {item.title}
         </p>
         <p className="mt-0.5 truncate text-xs text-slate-500">
-          {item.config.timeLimitEnabled ? `${item.duration} phút` : 'Không giới hạn giờ'} · {item.totalQuestions}{' '}
-          câu · {item.maxScore} điểm
+          {item.config.timeLimitEnabled ? `${item.duration} phút` : 'Không giới hạn giờ'} ·{' '}
+          {item.totalQuestions} câu · {item.maxScore} điểm
         </p>
       </TableCell>
       <TableCell className="py-3.5" align="center">

@@ -34,6 +34,8 @@ export type PracticeItem = {
   config: PracticeConfig
   versionCodes: string[]
   questionIds: number[]
+  /** Có khi GET detail nhúng danh sách câu hỏi */
+  questions?: PracticeQuestionOption[]
   startAt?: string | null
   endAt?: string | null
   sourceTemplateId?: number | null
@@ -183,6 +185,13 @@ export function examToPracticeItem(exam: ExamItem): PracticeItem {
     createdAt: exam.createdAt,
     versionCodes: exam.versionCodes ?? [],
     questionIds: exam.questionIds ?? [],
+    questions: exam.questions?.map((question) => ({
+      questionId: question.questionId,
+      content: question.content,
+      type: question.type,
+      subjectId: question.subjectId,
+      topicId: question.topicId ?? null,
+    })),
     startAt: exam.startAt,
     endAt: exam.endAt,
     sourceTemplateId: exam.sourceTemplateId ?? null,
