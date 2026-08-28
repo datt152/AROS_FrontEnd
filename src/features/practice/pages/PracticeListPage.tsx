@@ -84,6 +84,7 @@ export function PracticeListPage() {
   const [subjectId, setSubjectId] = useState<number | ''>('')
   const [classroomId, setClassroomId] = useState<number | ''>('')
   const [status, setStatus] = useState<PracticeStatus | ''>('')
+  const [searchQuery, setSearchQuery] = useState('')
   const [drawerMode, setDrawerMode] = useState<DrawerMode>(null)
   const [editing, setEditing] = useState<PracticeItem | null>(null)
   const [detailId, setDetailId] = useState<number | null>(null)
@@ -204,13 +205,15 @@ export function PracticeListPage() {
   )
 
   const filtered = useMemo(() => {
+    const keyword = searchQuery.trim().toLowerCase()
     return practices.filter((item) => {
+      if (keyword && !item.title.toLowerCase().includes(keyword)) return false
       if (subjectId !== '' && item.subjectId !== subjectId) return false
       if (classroomId !== '' && !item.classroomIds.includes(classroomId)) return false
       if (status !== '' && item.status !== status) return false
       return true
     })
-  }, [practices, subjectId, classroomId, status])
+  }, [practices, searchQuery, subjectId, classroomId, status])
 
   const detailQuestionsFromBank = useMemo(() => {
     const ids = detailQuery.data?.questionIds ?? []
@@ -495,6 +498,8 @@ export function PracticeListPage() {
           subjectId={subjectId}
           classroomId={classroomId}
           status={status}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
           onSubjectChange={(value) => {
             setSubjectId(value)
             setClassroomId('')
@@ -509,7 +514,7 @@ export function PracticeListPage() {
       {!isLoading && !examsQuery.isError && filtered.length === 0 ? (
         <EmptyState
           title="Chưa có bài luyện tập"
-          description="Tạo bài mới hoặc đổi bộ lọc môn / lớp / trạng thái đề."
+          description="Tạo bài mới hoặc đổi từ khóa / bộ lọc môn / lớp / trạng thái."
           action={
             <Button
               onClick={() => {

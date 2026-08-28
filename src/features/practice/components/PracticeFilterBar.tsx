@@ -1,3 +1,6 @@
+import { Search } from 'lucide-react'
+
+import { Input } from '../../../components/ui/Input'
 import type { PracticeClassroomOption, PracticeStatus, PracticeSubjectOption } from '../types/practice.types'
 import { PRACTICE_STATUS_LABEL } from '../types/practice.types'
 
@@ -7,6 +10,8 @@ type PracticeFilterBarProps = {
   subjectId: number | ''
   classroomId: number | ''
   status: PracticeStatus | ''
+  searchQuery: string
+  onSearchChange: (value: string) => void
   onSubjectChange: (value: number | '') => void
   onClassroomChange: (value: number | '') => void
   onStatusChange: (value: PracticeStatus | '') => void
@@ -21,12 +26,25 @@ export function PracticeFilterBar({
   subjectId,
   classroomId,
   status,
+  searchQuery,
+  onSearchChange,
   onSubjectChange,
   onClassroomChange,
   onStatusChange,
 }: PracticeFilterBarProps) {
   return (
-    <div className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-white p-4 md:grid-cols-3">
+    <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <Input
+          value={searchQuery}
+          placeholder="Tìm theo tiêu đề..."
+          className="pl-9"
+          onChange={(event) => onSearchChange(event.target.value)}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
       <div className="space-y-1.5">
         <label htmlFor="practice-filter-subject" className="text-xs font-medium uppercase tracking-wider text-slate-500">
           Môn học
@@ -84,6 +102,7 @@ export function PracticeFilterBar({
             </option>
           ))}
         </select>
+      </div>
       </div>
     </div>
   )

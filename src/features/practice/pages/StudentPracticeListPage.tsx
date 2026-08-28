@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { Search } from 'lucide-react'
 
 import { Button } from '../../../components/ui/Button'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { ErrorState } from '../../../components/ui/ErrorState'
+import { Input } from '../../../components/ui/Input'
 import { Spinner } from '../../../components/ui/Spinner'
 import { getApiErrorMessage } from '../../../lib/apiError'
 import { StudentClassroomSubjectCard } from '../../exams/components/StudentClassroomSubjectCard'
@@ -13,6 +15,7 @@ import type { ClassroomItem } from '../../classrooms/types/classroom.types'
 
 export function StudentPracticeListPage() {
   const [selected, setSelected] = useState<ClassroomItem | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const classesQuery = useMyClasses()
   const examsQuery = useMyExams(
@@ -21,6 +24,12 @@ export function StudentPracticeListPage() {
 
   const classrooms = classesQuery.data ?? []
   const exams = examsQuery.data ?? []
+
+  const filteredExams = useMemo(() => {
+    const keyword = searchQuery.trim().toLowerCase()
+    if (!keyword) return exams
+    return exams.filter((exam) => exam.title.toLowerCase().includes(keyword))
+  }, [exams, searchQuery])
 
   return (
     <section className="space-y-5">
@@ -61,7 +70,10 @@ export function StudentPracticeListPage() {
                 key={item.id}
                 item={item}
                 selected={selected?.id === item.id}
-                onSelect={setSelected}
+                onSelect={(classroom) => {
+                  setSelected(classroom)
+                  setSearchQuery('')
+                }}
               />
             ))}
           </div>
@@ -72,6 +84,18 @@ export function StudentPracticeListPage() {
                 ? `Luyện tập · ${selected.className} · ${selected.subjectName || `Môn #${selected.subjectId}`}`
                 : 'Danh sách luyện tập'}
             </p>
+
+            {selected ? (
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  value={searchQuery}
+                  placeholder="Tìm theo tên bài luyện tập..."
+                  className="pl-9"
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                />
+              </div>
+            ) : null}
 
             {!selected ? (
               <EmptyState
@@ -100,9 +124,16 @@ export function StudentPracticeListPage() {
               />
             ) : null}
 
-            {selected && examsQuery.isSuccess && exams.length > 0 ? (
+            {selected && examsQuery.isSuccess && exams.length > 0 && filteredExams.length === 0 ? (
+              <EmptyState
+                title="Không tìm thấy bài luyện tập"
+                description="Thử đổi từ khóa tìm kiếm."
+              />
+            ) : null}
+
+            {selected && examsQuery.isSuccess && filteredExams.length > 0 ? (
               <div className="space-y-3">
-                {exams.map((exam) => (
+                {filteredExams.map((exam) => (
                   <StudentExamCard key={exam.id} exam={exam} mode="PRACTICE" />
                 ))}
               </div>
