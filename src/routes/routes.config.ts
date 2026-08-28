@@ -18,6 +18,7 @@ export const ROUTES = {
     examResult: '/student/exam-result',
     takeExam: '/student/take-exam',
     history: '/student/history',
+    historyDetail: '/student/history/:submissionId',
     practice: '/student/practice',
     examDetail: '/student/exam-detail/:id',
     practiceBySubject: '/student/practice/:subjectId',
@@ -71,4 +72,8 @@ export const TEACHER_PATHS = Object.values(ROUTES.teacher)
 
 export function getHomePathForRole(role: Role) {
   return role === 'teacher' ? ROUTES.teacher.dashboard : ROUTES.student.dashboard
+}
+
+export function studentHistoryDetailPath(submissionId: number) {
+  return `/student/history/${submissionId}`
 }

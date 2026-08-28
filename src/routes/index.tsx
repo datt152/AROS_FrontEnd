@@ -22,6 +22,8 @@ import { GradingPage } from '../features/grading/pages/GradingPage'
 import { PracticeListPage } from '../features/practice/pages/PracticeListPage'
 import { PracticeTakePage } from '../features/practice/pages/PracticeTakePage'
 import { StudentPracticeListPage } from '../features/practice/pages/StudentPracticeListPage'
+import { SubmissionDetailPage } from '../features/submissions/pages/SubmissionDetailPage'
+import { SubmissionHistoryPage } from '../features/submissions/pages/SubmissionHistoryPage'
 import { GuestRoute } from './GuestRoute'
 import { ProtectedRoute } from './ProtectedRoute'
 import { RoleRoute } from './RoleRoute'
@@ -45,6 +47,8 @@ function studentPageForPath(path: string) {
   if (path === ROUTES.student.takeExam) return <ExamTakePage />
   if (path === ROUTES.student.practice) return <StudentPracticeListPage />
   if (path === ROUTES.student.takePractice) return <PracticeTakePage />
+  if (path === ROUTES.student.history) return <SubmissionHistoryPage />
+  if (path === ROUTES.student.historyDetail) return <SubmissionDetailPage />
   return null
 }
 
