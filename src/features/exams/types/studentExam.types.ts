@@ -100,7 +100,5 @@ export function canShowStudentScoreOnCard(exam: StudentExamListItem): boolean {
 }
 
 export function formatStudentScore(score: number, maxScore: number) {
-  const scoreText = Number.isInteger(score) ? String(score) : score.toFixed(2)
-  const maxText = Number.isInteger(maxScore) ? String(maxScore) : maxScore.toFixed(2)
-  return `${scoreText}/${maxText}`
+  return `${score.toFixed(2)}/${maxScore.toFixed(2)}`
 }

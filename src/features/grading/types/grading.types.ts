@@ -113,7 +113,7 @@ export function formatGradingDateTime(value: string | null | undefined) {
 export function formatScoreDisplay(score: number | null | undefined, maxScore: number, status: GradingStudentStatus) {
   if (status === 'EXPIRED' || status === 'NOT_STARTED' || status === 'IN_PROGRESS') return '—'
   if (score === null || score === undefined) return '—'
-  return `${score.toFixed(2)}/${maxScore}`
+  return `${score.toFixed(2)}/${maxScore.toFixed(2)}`
 }
 
 export function canViewSubmission(student: GradingStudentRow) {

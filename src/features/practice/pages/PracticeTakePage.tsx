@@ -107,7 +107,7 @@ export function PracticeTakePage() {
             <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-5">
               <p className="text-sm text-slate-600">Đây là điểm số của bạn</p>
               <p className="mt-2 text-3xl font-semibold tabular-nums text-slate-900">
-                {result.totalScore}/{result.maxScore}
+                {result.totalScore?.toFixed(2)}/{result.maxScore?.toFixed(2)}
               </p>
               {result.correctQuestions != null && result.totalQuestions != null ? (
                 <p className="mt-2 text-sm text-slate-500">
