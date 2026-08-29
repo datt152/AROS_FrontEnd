@@ -3,6 +3,7 @@ import { X } from 'lucide-react'
 
 import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
+import { focusFirstFormError } from '../../../utils/focusFormError'
 import type { ExamItem, ExamOpenErrors, ExamOpenValues } from '../types/exam.types'
 import { canOpenExam, getOpenExamBlockReason } from '../types/exam.types'
 
@@ -101,7 +102,10 @@ export function ExamOpenModal({
     }
 
     setErrors(nextErrors)
-    if (Object.keys(nextErrors).length > 0) return
+    if (Object.keys(nextErrors).length > 0) {
+      focusFirstFormError(nextErrors, ['startAt', 'endAt'])
+      return
+    }
 
     await onSubmit({
       status: 'UPCOMING',

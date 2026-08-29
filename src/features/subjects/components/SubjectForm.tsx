@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { Button } from '../../../components/ui/Button'
 
 import { Input } from '../../../components/ui/Input'
+import { focusFirstFormError } from '../../../utils/focusFormError'
 
 import type { SubjectFormErrors, SubjectFormValues, SubjectItem } from '../types/subject.types'
 
@@ -100,7 +101,10 @@ export function SubjectForm({
 
     setErrors(nextErrors)
 
-    if (Object.keys(nextErrors).length > 0) return
+    if (Object.keys(nextErrors).length > 0) {
+      focusFirstFormError(nextErrors, ['subjectName'])
+      return
+    }
 
 
 

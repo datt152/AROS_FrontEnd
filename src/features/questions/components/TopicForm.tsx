@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
+import { focusFirstFormError } from '../../../utils/focusFormError'
 import type { TopicFormErrors, TopicFormValues, TopicItem } from '../types/topic.types'
 
 type TopicFormProps = {
@@ -47,7 +48,10 @@ export function TopicForm({
     }
 
     setErrors(nextErrors)
-    if (Object.keys(nextErrors).length > 0) return
+    if (Object.keys(nextErrors).length > 0) {
+      focusFirstFormError(nextErrors, ['name', 'displayOrder'])
+      return
+    }
 
     await onSubmit({
       name: values.name.trim(),

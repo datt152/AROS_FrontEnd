@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 
 import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
+import { focusFirstFormError } from '../../../utils/focusFormError'
 import type {
   AnswerOptionItem,
   Difficulty,
@@ -189,7 +190,10 @@ export function QuestionForm({
     }
 
     setErrors(nextErrors)
-    if (Object.keys(nextErrors).length > 0) return
+    if (Object.keys(nextErrors).length > 0) {
+      focusFirstFormError(nextErrors, ['subjectId', 'topicId', 'content', 'difficulty', 'options'])
+      return
+    }
 
     await onSubmit({
       subjectId: values.subjectId,
@@ -350,7 +354,11 @@ export function QuestionForm({
             {values.type === 'SINGLE_CHOICE' ? 'Chọn đúng một đáp án đúng' : 'Chọn ít nhất một đáp án đúng'}
           </p>
         </div>
-        {errors.options ? <p className="text-sm text-red-500">{errors.options}</p> : null}
+        {errors.options ? (
+          <p className="text-sm text-red-500" data-form-field="options">
+            {errors.options}
+          </p>
+        ) : null}
 
         <ul className="space-y-2">
           {values.options.map((option, index) => (

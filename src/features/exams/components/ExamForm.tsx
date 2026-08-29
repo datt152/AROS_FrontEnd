@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
 import { Spinner } from '../../../components/ui/Spinner'
+import { focusFirstFormError } from '../../../utils/focusFormError'
 import {
   useExamTemplate,
   useExamTemplates,
@@ -197,14 +198,22 @@ export function ExamForm({
     if (!values.examMode) nextErrors.examMode = 'Vui lòng chọn hình thức thi'
     if (!values.subjectId) nextErrors.subjectId = 'Vui lòng chọn môn học'
     setErrors(nextErrors)
-    return Object.keys(nextErrors).length === 0
+    if (Object.keys(nextErrors).length > 0) {
+      focusFirstFormError(nextErrors, ['title', 'duration', 'examMode', 'subjectId'])
+      return false
+    }
+    return true
   }
 
   function validateQuestions() {
     const nextErrors: ExamFormErrors = {}
     if (createValues.questionIds.length < 1) nextErrors.questionIds = 'Chọn ít nhất 1 câu hỏi'
     setErrors(nextErrors)
-    return Object.keys(nextErrors).length === 0
+    if (Object.keys(nextErrors).length > 0) {
+      focusFirstFormError(nextErrors, ['questionIds'])
+      return false
+    }
+    return true
   }
 
   async function handleNext() {
@@ -513,7 +522,11 @@ export function ExamForm({
                   Đã lấy {createValues.questionIds.length} câu từ bộ đề đã chọn.
                 </p>
               ) : null}
-              {errors.questionIds ? <p className="text-sm text-red-500">{errors.questionIds}</p> : null}
+              {errors.questionIds ? (
+                <p className="text-sm text-red-500" data-form-field="questionIds">
+                  {errors.questionIds}
+                </p>
+              ) : null}
             </div>
           ) : (
             <>
@@ -538,7 +551,11 @@ export function ExamForm({
                   ))}
                 </select>
               </div>
-              {errors.questionIds ? <p className="text-sm text-red-500">{errors.questionIds}</p> : null}
+              {errors.questionIds ? (
+                <p className="text-sm text-red-500" data-form-field="questionIds">
+                  {errors.questionIds}
+                </p>
+              ) : null}
               {availableQuestions.length === 0 ? (
                 <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-4 text-sm text-slate-500">
                   Không có câu hỏi phù hợp.

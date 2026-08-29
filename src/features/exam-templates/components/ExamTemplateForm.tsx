@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 
 import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
+import { focusFirstFormError } from '../../../utils/focusFormError'
 import { QUESTION_TYPE_LABEL } from '../../exams/types/exam.types'
 import type {
   ExamTemplateFormErrors,
@@ -92,7 +93,10 @@ export function ExamTemplateForm({
     if (!values.subjectId) nextErrors.subjectId = 'Vui lòng chọn môn học'
     if (values.questionIds.length < 1) nextErrors.questionIds = 'Chọn ít nhất 1 câu hỏi'
     setErrors(nextErrors)
-    if (Object.keys(nextErrors).length > 0) return
+    if (Object.keys(nextErrors).length > 0) {
+      focusFirstFormError(nextErrors, ['title', 'subjectId', 'questionIds'])
+      return
+    }
 
     await onSubmit({
       title: values.title.trim(),
@@ -175,7 +179,11 @@ export function ExamTemplateForm({
           </select>
         ) : null}
 
-        {errors.questionIds ? <p className="text-sm text-red-500">{errors.questionIds}</p> : null}
+        {errors.questionIds ? (
+          <p className="text-sm text-red-500" data-form-field="questionIds">
+            {errors.questionIds}
+          </p>
+        ) : null}
 
         {!values.subjectId ? (
           <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-4 text-sm text-slate-500">

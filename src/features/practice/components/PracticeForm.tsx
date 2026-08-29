@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 
 import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
 import { Spinner } from '../../../components/ui/Spinner'
+import { focusFirstFormError } from '../../../utils/focusFormError'
 import {
   useExamTemplate,
   useExamTemplates,
@@ -88,6 +89,15 @@ export function PracticeForm({
   }, [classrooms, values.subjectId])
 
   const subjectTemplates = templatesQuery.data?.items ?? []
+  const formScrollRef = useRef<HTMLDivElement>(null)
+
+  const practiceFieldIds = {
+    title: 'practice-title',
+    subjectId: 'practice-subject',
+    duration: 'practice-duration',
+    maxAttempts: 'practice-max-attempts',
+    questionIds: 'practice-question-ids',
+  } as const
 
   function validate(): boolean {
     const next: PracticeFormErrors = {}
@@ -101,7 +111,14 @@ export function PracticeForm({
       next.maxAttempts = 'Số lần làm phải ≥ 1 hoặc để trống'
     }
     setErrors(next)
-    return Object.keys(next).length === 0
+    if (Object.keys(next).length > 0) {
+      focusFirstFormError(next, ['title', 'subjectId', 'duration', 'maxAttempts', 'questionIds'], {
+        fieldIdMap: practiceFieldIds,
+        scrollRoot: formScrollRef.current,
+      })
+      return false
+    }
+    return true
   }
 
   function handleSubmit(event: FormEvent) {
@@ -120,15 +137,18 @@ export function PracticeForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-4">
-        <div className="space-y-1.5">
+      <div ref={formScrollRef} className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-4">
+        <div className="space-y-1.5" data-form-field="title">
           <label htmlFor="practice-title" className="text-sm font-medium text-slate-700">
             Tiêu đề
           </label>
           <Input
             id="practice-title"
             value={values.title}
-            onChange={(event) => setValues((current) => ({ ...current, title: event.target.value }))}
+            onChange={(event) => {
+              setValues((current) => ({ ...current, title: event.target.value }))
+              if (errors.title) setErrors((current) => ({ ...current, title: undefined }))
+            }}
             placeholder="Vui lòng nhập tiêu đề"
             className={errors.title ? 'border-red-400' : ''}
           />
@@ -136,7 +156,7 @@ export function PracticeForm({
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-1.5">
+          <div className="space-y-1.5" data-form-field="subjectId">
             <label htmlFor="practice-subject" className="text-sm font-medium text-slate-700">
               Môn học
             </label>
@@ -344,7 +364,11 @@ export function PracticeForm({
                 )}
               </>
             )}
-            {errors.questionIds ? <p className="text-xs text-red-600">{errors.questionIds}</p> : null}
+            {errors.questionIds ? (
+              <p id="practice-question-ids" className="text-xs text-red-600" data-form-field="questionIds">
+                {errors.questionIds}
+              </p>
+            ) : null}
           </div>
         ) : (
           <p className="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-800">

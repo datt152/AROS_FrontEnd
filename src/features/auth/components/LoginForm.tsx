@@ -3,6 +3,7 @@ import { Eye, EyeOff, Lock, ShieldOff, User, X } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { getApiErrorMessage } from '../../../lib/apiError'
+import { focusFirstFormError } from '../../../utils/focusFormError'
 import { ROUTES, type Role } from '../../../routes/routes.config'
 import { UnsupportedRoleError } from '../api/auth.api'
 import { useLogin } from '../hooks/useLogin'
@@ -59,7 +60,10 @@ export function LoginForm() {
     }
 
     setErrors(nextErrors)
-    if (Object.keys(nextErrors).length > 0) return
+    if (Object.keys(nextErrors).length > 0) {
+      focusFirstFormError(nextErrors, ['email', 'password'])
+      return
+    }
 
     try {
       const result = await loginMutation.mutateAsync({
