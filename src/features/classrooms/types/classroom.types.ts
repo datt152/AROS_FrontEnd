@@ -13,8 +13,8 @@ export type ClassroomItem = {
   teacherEmail?: string
 }
 
-/** Matches ClassroomRequest from backend */
-export type ClassroomPayload = {
+/** POST /v1/classes — ClassroomRequest */
+export type ClassroomCreatePayload = {
   className: string
   description: string
   semester: string
@@ -23,7 +23,27 @@ export type ClassroomPayload = {
   subjectId: number
 }
 
-export type ClassroomFormValues = ClassroomPayload
+/** PUT /v1/classes/{id} — ClassroomUpdateRequest (không có subjectId) */
+export type ClassroomUpdatePayload = {
+  className: string
+  description: string
+  semester: string
+  academicYear: string
+  isActive: boolean
+}
+
+export type ClassroomFormValues = {
+  className: string
+  description: string
+  semester: string
+  academicYear: string
+  isActive: boolean
+  subjectId: number
+}
+
+export type ClassroomFormSubmit =
+  | { mode: 'create'; payload: ClassroomCreatePayload }
+  | { mode: 'edit'; payload: ClassroomUpdatePayload }
 
 export type ClassroomFormErrors = {
   className?: string
@@ -55,7 +75,7 @@ export type EnrollStudentFormErrors = {
   studentEmailsText?: string
 }
 
-/** Option for subject select (from subjects feature later) */
+/** Option for subject select (chỉ môn active) */
 export type SubjectOption = {
   id: number
   subjectName: string

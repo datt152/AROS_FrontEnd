@@ -12,22 +12,28 @@ import {
   removeStudentFromClass,
   updateClassroom,
 } from '../api/classrooms.api'
-import type { ClassroomPayload, EnrollStudentPayload } from '../types/classroom.types'
+import type { ClassroomCreatePayload, ClassroomUpdatePayload, EnrollStudentPayload } from '../types/classroom.types'
 
 export const classroomKeys = {
   all: ['classrooms'] as const,
   lists: () => [...classroomKeys.all, 'list'] as const,
-  list: (subjectId?: number) => [...classroomKeys.lists(), { subjectId }] as const,
+  list: (params?: { subjectId?: number; includeInactive?: boolean }) =>
+    [...classroomKeys.lists(), params ?? {}] as const,
   mine: () => [...classroomKeys.all, 'mine'] as const,
   details: () => [...classroomKeys.all, 'detail'] as const,
   detail: (id: number) => [...classroomKeys.details(), id] as const,
   students: (classroomId: number) => [...classroomKeys.all, 'students', classroomId] as const,
 }
 
-export function useClassrooms(subjectId?: number, options?: { enabled?: boolean }) {
+export function useClassrooms(
+  subjectId?: number,
+  options?: { enabled?: boolean; includeInactive?: boolean },
+) {
+  const includeInactive = options?.includeInactive ?? false
+
   return useQuery({
-    queryKey: classroomKeys.list(subjectId),
-    queryFn: () => getClassrooms({ subjectId, page: 0, size: 50 }),
+    queryKey: classroomKeys.list({ subjectId, includeInactive }),
+    queryFn: () => getClassrooms({ subjectId, page: 0, size: 50, includeInactive }),
     staleTime: STALE_TIME.reference,
     enabled: options?.enabled ?? true,
   })
@@ -64,7 +70,7 @@ export function useCreateClassroom() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (payload: ClassroomPayload) => createClassroom(payload),
+    mutationFn: (payload: ClassroomCreatePayload) => createClassroom(payload),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: classroomKeys.all })
     },
@@ -75,7 +81,8 @@ export function useUpdateClassroom() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: ClassroomPayload }) => updateClassroom(id, payload),
+    mutationFn: ({ id, payload }: { id: number; payload: ClassroomUpdatePayload }) =>
+      updateClassroom(id, payload),
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({ queryKey: classroomKeys.all })
       void queryClient.invalidateQueries({ queryKey: classroomKeys.detail(variables.id) })

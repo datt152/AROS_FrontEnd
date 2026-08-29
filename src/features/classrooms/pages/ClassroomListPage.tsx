@@ -32,6 +32,8 @@ import {
 
 import { getApiErrorMessage } from '../../../lib/apiError'
 
+import { IncludeInactiveToggle } from '../../../components/common/IncludeInactiveToggle'
+
 import { useSubjects } from '../../subjects/hooks/useSubjects'
 
 import { ClassroomForm } from '../components/ClassroomForm'
@@ -43,6 +45,8 @@ import { ClassroomStudentsPanel } from '../components/ClassroomStudentsPanel'
 import {
 
   useClassroomStudents,
+
+  useClassroom,
 
   useClassrooms,
 
@@ -58,7 +62,7 @@ import {
 
 } from '../hooks/useClassrooms'
 
-import type { ClassroomFormValues, ClassroomItem as ClassroomItemType } from '../types/classroom.types'
+import type { ClassroomFormSubmit, ClassroomItem as ClassroomItemType } from '../types/classroom.types'
 
 
 
@@ -68,7 +72,9 @@ type ModalMode = 'create' | 'edit' | null
 
 export function ClassroomListPage() {
 
-  const classroomsQuery = useClassrooms()
+  const [includeInactive, setIncludeInactive] = useState(false)
+
+  const classroomsQuery = useClassrooms(undefined, { includeInactive })
 
   const subjectsQuery = useSubjects()
 
@@ -88,19 +94,25 @@ export function ClassroomListPage() {
 
   const [editingClassroom, setEditingClassroom] = useState<ClassroomItemType | null>(null)
 
-  const [deletingClassroom, setDeletingClassroom] = useState<ClassroomItemType | null>(null)
+  const [hidingClassroom, setHidingClassroom] = useState<ClassroomItemType | null>(null)
 
   const [managingClassroom, setManagingClassroom] = useState<ClassroomItemType | null>(null)
 
   const [formError, setFormError] = useState<string | null>(null)
 
-  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [hideError, setHideError] = useState<string | null>(null)
 
   const [enrollError, setEnrollError] = useState<string | null>(null)
 
 
 
   const studentsQuery = useClassroomStudents(managingClassroom?.id)
+
+  const editingClassroomQuery = useClassroom(
+    modalMode === 'edit' && editingClassroom ? editingClassroom.id : undefined,
+  )
+
+  const classroomFormInitialValues = editingClassroomQuery.data ?? editingClassroom ?? undefined
 
 
 
@@ -158,7 +170,7 @@ export function ClassroomListPage() {
 
 
 
-  async function handleSubmit(values: ClassroomFormValues) {
+  async function handleSubmit(result: ClassroomFormSubmit) {
 
     setFormError(null)
 
@@ -166,17 +178,17 @@ export function ClassroomListPage() {
 
     try {
 
-      if (modalMode === 'create') {
+      if (result.mode === 'create') {
 
-        await createClassroom.mutateAsync(values)
+        await createClassroom.mutateAsync(result.payload)
 
       }
 
 
 
-      if (modalMode === 'edit' && editingClassroom) {
+      if (result.mode === 'edit' && editingClassroom) {
 
-        await updateClassroom.mutateAsync({ id: editingClassroom.id, payload: values })
+        await updateClassroom.mutateAsync({ id: editingClassroom.id, payload: result.payload })
 
       }
 
@@ -196,25 +208,25 @@ export function ClassroomListPage() {
 
 
 
-  async function confirmDelete() {
+  async function confirmHide() {
 
-    if (!deletingClassroom) return
+    if (!hidingClassroom) return
 
-    setDeleteError(null)
+    setHideError(null)
 
 
 
     try {
 
-      await deleteClassroom.mutateAsync(deletingClassroom.id)
+      await deleteClassroom.mutateAsync(hidingClassroom.id)
 
-      if (managingClassroom?.id === deletingClassroom.id) setManagingClassroom(null)
+      if (managingClassroom?.id === hidingClassroom.id) setManagingClassroom(null)
 
-      setDeletingClassroom(null)
+      setHidingClassroom(null)
 
     } catch (error) {
 
-      setDeleteError(getApiErrorMessage(error, 'Không thể xóa lớp học'))
+      setHideError(getApiErrorMessage(error, 'Không thể ẩn lớp học'))
 
     }
 
@@ -300,6 +312,8 @@ export function ClassroomListPage() {
 
       </div>
 
+      <IncludeInactiveToggle checked={includeInactive} onChange={setIncludeInactive} />
+
 
 
       {classroomsQuery.isLoading ? <Spinner label="Đang tải lớp học..." /> : null}
@@ -370,11 +384,11 @@ export function ClassroomListPage() {
 
                 onEdit={openEdit}
 
-                onDelete={(item) => {
+                onHide={(item) => {
 
-                  setDeleteError(null)
+                  setHideError(null)
 
-                  setDeletingClassroom(item)
+                  setHidingClassroom(item)
 
                 }}
 
@@ -446,11 +460,11 @@ export function ClassroomListPage() {
 
                     onEdit={openEdit}
 
-                    onDelete={(item) => {
+                    onHide={(item) => {
 
-                      setDeleteError(null)
+                      setHideError(null)
 
-                      setDeletingClassroom(item)
+                      setHidingClassroom(item)
 
                     }}
 
@@ -526,7 +540,7 @@ export function ClassroomListPage() {
 
               mode={modalMode}
 
-              initialValues={editingClassroom ?? undefined}
+              initialValues={classroomFormInitialValues ?? undefined}
 
               subjectOptions={subjectOptions}
 
@@ -548,29 +562,29 @@ export function ClassroomListPage() {
 
 
 
-      {deletingClassroom ? (
+      {hidingClassroom ? (
 
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
 
           <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
 
-            <h3 className="text-base font-semibold text-slate-900">Xóa lớp học?</h3>
+            <h3 className="text-base font-semibold text-slate-900">Ẩn lớp học?</h3>
 
             <p className="mt-2 text-sm text-slate-600">
 
-              Thao tác này sẽ xóa{' '}
+              Lớp{' '}
 
-              <span className="font-medium text-slate-900">{deletingClassroom.className}</span> và danh sách sinh viên
+              <span className="font-medium text-slate-900">{hidingClassroom.className}</span> sẽ không còn hiển thị
 
-              khỏi hệ thống.
+              trong danh sách mặc định. Bạn có thể khôi phục bằng cách bật lại &quot;Lớp đang hoạt động&quot; khi sửa.
 
             </p>
 
-            {deleteError ? (
+            {hideError ? (
 
               <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
 
-                {deleteError}
+                {hideError}
 
               </p>
 
@@ -586,7 +600,7 @@ export function ClassroomListPage() {
 
                 disabled={deleteClassroom.isPending}
 
-                onClick={() => setDeletingClassroom(null)}
+                onClick={() => setHidingClassroom(null)}
 
               >
 
@@ -602,11 +616,11 @@ export function ClassroomListPage() {
 
                 disabled={deleteClassroom.isPending}
 
-                onClick={() => void confirmDelete()}
+                onClick={() => void confirmHide()}
 
               >
 
-                {deleteClassroom.isPending ? 'Đang xóa...' : 'Xóa'}
+                {deleteClassroom.isPending ? 'Đang ẩn...' : 'Ẩn lớp'}
 
               </Button>
 

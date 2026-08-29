@@ -1,8 +1,9 @@
 import { apiClient } from '../../../lib/axios'
 import type {
+  ClassroomCreatePayload,
   ClassroomItem,
-  ClassroomPayload,
   ClassroomStudent,
+  ClassroomUpdatePayload,
   EnrollStudentPayload,
 } from '../types/classroom.types'
 
@@ -83,6 +84,7 @@ export type GetClassroomsParams = {
   subjectId?: number
   page?: number
   size?: number
+  includeInactive?: boolean
 }
 
 export async function getClassrooms(params: GetClassroomsParams = {}) {
@@ -91,6 +93,7 @@ export async function getClassrooms(params: GetClassroomsParams = {}) {
       page: params.page ?? 0,
       size: params.size ?? 100,
       ...(params.subjectId !== undefined ? { subjectId: params.subjectId } : {}),
+      ...(params.includeInactive ? { includeInactive: true } : {}),
     },
   })
 
@@ -114,7 +117,7 @@ export async function getClassroom(id: number) {
   return classroom
 }
 
-export async function createClassroom(payload: ClassroomPayload) {
+export async function createClassroom(payload: ClassroomCreatePayload) {
   const response = await apiClient.post<ClassroomDto>('/v1/classes', payload)
   const classroom = normalizeClassroom(response.data)
   if (classroom) return classroom
@@ -126,15 +129,16 @@ export async function createClassroom(payload: ClassroomPayload) {
   }
 }
 
-export async function updateClassroom(id: number, payload: ClassroomPayload) {
+export async function updateClassroom(id: number, payload: ClassroomUpdatePayload) {
   const response = await apiClient.put<ClassroomDto>(`/v1/classes/${id}`, payload)
   const classroom = normalizeClassroom(response.data)
   if (classroom) return classroom
 
   return {
     id,
-    ...payload,
+    subjectId: 0,
     subjectName: '',
+    ...payload,
   }
 }
 

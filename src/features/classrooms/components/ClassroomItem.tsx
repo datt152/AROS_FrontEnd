@@ -1,23 +1,30 @@
-import { Pencil, Trash2, Users } from 'lucide-react'
+import { EyeOff, Pencil, Users } from 'lucide-react'
 
+import { InactiveBadge } from '../../../components/common/InactiveBadge'
 import { Button } from '../../../components/ui/Button'
+import { ACTIVE_BADGE_CLASS } from '../../../constants/ui'
 import { TableCell, TableRow } from '../../../components/ui/Table'
 import type { ClassroomItem as ClassroomItemType } from '../types/classroom.types'
 
 type ClassroomItemProps = {
   classroom: ClassroomItemType
   onEdit: (classroom: ClassroomItemType) => void
-  onDelete: (classroom: ClassroomItemType) => void
+  onHide: (classroom: ClassroomItemType) => void
   onManageStudents: (classroom: ClassroomItemType) => void
+}
+
+function StatusBadge({ isActive }: { isActive: boolean }) {
+  if (!isActive) return <InactiveBadge />
+  return <span className={ACTIVE_BADGE_CLASS}>Đang hoạt động</span>
 }
 
 function ClassroomActions({
   classroom,
   onEdit,
-  onDelete,
+  onHide,
   onManageStudents,
   spread = false,
-}: Pick<ClassroomItemProps, 'classroom' | 'onEdit' | 'onDelete' | 'onManageStudents'> & {
+}: Pick<ClassroomItemProps, 'classroom' | 'onEdit' | 'onHide' | 'onManageStudents'> & {
   spread?: boolean
 }) {
   return (
@@ -26,6 +33,7 @@ function ClassroomActions({
         variant="ghost"
         className="h-8 border border-blue-200 bg-blue-50 px-2.5 text-xs text-blue-700 hover:bg-blue-100 hover:text-blue-800"
         onClick={() => onManageStudents(classroom)}
+        disabled={!classroom.isActive}
       >
         <Users className="h-3.5 w-3.5" strokeWidth={1.75} />
         Sinh viên
@@ -38,14 +46,16 @@ function ClassroomActions({
         <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
         Sửa
       </Button>
-      <Button
-        variant="ghost"
-        className="h-8 border border-red-200 bg-red-50 px-2.5 text-xs text-red-700 hover:bg-red-100 hover:text-red-800"
-        onClick={() => onDelete(classroom)}
-      >
-        <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
-        Xóa
-      </Button>
+      {classroom.isActive ? (
+        <Button
+          variant="ghost"
+          className="h-8 border border-red-200 bg-red-50 px-2.5 text-xs text-red-700 hover:bg-red-100 hover:text-red-800"
+          onClick={() => onHide(classroom)}
+        >
+          <EyeOff className="h-3.5 w-3.5" strokeWidth={1.75} />
+          Ẩn
+        </Button>
+      ) : null}
     </div>
   )
 }
@@ -53,11 +63,13 @@ function ClassroomActions({
 export function ClassroomItem({
   classroom,
   onEdit,
-  onDelete,
+  onHide,
   onManageStudents,
 }: ClassroomItemProps) {
   return (
-    <article className="grid grid-cols-1 items-center gap-3 px-4 py-3">
+    <article
+      className={`grid grid-cols-1 items-center gap-3 px-4 py-3 ${classroom.isActive ? '' : 'bg-slate-50/80'}`}
+    >
       <div className="min-w-0">
         <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Tên lớp</p>
         <p className="font-medium text-slate-900" title={classroom.className}>
@@ -89,19 +101,13 @@ export function ClassroomItem({
 
       <div>
         <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Trạng thái</p>
-        <span
-          className={`inline-flex rounded-lg px-2 py-1 text-xs font-medium ${
-            classroom.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
-          }`}
-        >
-          {classroom.isActive ? 'Đang hoạt động' : 'Ngừng hoạt động'}
-        </span>
+        <StatusBadge isActive={classroom.isActive} />
       </div>
 
       <ClassroomActions
         classroom={classroom}
         onEdit={onEdit}
-        onDelete={onDelete}
+        onHide={onHide}
         onManageStudents={onManageStudents}
       />
     </article>
@@ -111,11 +117,11 @@ export function ClassroomItem({
 export function ClassroomTableRow({
   classroom,
   onEdit,
-  onDelete,
+  onHide,
   onManageStudents,
 }: ClassroomItemProps) {
   return (
-    <TableRow>
+    <TableRow className={classroom.isActive ? '' : 'bg-slate-50/80'}>
       <TableCell className="max-w-0 overflow-hidden">
         <p className="truncate font-medium text-slate-900" title={classroom.className}>
           {classroom.className}
@@ -142,20 +148,14 @@ export function ClassroomTableRow({
       </TableCell>
 
       <TableCell className="whitespace-nowrap" align="center">
-        <span
-          className={`inline-flex rounded-lg px-2 py-1 text-xs font-medium ${
-            classroom.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
-          }`}
-        >
-          {classroom.isActive ? 'Đang hoạt động' : 'Ngừng hoạt động'}
-        </span>
+        <StatusBadge isActive={classroom.isActive} />
       </TableCell>
 
       <TableCell className="whitespace-nowrap">
         <ClassroomActions
           classroom={classroom}
           onEdit={onEdit}
-          onDelete={onDelete}
+          onHide={onHide}
           onManageStudents={onManageStudents}
           spread
         />

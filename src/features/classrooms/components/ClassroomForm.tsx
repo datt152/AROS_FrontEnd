@@ -5,6 +5,7 @@ import { Input } from '../../../components/ui/Input'
 import { focusFirstFormError } from '../../../utils/focusFormError'
 import type {
   ClassroomFormErrors,
+  ClassroomFormSubmit,
   ClassroomFormValues,
   ClassroomItem,
   SubjectOption,
@@ -16,7 +17,7 @@ type ClassroomFormProps = {
   subjectOptions: SubjectOption[]
   isSubmitting?: boolean
   submitError?: string | null
-  onSubmit: (values: ClassroomFormValues) => void | Promise<void>
+  onSubmit: (result: ClassroomFormSubmit) => void | Promise<void>
   onCancel: () => void
 }
 
@@ -63,7 +64,7 @@ export function ClassroomForm({
       nextErrors.className = 'Tên lớp học không được để trống'
     }
 
-    if (!values.subjectId) {
+    if (mode === 'create' && !values.subjectId) {
       nextErrors.subjectId = 'Môn học không được để trống'
     }
 
@@ -73,13 +74,22 @@ export function ClassroomForm({
       return
     }
 
-    await onSubmit({
+    const shared = {
       className: values.className.trim(),
       description: values.description.trim(),
       semester: values.semester.trim(),
       academicYear: values.academicYear.trim(),
       isActive: values.isActive,
-      subjectId: isSubjectLocked && initialValues ? initialValues.subjectId : values.subjectId,
+    }
+
+    if (mode === 'edit') {
+      await onSubmit({ mode: 'edit', payload: shared })
+      return
+    }
+
+    await onSubmit({
+      mode: 'create',
+      payload: { ...shared, subjectId: values.subjectId },
     })
   }
 
@@ -141,9 +151,7 @@ export function ClassroomForm({
           </select>
         )}
         {isSubjectLocked ? (
-          <p className="text-xs text-slate-500">
-            Không thể đổi môn học sau khi tạo lớp.
-          </p>
+          <p className="text-xs text-slate-500">Không thể đổi môn học sau khi tạo lớp.</p>
         ) : null}
         {errors.subjectId ? <p className="text-sm text-red-500">{errors.subjectId}</p> : null}
       </div>
@@ -213,6 +221,9 @@ export function ClassroomForm({
         />
         Lớp đang hoạt động
       </label>
+      {mode === 'edit' && !values.isActive ? (
+        <p className="text-xs text-slate-500">Bật lại để khôi phục lớp đã ẩn.</p>
+      ) : null}
 
       <div className="flex items-center justify-end gap-2 pt-2">
         <Button type="button" variant="secondary" onClick={onCancel} disabled={isSubmitting}>
