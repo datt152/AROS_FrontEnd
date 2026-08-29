@@ -1,5 +1,5 @@
 import { apiClient } from '../../../lib/axios'
-import type { TopicItem, TopicPayload } from '../types/topic.types'
+import type { TopicItem, TopicPayload, TopicUpdatePayload } from '../types/topic.types'
 
 type TopicDto = {
   id?: number
@@ -88,6 +88,7 @@ export type GetTopicsParams = {
   subjectId: number
   page?: number
   size?: number
+  includeInactive?: boolean
 }
 
 export async function getTopics(params: GetTopicsParams): Promise<TopicsPageResult> {
@@ -96,6 +97,7 @@ export async function getTopics(params: GetTopicsParams): Promise<TopicsPageResu
       subjectId: params.subjectId,
       page: params.page ?? 0,
       size: params.size ?? 50,
+      ...(params.includeInactive ? { includeInactive: true } : {}),
     },
   })
 
@@ -136,7 +138,7 @@ export async function createTopic(payload: TopicPayload) {
   }
 }
 
-export async function updateTopic(id: number, payload: TopicPayload) {
+export async function updateTopic(id: number, payload: TopicUpdatePayload) {
   const response = await apiClient.put<TopicDto>(`/v1/topics/${id}`, payload)
   const topic = normalizeTopic(response.data)
   if (topic) return topic

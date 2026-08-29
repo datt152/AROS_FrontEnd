@@ -16,10 +16,15 @@ export type TopicPayload = {
   subjectId: number
 }
 
+export type TopicUpdatePayload = TopicPayload & {
+  isActive?: boolean
+}
+
 export type TopicFormValues = {
   name: string
   description: string
   displayOrder: number | ''
+  isActive: boolean
 }
 
 export type TopicFormErrors = {

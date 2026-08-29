@@ -9,7 +9,7 @@ import {
   updateTopic,
 } from '../api/topics.api'
 import type { GetTopicsParams } from '../api/topics.api'
-import type { TopicPayload } from '../types/topic.types'
+import type { TopicPayload, TopicUpdatePayload } from '../types/topic.types'
 
 export const topicKeys = {
   all: ['topics'] as const,
@@ -52,7 +52,7 @@ export function useUpdateTopic() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: TopicPayload }) => updateTopic(id, payload),
+    mutationFn: ({ id, payload }: { id: number; payload: TopicUpdatePayload }) => updateTopic(id, payload),
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({ queryKey: topicKeys.all })
       void queryClient.invalidateQueries({ queryKey: topicKeys.detail(variables.id) })

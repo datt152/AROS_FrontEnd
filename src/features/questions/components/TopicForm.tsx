@@ -19,6 +19,7 @@ function toFormValues(item?: TopicItem): TopicFormValues {
     name: item?.name ?? '',
     description: item?.description ?? '',
     displayOrder: item?.displayOrder ?? 1,
+    isActive: item?.isActive ?? true,
   }
 }
 
@@ -57,6 +58,7 @@ export function TopicForm({
       name: values.name.trim(),
       description: values.description.trim(),
       displayOrder: Number(values.displayOrder),
+      isActive: values.isActive,
     })
   }
 
@@ -113,6 +115,24 @@ export function TopicForm({
         />
         {errors.displayOrder ? <p className="text-sm text-red-500">{errors.displayOrder}</p> : null}
       </div>
+
+      {mode === 'edit' ? (
+        <>
+          <label className="flex items-center gap-2.5 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={values.isActive}
+              disabled={isSubmitting}
+              onChange={(event) => updateField('isActive', event.target.checked)}
+              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-100"
+            />
+            Chủ đề đang hiển thị
+          </label>
+          {!values.isActive ? (
+            <p className="text-xs text-slate-500">Bật lại để khôi phục chủ đề đã ẩn.</p>
+          ) : null}
+        </>
+      ) : null}
 
       <div className="flex items-center justify-end gap-2 pt-2">
         <Button type="button" variant="secondary" onClick={onCancel} disabled={isSubmitting}>

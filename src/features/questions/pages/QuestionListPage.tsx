@@ -2,6 +2,7 @@ import { ArrowLeft, BookOpen, FolderOpen, Plus, Search, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import { Button } from '../../../components/ui/Button'
+import { IncludeInactiveToggle } from '../../../components/common/IncludeInactiveToggle'
 import { INTERACTIVE_CARD_HOVER_CLASS } from '../../../constants/ui'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { ErrorState } from '../../../components/ui/ErrorState'
@@ -92,9 +93,10 @@ export function QuestionListPage() {
 
   const [topicModalMode, setTopicModalMode] = useState<TopicModalMode>(null)
   const [editingTopic, setEditingTopic] = useState<TopicItemType | null>(null)
-  const [deletingTopic, setDeletingTopic] = useState<TopicItemType | null>(null)
-  const [topicFormError, setTopicFormError] = useState<string | null>(null)
   const [topicDeleteError, setTopicDeleteError] = useState<string | null>(null)
+  const [hidingTopic, setHidingTopic] = useState<TopicItemType | null>(null)
+  const [topicFormError, setTopicFormError] = useState<string | null>(null)
+  const [includeInactiveTopics, setIncludeInactiveTopics] = useState(false)
 
   const subjects = subjectsQuery.data ?? []
   const subjectIds = subjects.map((subject) => subject.id)
@@ -102,7 +104,7 @@ export function QuestionListPage() {
 
   const topicsQuery = useTopics(
     selectedSubjectId
-      ? { subjectId: selectedSubjectId, page: 0, size: TOPIC_PAGE_SIZE }
+      ? { subjectId: selectedSubjectId, page: 0, size: TOPIC_PAGE_SIZE, includeInactive: includeInactiveTopics }
       : undefined,
   )
 
@@ -137,7 +139,10 @@ export function QuestionListPage() {
   )
 
   const topicOptions = useMemo(
-    () => (formTopicsQuery.data?.items ?? []).map((topic) => ({ id: topic.id, name: topic.name })),
+    () =>
+      (formTopicsQuery.data?.items ?? [])
+        .filter((topic) => topic.isActive !== false)
+        .map((topic) => ({ id: topic.id, name: topic.name })),
     [formTopicsQuery.data?.items],
   )
 
@@ -286,13 +291,20 @@ export function QuestionListPage() {
         await createTopic.mutateAsync(payload)
       }
       if (topicModalMode === 'edit' && editingTopic) {
-        await updateTopic.mutateAsync({ id: editingTopic.id, payload })
+        await updateTopic.mutateAsync({
+          id: editingTopic.id,
+          payload: {
+            ...payload,
+            isActive: values.isActive,
+          },
+        })
         if (selectedTopic?.id === editingTopic.id) {
           setSelectedTopic({
             ...selectedTopic,
             name: payload.name,
             description: payload.description,
             displayOrder: payload.displayOrder,
+            isActive: values.isActive,
           })
         }
       }
@@ -302,16 +314,16 @@ export function QuestionListPage() {
     }
   }
 
-  async function confirmDeleteTopic() {
-    if (!deletingTopic) return
+  async function confirmHideTopic() {
+    if (!hidingTopic) return
     setTopicDeleteError(null)
     try {
-      await deleteTopic.mutateAsync(deletingTopic.id)
-      if (selectedTopic?.id === deletingTopic.id) setSelectedTopic(null)
-      setDeletingTopic(null)
+      await deleteTopic.mutateAsync(hidingTopic.id)
+      if (selectedTopic?.id === hidingTopic.id) setSelectedTopic(null)
+      setHidingTopic(null)
     } catch (error) {
       setTopicDeleteError(
-        getApiErrorMessage(error, 'Không xóa được vì còn câu hỏi'),
+        getApiErrorMessage(error, 'Không ẩn được vì còn câu hỏi active'),
       )
     }
   }
@@ -400,11 +412,14 @@ export function QuestionListPage() {
             </Button>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 flex-1">
             <p className="text-sm font-medium text-slate-900">{selectedSubjectName}</p>
             <p className="mt-0.5 text-xs text-slate-500">
               {topicsQuery.data?.totalElements ?? topicsQuery.data?.items.length ?? 0} chủ đề
             </p>
+          </div>
+            <IncludeInactiveToggle checked={includeInactiveTopics} onChange={setIncludeInactiveTopics} />
           </div>
 
           {topicsQuery.isLoading ? <Spinner label="Đang tải chủ đề..." /> : null}
@@ -438,9 +453,9 @@ export function QuestionListPage() {
                   topic={topic}
                   onOpen={setSelectedTopic}
                   onEdit={openEditTopic}
-                  onDelete={(item) => {
+                  onHide={(item) => {
                     setTopicDeleteError(null)
-                    setDeletingTopic(item)
+                    setHidingTopic(item)
                   }}
                 />
               ))}
@@ -745,13 +760,13 @@ export function QuestionListPage() {
         </div>
       ) : null}
 
-      {deletingTopic ? (
+      {hidingTopic ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
           <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
-            <h3 className="text-base font-semibold text-slate-900">Xóa chủ đề?</h3>
+            <h3 className="text-base font-semibold text-slate-900">Ẩn chủ đề?</h3>
             <p className="mt-2 text-sm text-slate-600">
-              Xóa <span className="font-medium text-slate-900">{deletingTopic.name}</span>. Không xóa được nếu
-              còn câu hỏi active.
+              Ẩn <span className="font-medium text-slate-900">{hidingTopic.name}</span>. Không ẩn được nếu còn câu
+              hỏi active. Bạn có thể khôi phục bằng cách bật lại &quot;Chủ đề đang hiển thị&quot; khi sửa.
             </p>
             {topicDeleteError ? (
               <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
@@ -763,7 +778,7 @@ export function QuestionListPage() {
                 variant="secondary"
                 className="flex-1"
                 disabled={deleteTopic.isPending}
-                onClick={() => setDeletingTopic(null)}
+                onClick={() => setHidingTopic(null)}
               >
                 Hủy
               </Button>
@@ -771,9 +786,9 @@ export function QuestionListPage() {
                 variant="danger"
                 className="flex-1"
                 disabled={deleteTopic.isPending}
-                onClick={() => void confirmDeleteTopic()}
+                onClick={() => void confirmHideTopic()}
               >
-                {deleteTopic.isPending ? 'Đang xóa...' : 'Xóa'}
+                {deleteTopic.isPending ? 'Đang ẩn...' : 'Ẩn chủ đề'}
               </Button>
             </div>
           </div>
