@@ -32,6 +32,8 @@ import {
 
 import { getApiErrorMessage } from '../../../lib/apiError'
 
+import { IncludeInactiveToggle } from '../../../components/common/IncludeInactiveToggle'
+
 import { SubjectForm } from '../components/SubjectForm'
 
 import { SubjectItem, SubjectTableRow } from '../components/SubjectItem'
@@ -48,7 +50,7 @@ import {
 
 } from '../hooks/useSubjects'
 
-import type { SubjectFormValues, SubjectItem as SubjectItemType } from '../types/subject.types'
+import type { SubjectFormValues, SubjectItem as SubjectItemType, SubjectUpdatePayload } from '../types/subject.types'
 
 
 
@@ -58,7 +60,9 @@ type ModalMode = 'create' | 'edit' | null
 
 export function SubjectListPage() {
 
-  const subjectsQuery = useSubjects()
+  const [includeInactive, setIncludeInactive] = useState(false)
+
+  const subjectsQuery = useSubjects({ includeInactive })
 
   const createSubject = useCreateSubject()
 
@@ -72,11 +76,11 @@ export function SubjectListPage() {
 
   const [editingSubject, setEditingSubject] = useState<SubjectItemType | null>(null)
 
-  const [deletingSubject, setDeletingSubject] = useState<SubjectItemType | null>(null)
+  const [hidingSubject, setHidingSubject] = useState<SubjectItemType | null>(null)
 
   const [formError, setFormError] = useState<string | null>(null)
 
-  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [hideError, setHideError] = useState<string | null>(null)
 
 
 
@@ -134,7 +138,13 @@ export function SubjectListPage() {
 
       if (modalMode === 'create') {
 
-        await createSubject.mutateAsync(values)
+        await createSubject.mutateAsync({
+
+          subjectName: values.subjectName,
+
+          description: values.description,
+
+        })
 
       }
 
@@ -142,7 +152,17 @@ export function SubjectListPage() {
 
       if (modalMode === 'edit' && editingSubject) {
 
-        await updateSubject.mutateAsync({ id: editingSubject.id, payload: values })
+        const payload: SubjectUpdatePayload = {
+
+          subjectName: values.subjectName,
+
+          description: values.description,
+
+          isActive: values.isActive,
+
+        }
+
+        await updateSubject.mutateAsync({ id: editingSubject.id, payload })
 
       }
 
@@ -162,23 +182,23 @@ export function SubjectListPage() {
 
 
 
-  async function confirmDelete() {
+  async function confirmHide() {
 
-    if (!deletingSubject) return
+    if (!hidingSubject) return
 
-    setDeleteError(null)
+    setHideError(null)
 
 
 
     try {
 
-      await deleteSubject.mutateAsync(deletingSubject.id)
+      await deleteSubject.mutateAsync(hidingSubject.id)
 
-      setDeletingSubject(null)
+      setHidingSubject(null)
 
     } catch (error) {
 
-      setDeleteError(getApiErrorMessage(error, 'Không thể xóa môn học'))
+      setHideError(getApiErrorMessage(error, 'Không thể ẩn môn học'))
 
     }
 
@@ -211,6 +231,8 @@ export function SubjectListPage() {
         </Button>
 
       </div>
+
+      <IncludeInactiveToggle checked={includeInactive} onChange={setIncludeInactive} />
 
 
 
@@ -282,11 +304,11 @@ export function SubjectListPage() {
 
                 onEdit={openEdit}
 
-                onDelete={(item) => {
+                onHide={(item) => {
 
-                  setDeleteError(null)
+                  setHideError(null)
 
-                  setDeletingSubject(item)
+                  setHidingSubject(item)
 
                 }}
 
@@ -308,6 +330,8 @@ export function SubjectListPage() {
 
                 <TableCol />
 
+                <TableCol width="8rem" />
+
                 <TableCol width="20%" />
 
               </TableColGroup>
@@ -319,6 +343,8 @@ export function SubjectListPage() {
                   <TableHead>Tên môn học</TableHead>
 
                   <TableHead>Mô tả</TableHead>
+
+                  <TableHead>Trạng thái</TableHead>
 
                   <TableHead>Thao tác</TableHead>
 
@@ -338,11 +364,11 @@ export function SubjectListPage() {
 
                     onEdit={openEdit}
 
-                    onDelete={(item) => {
+                    onHide={(item) => {
 
-                      setDeleteError(null)
+                      setHideError(null)
 
-                      setDeletingSubject(item)
+                      setHidingSubject(item)
 
                     }}
 
@@ -430,27 +456,29 @@ export function SubjectListPage() {
 
 
 
-      {deletingSubject ? (
+      {hidingSubject ? (
 
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
 
           <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
 
-            <h3 className="text-base font-semibold text-slate-900">Xóa môn học?</h3>
+            <h3 className="text-base font-semibold text-slate-900">Ẩn môn học?</h3>
 
             <p className="mt-2 text-sm text-slate-600">
 
-              Thao tác này sẽ xóa{' '}
+              Môn{' '}
 
-              <span className="font-medium text-slate-900">{deletingSubject.subjectName}</span> khỏi danh sách.
+              <span className="font-medium text-slate-900">{hidingSubject.subjectName}</span> sẽ không còn hiển thị
+
+              trong danh sách mặc định. Bạn có thể khôi phục bằng cách bật lại &quot;Môn đang hiển thị&quot; khi sửa.
 
             </p>
 
-            {deleteError ? (
+            {hideError ? (
 
               <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
 
-                {deleteError}
+                {hideError}
 
               </p>
 
@@ -466,7 +494,7 @@ export function SubjectListPage() {
 
                 disabled={deleteSubject.isPending}
 
-                onClick={() => setDeletingSubject(null)}
+                onClick={() => setHidingSubject(null)}
 
               >
 
@@ -482,11 +510,11 @@ export function SubjectListPage() {
 
                 disabled={deleteSubject.isPending}
 
-                onClick={() => void confirmDelete()}
+                onClick={() => void confirmHide()}
 
               >
 
-                {deleteSubject.isPending ? 'Đang xóa...' : 'Xóa'}
+                {deleteSubject.isPending ? 'Đang ẩn...' : 'Ẩn môn'}
 
               </Button>
 

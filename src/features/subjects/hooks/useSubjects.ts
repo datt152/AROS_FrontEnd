@@ -8,20 +8,22 @@ import {
   getSubjects,
   updateSubject,
 } from '../api/subjects.api'
-import type { SubjectPayload } from '../types/subject.types'
+import type { SubjectPayload, SubjectUpdatePayload } from '../types/subject.types'
 
 export const subjectKeys = {
   all: ['subjects'] as const,
   lists: () => [...subjectKeys.all, 'list'] as const,
-  list: () => [...subjectKeys.lists()] as const,
+  list: (includeInactive?: boolean) => [...subjectKeys.lists(), { includeInactive: includeInactive ?? false }] as const,
   details: () => [...subjectKeys.all, 'detail'] as const,
   detail: (id: number) => [...subjectKeys.details(), id] as const,
 }
 
-export function useSubjects() {
+export function useSubjects(options?: { includeInactive?: boolean }) {
+  const includeInactive = options?.includeInactive ?? false
+
   return useQuery({
-    queryKey: subjectKeys.list(),
-    queryFn: getSubjects,
+    queryKey: subjectKeys.list(includeInactive),
+    queryFn: () => getSubjects({ includeInactive }),
     staleTime: STALE_TIME.reference,
   })
 }
@@ -50,7 +52,7 @@ export function useUpdateSubject() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: SubjectPayload }) => updateSubject(id, payload),
+    mutationFn: ({ id, payload }: { id: number; payload: SubjectUpdatePayload }) => updateSubject(id, payload),
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({ queryKey: subjectKeys.all })
       void queryClient.invalidateQueries({ queryKey: subjectKeys.detail(variables.id) })

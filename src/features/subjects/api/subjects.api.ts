@@ -1,10 +1,11 @@
 import { apiClient } from '../../../lib/axios'
-import type { SubjectItem, SubjectPayload } from '../types/subject.types'
+import type { SubjectItem, SubjectPayload, SubjectUpdatePayload } from '../types/subject.types'
 
 type SubjectDto = {
   id?: number
   subjectName?: string
   description?: string
+  isActive?: boolean
 }
 
 function normalizeSubject(dto: SubjectDto): SubjectItem | null {
@@ -13,6 +14,7 @@ function normalizeSubject(dto: SubjectDto): SubjectItem | null {
     id: dto.id,
     subjectName: dto.subjectName,
     description: dto.description ?? '',
+    isActive: dto.isActive ?? true,
   }
 }
 
@@ -27,8 +29,14 @@ function unwrapList(data: unknown): SubjectDto[] {
   return []
 }
 
-export async function getSubjects() {
-  const response = await apiClient.get<unknown>('/v1/subjects')
+export type GetSubjectsParams = {
+  includeInactive?: boolean
+}
+
+export async function getSubjects(params: GetSubjectsParams = {}) {
+  const response = await apiClient.get<unknown>('/v1/subjects', {
+    params: params.includeInactive ? { includeInactive: true } : undefined,
+  })
   return unwrapList(response.data)
     .map(normalizeSubject)
     .filter((item): item is SubjectItem => item !== null)
@@ -49,10 +57,11 @@ export async function createSubject(payload: SubjectPayload) {
     id: Date.now(),
     subjectName: payload.subjectName,
     description: payload.description,
+    isActive: true,
   }
 }
 
-export async function updateSubject(id: number, payload: SubjectPayload) {
+export async function updateSubject(id: number, payload: SubjectUpdatePayload) {
   const response = await apiClient.put<SubjectDto>(`/v1/subjects/${id}`, payload)
   const subject = normalizeSubject(response.data)
   if (subject) return subject
@@ -60,6 +69,7 @@ export async function updateSubject(id: number, payload: SubjectPayload) {
     id,
     subjectName: payload.subjectName,
     description: payload.description,
+    isActive: payload.isActive ?? true,
   }
 }
 

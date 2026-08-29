@@ -1,21 +1,28 @@
-import { Pencil, Trash2 } from 'lucide-react'
+import { EyeOff, Pencil } from 'lucide-react'
 
+import { InactiveBadge } from '../../../components/common/InactiveBadge'
 import { Button } from '../../../components/ui/Button'
+import { ACTIVE_BADGE_CLASS } from '../../../constants/ui'
 import { TableCell, TableRow } from '../../../components/ui/Table'
 import type { SubjectItem as SubjectItemType } from '../types/subject.types'
 
 type SubjectItemProps = {
   subject: SubjectItemType
   onEdit: (subject: SubjectItemType) => void
-  onDelete: (subject: SubjectItemType) => void
+  onHide: (subject: SubjectItemType) => void
+}
+
+function StatusBadge({ isActive }: { isActive: boolean }) {
+  if (!isActive) return <InactiveBadge />
+  return <span className={ACTIVE_BADGE_CLASS}>Đang hiển thị</span>
 }
 
 function SubjectActions({
   subject,
   onEdit,
-  onDelete,
+  onHide,
   spread = false,
-}: Pick<SubjectItemProps, 'subject' | 'onEdit' | 'onDelete'> & { spread?: boolean }) {
+}: Pick<SubjectItemProps, 'subject' | 'onEdit' | 'onHide'> & { spread?: boolean }) {
   return (
     <div className={`flex items-center ${spread ? 'w-full justify-evenly gap-1' : 'gap-2'}`}>
       <Button
@@ -26,21 +33,23 @@ function SubjectActions({
         <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
         Sửa
       </Button>
-      <Button
-        variant="ghost"
-        className="h-8 border border-red-200 bg-red-50 px-2.5 text-xs text-red-700 hover:bg-red-100 hover:text-red-800"
-        onClick={() => onDelete(subject)}
-      >
-        <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
-        Xóa
-      </Button>
+      {subject.isActive ? (
+        <Button
+          variant="ghost"
+          className="h-8 border border-red-200 bg-red-50 px-2.5 text-xs text-red-700 hover:bg-red-100 hover:text-red-800"
+          onClick={() => onHide(subject)}
+        >
+          <EyeOff className="h-3.5 w-3.5" strokeWidth={1.75} />
+          Ẩn
+        </Button>
+      ) : null}
     </div>
   )
 }
 
-export function SubjectItem({ subject, onEdit, onDelete }: SubjectItemProps) {
+export function SubjectItem({ subject, onEdit, onHide }: SubjectItemProps) {
   return (
-    <article className="grid grid-cols-1 items-center gap-3 px-4 py-3">
+    <article className={`grid grid-cols-1 items-center gap-3 px-4 py-3 ${subject.isActive ? '' : 'bg-slate-50/80'}`}>
       <div className="min-w-0">
         <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Tên môn học</p>
         <p className="font-medium text-slate-900" title={subject.subjectName}>
@@ -55,14 +64,19 @@ export function SubjectItem({ subject, onEdit, onDelete }: SubjectItemProps) {
         </p>
       </div>
 
-      <SubjectActions subject={subject} onEdit={onEdit} onDelete={onDelete} />
+      <div>
+        <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Trạng thái</p>
+        <StatusBadge isActive={subject.isActive} />
+      </div>
+
+      <SubjectActions subject={subject} onEdit={onEdit} onHide={onHide} />
     </article>
   )
 }
 
-export function SubjectTableRow({ subject, onEdit, onDelete }: SubjectItemProps) {
+export function SubjectTableRow({ subject, onEdit, onHide }: SubjectItemProps) {
   return (
-    <TableRow>
+    <TableRow className={subject.isActive ? '' : 'bg-slate-50/80'}>
       <TableCell className="max-w-0 overflow-hidden">
         <p className="truncate font-medium text-slate-900" title={subject.subjectName}>
           {subject.subjectName}
@@ -76,7 +90,11 @@ export function SubjectTableRow({ subject, onEdit, onDelete }: SubjectItemProps)
       </TableCell>
 
       <TableCell className="whitespace-nowrap">
-        <SubjectActions subject={subject} onEdit={onEdit} onDelete={onDelete} spread />
+        <StatusBadge isActive={subject.isActive} />
+      </TableCell>
+
+      <TableCell className="whitespace-nowrap">
+        <SubjectActions subject={subject} onEdit={onEdit} onHide={onHide} spread />
       </TableCell>
     </TableRow>
   )
