@@ -1,5 +1,6 @@
 import { BookOpen, ChevronRight, Users } from 'lucide-react'
 
+import { INTERACTIVE_CARD_HOVER_CLASS } from '../../../constants/ui'
 import type { ClassroomItem } from '../../classrooms/types/classroom.types'
 
 type StudentClassroomCardProps = {
@@ -15,10 +16,10 @@ export function StudentClassroomSubjectCard({ item, selected, onSelect }: Studen
     <button
       type="button"
       onClick={() => onSelect(item)}
-      className={`flex w-full items-start gap-3 rounded-2xl border px-4 py-4 text-left transition ${
+      className={`flex w-full items-start gap-3 rounded-2xl border px-4 py-4 text-left ${
         selected
           ? 'border-blue-300 bg-blue-50/80 shadow-sm ring-2 ring-blue-100'
-          : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+          : `border-slate-200 bg-white ${INTERACTIVE_CARD_HOVER_CLASS}`
       }`}
     >
       <span

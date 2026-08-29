@@ -1,6 +1,7 @@
 import { FolderOpen, Pencil, Trash2 } from 'lucide-react'
 
 import { Button } from '../../../components/ui/Button'
+import { INTERACTIVE_CARD_HOVER_CLASS } from '../../../constants/ui'
 import type { TopicItem as TopicItemType } from '../types/topic.types'
 
 type TopicItemProps = {
@@ -12,7 +13,7 @@ type TopicItemProps = {
 
 export function TopicItem({ topic, onOpen, onEdit, onDelete }: TopicItemProps) {
   return (
-    <article className="flex min-h-36 flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-300 hover:shadow-md">
+    <article className={`flex min-h-36 flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm ${INTERACTIVE_CARD_HOVER_CLASS}`}>
       <button type="button" onClick={() => onOpen(topic)} className="flex flex-1 flex-col text-left">
         <div className="mb-3 flex items-start gap-3">
           <div className="inline-flex shrink-0 rounded-xl bg-blue-50 p-2.5 text-blue-600">

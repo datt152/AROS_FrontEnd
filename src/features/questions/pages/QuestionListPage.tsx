@@ -2,6 +2,7 @@ import { ArrowLeft, BookOpen, FolderOpen, Plus, Search, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import { Button } from '../../../components/ui/Button'
+import { INTERACTIVE_CARD_HOVER_CLASS } from '../../../constants/ui'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { ErrorState } from '../../../components/ui/ErrorState'
 import { Input } from '../../../components/ui/Input'
@@ -356,7 +357,7 @@ export function QuestionListPage() {
                   key={subject.id}
                   type="button"
                   onClick={() => selectSubject(subject.id)}
-                  className="flex min-h-36 flex-col rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:border-blue-300 hover:shadow-md"
+                  className={`flex min-h-36 flex-col rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm ${INTERACTIVE_CARD_HOVER_CLASS}`}
                 >
                   <div className="mb-3 flex items-center gap-3">
                     <div className="inline-flex shrink-0 rounded-xl bg-blue-50 p-2.5 text-blue-600">
@@ -568,23 +569,22 @@ export function QuestionListPage() {
             />
           ) : null}
           {questionsQuery.isSuccess && filteredQuestions.length > 0 ? (
-            <div className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <div className="flex-1">
-                <div className="divide-y divide-slate-200 md:hidden">
-                  {pagedQuestions.map((question) => (
-                    <QuestionItem
-                      key={question.questionId}
-                      question={question}
-                      onEdit={openEditQuestion}
-                      onDelete={(item) => {
-                        setQuestionDeleteError(null)
-                        setDeletingQuestion(item)
-                      }}
-                    />
-                  ))}
-                </div>
-                <div className="hidden md:block">
-                  <Table>
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-3 md:hidden">
+                {pagedQuestions.map((question) => (
+                  <QuestionItem
+                    key={question.questionId}
+                    question={question}
+                    onEdit={openEditQuestion}
+                    onDelete={(item) => {
+                      setQuestionDeleteError(null)
+                      setDeletingQuestion(item)
+                    }}
+                  />
+                ))}
+              </div>
+              <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:block">
+                <Table>
                     <TableColGroup>
                       <TableCol />
                       <TableCol width="8.5rem" />
@@ -614,10 +614,9 @@ export function QuestionListPage() {
                         />
                       ))}
                     </TableBody>
-                  </Table>
-                </div>
+                </Table>
               </div>
-              <div className="mt-auto flex items-center justify-between border-t border-slate-200 px-4 py-3 text-sm text-slate-500">
+              <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500 shadow-sm">
                 <p>
                   Trang {currentPage + 1} / {totalPages} · {totalQuestionLabel} câu hỏi
                 </p>

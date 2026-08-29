@@ -2,6 +2,7 @@ import { Clock, FileQuestion, Play } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 import { Button } from '../../../components/ui/Button'
+import { INTERACTIVE_CARD_HOVER_CLASS } from '../../../constants/ui'
 import { ROUTES } from '../../../routes/routes.config'
 import {
   STUDENT_EXAM_STATUS_BADGE,
@@ -42,7 +43,7 @@ export function StudentExamCard({ exam, mode = 'EXAM' }: StudentExamCardProps) {
         : 'Vào làm bài'
 
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <article className={`rounded-2xl border border-slate-200 bg-white p-4 shadow-sm ${INTERACTIVE_CARD_HOVER_CLASS}`}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
           <h3 className="font-semibold text-slate-900">{exam.title}</h3>

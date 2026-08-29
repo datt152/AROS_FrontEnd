@@ -1,6 +1,7 @@
 import { Pencil, Trash2 } from 'lucide-react'
 
 import { Button } from '../../../components/ui/Button'
+import { INTERACTIVE_CARD_HOVER_CLASS } from '../../../constants/ui'
 import { TableCell, TableRow } from '../../../components/ui/Table'
 import type { QuestionItem as QuestionItemType } from '../types/question.types'
 import { DIFFICULTY_BADGE_CLASS, DIFFICULTY_LABEL, QUESTION_TYPE_LABEL } from '../types/question.types'
@@ -63,7 +64,9 @@ function DifficultyBadge({ question }: { question: QuestionItemType }) {
 
 export function QuestionItem({ question, onEdit, onDelete }: QuestionItemProps) {
   return (
-    <article className="grid grid-cols-1 items-start gap-3 px-4 py-4">
+    <article
+      className={`grid grid-cols-1 items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm ${INTERACTIVE_CARD_HOVER_CLASS}`}
+    >
       <div className="min-w-0">
         <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Câu hỏi</p>
         <p className="line-clamp-2 text-sm font-medium text-slate-900" title={question.content}>
