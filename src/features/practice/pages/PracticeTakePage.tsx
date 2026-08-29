@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { Button } from '../../../components/ui/Button'
+import { ExamTimeWarningDialog, useExamTimeWarning } from '../../../components/common/ExamTimeWarningDialog'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { Spinner } from '../../../components/ui/Spinner'
 import { getApiErrorMessage } from '../../../lib/apiError'
@@ -34,6 +35,7 @@ export function PracticeTakePage() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [now, setNow] = useState(Date.now())
   const [takeKey, setTakeKey] = useState(0)
+  const autoSubmittedRef = useRef(false)
 
   const takeQuery = useTakeExam(examId, !result)
   const submitExam = useSubmitExam()
@@ -55,9 +57,11 @@ export function PracticeTakePage() {
   }, [result, exam, timeLimited, takeKey])
 
   const secondsLeft = timeLimited && deadline ? Math.max(0, Math.floor((deadline - now) / 1000)) : null
+  const timeLimitedActive = Boolean(timeLimited && exam && !result)
+  const timeWarning = useExamTimeWarning(timeLimitedActive ? secondsLeft : null, timeLimitedActive)
 
-  async function handleSubmit() {
-    if (!exam) return
+  async function handleSubmit(options?: { timedOut?: boolean }) {
+    if (!exam || submitExam.isPending) return
     setSubmitError(null)
     try {
       const data = await submitExam.mutateAsync({
@@ -70,8 +74,16 @@ export function PracticeTakePage() {
       void navigate(ROUTES.student.takePractice, { replace: true, state: null })
     } catch (error) {
       setSubmitError(mapExamTakeError(getApiErrorMessage(error, 'Không thể nộp bài')))
+      if (options?.timedOut) autoSubmittedRef.current = false
     }
   }
+
+  useEffect(() => {
+    if (!timeLimited || !exam || result || secondsLeft === null || secondsLeft > 0 || submitExam.isPending) return
+    if (autoSubmittedRef.current) return
+    autoSubmittedRef.current = true
+    void handleSubmit({ timedOut: true })
+  }, [timeLimited, exam, result, secondsLeft, submitExam.isPending])
 
   async function handleRetry() {
     if (!examId && !submittedExam) return
@@ -80,6 +92,8 @@ export function PracticeTakePage() {
     setSubmittedExam(null)
     setAnswers({})
     setSubmitError(null)
+    autoSubmittedRef.current = false
+    timeWarning.resetWarning()
     setTakeKey((value) => value + 1)
     if (retryId) {
       void navigate(ROUTES.student.takePractice, {
@@ -192,6 +206,11 @@ export function PracticeTakePage() {
 
   return (
     <section className="mx-auto max-w-3xl space-y-5 py-6">
+      <ExamTimeWarningDialog
+        open={timeWarning.open}
+        secondsLeft={timeWarning.secondsLeft}
+        onDismiss={timeWarning.dismiss}
+      />
       <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs font-medium uppercase tracking-wider text-blue-600">Luyện tập</p>

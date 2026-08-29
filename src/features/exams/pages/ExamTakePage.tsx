@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { Button } from '../../../components/ui/Button'
+import { ExamTimeWarningDialog, useExamTimeWarning } from '../../../components/common/ExamTimeWarningDialog'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { Spinner } from '../../../components/ui/Spinner'
 import { getApiErrorMessage } from '../../../lib/apiError'
@@ -31,6 +32,7 @@ export function ExamTakePage() {
   const [answers, setAnswers] = useState<Record<number, string | string[]>>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [now, setNow] = useState(Date.now())
+  const autoSubmittedRef = useRef(false)
 
   const takeQuery = useTakeExam(examId, !result)
   const submitExam = useSubmitExam()
@@ -51,6 +53,8 @@ export function ExamTakePage() {
   const secondsLeft = exam ? Math.max(0, Math.floor((deadline - now) / 1000)) : 0
   const minutes = Math.floor(secondsLeft / 60)
   const seconds = secondsLeft % 60
+  const timeLimitedActive = Boolean(exam && exam.timeLimitEnabled !== false && !result)
+  const timeWarning = useExamTimeWarning(timeLimitedActive ? secondsLeft : null, timeLimitedActive)
 
   function setSingleAnswer(questionId: number, label: string) {
     setAnswers((current) => ({ ...current, [questionId]: label }))
@@ -66,8 +70,8 @@ export function ExamTakePage() {
     })
   }
 
-  async function handleSubmit() {
-    if (!exam) return
+  async function handleSubmit(options?: { timedOut?: boolean }) {
+    if (!exam || submitExam.isPending) return
     setSubmitError(null)
     try {
       const data = await submitExam.mutateAsync({
@@ -77,13 +81,20 @@ export function ExamTakePage() {
       })
       setSubmittedExam(exam)
       setResult(data)
-      // Xóa state URL để F5/back không giữ phiên làm bài cũ
       void navigate(ROUTES.student.takeExam, { replace: true, state: null })
     } catch (error) {
       const message = getApiErrorMessage(error, 'Không thể nộp bài')
       setSubmitError(mapExamTakeError(message))
+      if (options?.timedOut) autoSubmittedRef.current = false
     }
   }
+
+  useEffect(() => {
+    if (!exam || exam.timeLimitEnabled === false || result || secondsLeft > 0 || submitExam.isPending) return
+    if (autoSubmittedRef.current) return
+    autoSubmittedRef.current = true
+    void handleSubmit({ timedOut: true })
+  }, [exam, result, secondsLeft, submitExam.isPending])
 
   if (result && exam) {
     const scoreVisible =
@@ -176,6 +187,11 @@ export function ExamTakePage() {
 
   return (
     <section className="mx-auto max-w-3xl space-y-5 py-6">
+      <ExamTimeWarningDialog
+        open={timeWarning.open}
+        secondsLeft={timeWarning.secondsLeft}
+        onDismiss={timeWarning.dismiss}
+      />
       <div className="sticky top-2 z-10 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white/95 p-5 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs font-medium uppercase tracking-wider text-blue-600">Làm bài</p>
