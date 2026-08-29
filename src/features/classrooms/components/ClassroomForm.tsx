@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
+import { focusFirstFormError } from '../../../utils/focusFormError'
 import type {
   ClassroomFormErrors,
   ClassroomFormValues,
@@ -47,6 +48,12 @@ export function ClassroomForm({
     if (key in errors) setErrors((current) => ({ ...current, [key]: undefined }))
   }
 
+  const isSubjectLocked = mode === 'edit'
+  const lockedSubjectLabel =
+    initialValues?.subjectName ||
+    subjectOptions.find((subject) => subject.id === values.subjectId)?.subjectName ||
+    (values.subjectId ? `Môn #${values.subjectId}` : '')
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
@@ -61,7 +68,10 @@ export function ClassroomForm({
     }
 
     setErrors(nextErrors)
-    if (Object.keys(nextErrors).length > 0) return
+    if (Object.keys(nextErrors).length > 0) {
+      focusFirstFormError(nextErrors, ['className', 'subjectId', 'semester', 'academicYear'])
+      return
+    }
 
     await onSubmit({
       className: values.className.trim(),
@@ -69,7 +79,7 @@ export function ClassroomForm({
       semester: values.semester.trim(),
       academicYear: values.academicYear.trim(),
       isActive: values.isActive,
-      subjectId: values.subjectId,
+      subjectId: isSubjectLocked && initialValues ? initialValues.subjectId : values.subjectId,
     })
   }
 
@@ -106,21 +116,35 @@ export function ClassroomForm({
         <label htmlFor="subjectId" className="text-sm font-medium text-slate-700">
           Môn học
         </label>
-        <select
-          id="subjectId"
-          name="subjectId"
-          value={values.subjectId || ''}
-          disabled={isSubmitting}
-          onChange={(event) => updateField('subjectId', Number(event.target.value) || 0)}
-          className={selectClassName(Boolean(errors.subjectId))}
-        >
-          <option value="">Chọn môn học</option>
-          {subjectOptions.map((subject) => (
-            <option key={subject.id} value={subject.id}>
-              {subject.subjectName}
-            </option>
-          ))}
-        </select>
+        {isSubjectLocked ? (
+          <p
+            id="subjectId"
+            className="flex h-10 items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700"
+          >
+            {lockedSubjectLabel}
+          </p>
+        ) : (
+          <select
+            id="subjectId"
+            name="subjectId"
+            value={values.subjectId || ''}
+            disabled={isSubmitting}
+            onChange={(event) => updateField('subjectId', Number(event.target.value) || 0)}
+            className={selectClassName(Boolean(errors.subjectId))}
+          >
+            <option value="">Chọn môn học</option>
+            {subjectOptions.map((subject) => (
+              <option key={subject.id} value={subject.id}>
+                {subject.subjectName}
+              </option>
+            ))}
+          </select>
+        )}
+        {isSubjectLocked ? (
+          <p className="text-xs text-slate-500">
+            Không thể đổi môn học sau khi tạo lớp.
+          </p>
+        ) : null}
         {errors.subjectId ? <p className="text-sm text-red-500">{errors.subjectId}</p> : null}
       </div>
 

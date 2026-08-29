@@ -15,6 +15,7 @@ type ClassroomDto = {
   isActive?: boolean
   subjectId?: number
   subjectName?: string
+  subject?: { id?: number; subjectName?: string }
   teacherName?: string
   teacherEmail?: string
 }
@@ -40,7 +41,8 @@ function normalizeStudent(dto: ClassroomStudentDto): ClassroomStudent | null {
 }
 
 function normalizeClassroom(dto: ClassroomDto): ClassroomItem | null {
-  if (dto.id === undefined || !dto.className || dto.subjectId === undefined) return null
+  const subjectId = dto.subjectId ?? dto.subject?.id
+  if (dto.id === undefined || !dto.className || subjectId === undefined) return null
 
   return {
     id: dto.id,
@@ -49,8 +51,8 @@ function normalizeClassroom(dto: ClassroomDto): ClassroomItem | null {
     semester: dto.semester ?? '',
     academicYear: dto.academicYear ?? '',
     isActive: dto.isActive ?? true,
-    subjectId: dto.subjectId,
-    subjectName: dto.subjectName ?? '',
+    subjectId,
+    subjectName: dto.subjectName ?? dto.subject?.subjectName ?? '',
     teacherName: dto.teacherName?.trim() || undefined,
     teacherEmail: dto.teacherEmail?.trim() || undefined,
   }
