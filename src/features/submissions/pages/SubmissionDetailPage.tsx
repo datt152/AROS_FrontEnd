@@ -8,7 +8,7 @@ import { Spinner } from '../../../components/ui/Spinner'
 import { getApiErrorMessage } from '../../../lib/apiError'
 import { ROUTES } from '../../../routes/routes.config'
 import { StudentSubmissionQuestionItem } from '../components/StudentSubmissionQuestionItem'
-import { useMySubmissionDetail } from '../hooks/useSubmissions'
+import { useMySubmissionDetail, useResolvedSubmissionPurpose } from '../hooks/useSubmissions'
 import {
   PURPOSE_BADGE,
   PURPOSE_LABEL,
@@ -32,11 +32,13 @@ export function SubmissionDetailPage() {
 
   const detailQuery = useMySubmissionDetail(submissionId)
   const detail = detailQuery.data
+  const purpose = useResolvedSubmissionPurpose(submissionId, detail?.purpose)
+  const isPractice = purpose === 'PRACTICE'
 
   function handleResume() {
     if (!detail) return
     const state = { examId: detail.examId }
-    const path = detail.purpose === 'PRACTICE' ? ROUTES.student.takePractice : ROUTES.student.takeExam
+    const path = isPractice ? ROUTES.student.takePractice : ROUTES.student.takeExam
     void navigate(path, { state })
   }
 
@@ -120,11 +122,13 @@ export function SubmissionDetailPage() {
 
       <header className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="text-xs font-medium uppercase tracking-wider text-blue-600">Chi tiết lần làm</p>
+          <p className="text-xs font-medium uppercase tracking-wider text-blue-600">
+            Chi tiết {isPractice ? 'luyện tập' : 'bài thi'}
+          </p>
           <span
-            className={`inline-flex rounded-lg border px-2 py-0.5 text-xs font-medium ${PURPOSE_BADGE[detail.purpose]}`}
+            className={`inline-flex rounded-lg border px-2 py-0.5 text-xs font-medium ${PURPOSE_BADGE[purpose]}`}
           >
-            {PURPOSE_LABEL[detail.purpose]}
+            {PURPOSE_LABEL[purpose]}
           </span>
           <span
             className={`inline-flex rounded-lg border px-2 py-0.5 text-xs font-medium ${SUBMISSION_STATUS_BADGE[detail.status]}`}
@@ -136,7 +140,7 @@ export function SubmissionDetailPage() {
         <h1 className="mt-2 text-xl font-semibold text-slate-900">{detail.examTitle}</h1>
         <p className="mt-1 text-sm text-slate-500">
           Lần {detail.attemptNo}
-          {detail.versionCode ? ` · Mã đề ${detail.versionCode}` : ''}
+          {!isPractice && detail.versionCode ? ` · Mã đề ${detail.versionCode}` : ''}
         </p>
         <p className="mt-1 text-sm text-slate-500">
           {detail.submitTime
@@ -187,13 +191,13 @@ export function SubmissionDetailPage() {
         {canResume ? (
           <Button className="w-full" onClick={handleResume}>
             <Play className="h-4 w-4" strokeWidth={1.75} />
-            Tiếp tục làm bài
+            {isPractice ? 'Tiếp tục luyện tập' : 'Tiếp tục làm bài'}
           </Button>
         ) : null}
 
         {detail.status === 'EXPIRED' ? (
           <p className="w-full rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-sm text-red-700">
-            Bài đã hết giờ, không thể nộp
+            {isPractice ? 'Bài luyện tập đã hết giờ, không thể nộp' : 'Bài thi đã hết giờ, không thể nộp'}
           </p>
         ) : null}
 

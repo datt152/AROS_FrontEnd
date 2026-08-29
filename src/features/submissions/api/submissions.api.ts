@@ -12,6 +12,7 @@ type StudentSubmissionItemDto = {
   examId?: number
   examTitle?: string
   purpose?: string
+  examPurpose?: string
   versionCode?: string | null
   attemptNo?: number
   status?: string
@@ -37,6 +38,7 @@ type StudentSubmissionDetailDto = {
   examId?: number
   examTitle?: string
   purpose?: string
+  examPurpose?: string
   versionCode?: string | null
   attemptNo?: number
   status?: string
@@ -77,7 +79,8 @@ function normalizeStatus(value: string | undefined): SubmissionStatus {
   return SUBMISSION_STATUSES.includes(upper) ? upper : 'NOT_STARTED'
 }
 
-function normalizePurpose(value: string | undefined): ExamPurpose {
+function normalizePurpose(dto: { purpose?: string; examPurpose?: string }): ExamPurpose {
+  const value = dto.purpose ?? dto.examPurpose
   return value?.toUpperCase() === 'PRACTICE' ? 'PRACTICE' : 'EXAM'
 }
 
@@ -87,7 +90,7 @@ function normalizeListItem(dto: StudentSubmissionItemDto): StudentSubmissionItem
     submissionId: dto.submissionId,
     examId: dto.examId,
     examTitle: dto.examTitle ?? '',
-    purpose: normalizePurpose(dto.purpose),
+    purpose: normalizePurpose(dto),
     versionCode: dto.versionCode ?? null,
     attemptNo: dto.attemptNo ?? 1,
     status: normalizeStatus(dto.status),
@@ -122,7 +125,7 @@ function normalizeDetail(dto: StudentSubmissionDetailDto): StudentSubmissionDeta
     submissionId: dto.submissionId,
     examId: dto.examId,
     examTitle: dto.examTitle ?? '',
-    purpose: normalizePurpose(dto.purpose),
+    purpose: normalizePurpose(dto),
     versionCode: dto.versionCode ?? null,
     attemptNo: dto.attemptNo ?? 1,
     status: normalizeStatus(dto.status),

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 
 import { Button } from '../../../components/ui/Button'
 import { studentHistoryDetailPath, ROUTES } from '../../../routes/routes.config'
+import { INTERACTIVE_CARD_HOVER_CLASS } from '../../../constants/ui'
 import {
   PURPOSE_BADGE,
   PURPOSE_LABEL,
@@ -12,6 +13,7 @@ import {
   formatSubmissionDateTime,
   getSubmissionListScoreDisplay,
   type StudentSubmissionItem,
+  type SubmissionDetailLocationState,
 } from '../types/submission.types'
 
 type SubmissionHistoryCardProps = {
@@ -24,7 +26,9 @@ export function SubmissionHistoryCard({ item }: SubmissionHistoryCardProps) {
   const canResume = canResumeSubmission(item)
 
   function handleOpenDetail() {
-    void navigate(studentHistoryDetailPath(item.submissionId))
+    void navigate(studentHistoryDetailPath(item.submissionId), {
+      state: { purpose: item.purpose } satisfies SubmissionDetailLocationState,
+    })
   }
 
   function handleResume(event: React.MouseEvent) {
@@ -45,7 +49,7 @@ export function SubmissionHistoryCard({ item }: SubmissionHistoryCardProps) {
           handleOpenDetail()
         }
       }}
-      className="cursor-pointer rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300 hover:shadow-md"
+      className={`cursor-pointer rounded-2xl border border-slate-200 bg-white p-4 shadow-sm ${INTERACTIVE_CARD_HOVER_CLASS}`}
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">

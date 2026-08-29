@@ -103,3 +103,7 @@ export function getSubmissionListScoreDisplay(item: StudentSubmissionItem): Subm
 export function canResumeSubmission(item: Pick<StudentSubmissionItem, 'status'>) {
   return item.status === 'IN_PROGRESS'
 }
+
+export type SubmissionDetailLocationState = {
+  purpose?: ExamPurpose
+}
