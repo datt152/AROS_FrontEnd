@@ -42,6 +42,7 @@ export function setUnauthorizedHandler(handler: (() => void) | null) {
 }
 
 export const apiClient = axios.create({
+  // Relative `/api` → same origin (Vite proxy in dev). Absolute URL must include http(s)://
   baseURL: import.meta.env.VITE_API_BASE_URL ?? '/api',
   withCredentials: true,
   timeout: 15_000,
