@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { Button } from '../../../components/ui/Button'
-import { ExamTimeWarningDialog, useExamTimeWarning } from '../../../components/common/ExamTimeWarningDialog'
+import { ExamTimeWarningDialog } from '../../../components/common/ExamTimeWarningDialog'
+import { useExamTimeWarning } from '../../../hooks/useExamTimeWarning'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { Spinner } from '../../../components/ui/Spinner'
 import { getApiErrorMessage } from '../../../lib/apiError'
@@ -31,7 +32,7 @@ export function ExamTakePage() {
   const [submittedExam, setSubmittedExam] = useState<ExamTakeItem | null>(null)
   const [answers, setAnswers] = useState<Record<number, string | string[]>>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const [now, setNow] = useState(Date.now())
+  const [now, setNow] = useState(() => Date.now())
   const autoSubmittedRef = useRef(false)
 
   const takeQuery = useTakeExam(examId, !result)

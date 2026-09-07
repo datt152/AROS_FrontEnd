@@ -91,7 +91,6 @@ export function ExamForm({
   subjectOptions,
   questionOptions,
   topicOptions = [],
-  classroomOptions: _classroomOptions,
   isSubmitting = false,
   submitError = null,
   onSubjectChange,
@@ -346,7 +345,8 @@ export function ExamForm({
                 disabled={isSubmitting}
                 onChange={(event) => {
                   const next = event.target.value === '' ? '' : Number(event.target.value)
-                  mode === 'create' ? updateCreateField('duration', next) : updateUpdateField('duration', next)
+                  if (mode === 'create') updateCreateField('duration', next)
+                  else updateUpdateField('duration', next)
                 }}
               />
               {errors.duration ? <p className="text-sm text-red-500">{errors.duration}</p> : null}
@@ -370,7 +370,8 @@ export function ExamForm({
                 disabled={isSubmitting}
                 onChange={(event) => {
                   const next = event.target.value as ExamMode | ''
-                  mode === 'create' ? updateCreateField('examMode', next) : updateUpdateField('examMode', next)
+                  if (mode === 'create') updateCreateField('examMode', next)
+                  else updateUpdateField('examMode', next)
                 }}
                 className={selectClassName(Boolean(errors.examMode))}
               >
@@ -390,7 +391,8 @@ export function ExamForm({
                 disabled={isSubmitting}
                 onChange={(event) => {
                   const next = event.target.value === '' ? '' : Number(event.target.value)
-                  mode === 'create' ? updateCreateField('subjectId', next) : updateUpdateField('subjectId', next)
+                  if (mode === 'create') updateCreateField('subjectId', next)
+                  else updateUpdateField('subjectId', next)
                 }}
                 className={selectClassName(Boolean(errors.subjectId))}
               >
