@@ -189,7 +189,7 @@ export function ExamTemplateListPage() {
         </div>
         <Button onClick={openCreate} className="w-full sm:w-auto">
           <Plus className="h-4 w-4" strokeWidth={2} />
-          Tạo template
+          Tạo đề mẫu
         </Button>
       </div>
 
@@ -239,7 +239,7 @@ export function ExamTemplateListPage() {
           action={
             <Button onClick={openCreate}>
               <Plus className="h-4 w-4" strokeWidth={2} />
-              Tạo template
+              Tạo đề mẫu
             </Button>
           }
         />
@@ -328,7 +328,7 @@ export function ExamTemplateListPage() {
                   {modalMode === 'create' ? 'Tạo mới' : 'Chỉnh sửa'}
                 </p>
                 <h2 className="mt-1 text-lg font-semibold text-slate-900">
-                  {modalMode === 'create' ? 'Tạo template' : 'Sửa template'}
+                  {modalMode === 'create' ? 'Tạo đề mẫu' : 'Sửa đề mẫu'}
                 </h2>
               </div>
               <button

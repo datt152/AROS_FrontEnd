@@ -38,7 +38,6 @@ export function TopicItem({ topic, onOpen, onEdit, onHide }: TopicItemProps) {
         </div>
         <div className="mt-auto flex items-center justify-between gap-2 pt-2 text-sm text-slate-500">
           <span>{topic.questionCount} câu hỏi</span>
-          <span className="text-xs text-slate-400">Thứ tự {topic.displayOrder}</span>
         </div>
       </button>
 

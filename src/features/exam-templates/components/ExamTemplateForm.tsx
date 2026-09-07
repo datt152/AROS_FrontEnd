@@ -227,7 +227,7 @@ export function ExamTemplateForm({
               ? 'Đang tạo...'
               : 'Đang lưu...'
             : mode === 'create'
-              ? 'Tạo template'
+              ? 'Tạo đề mẫu'
               : 'Lưu thay đổi'}
         </Button>
       </div>

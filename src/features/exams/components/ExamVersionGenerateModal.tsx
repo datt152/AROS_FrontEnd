@@ -160,17 +160,6 @@ export function ExamVersionGenerateModal({
             </div>
           )}
 
-          <label className="flex cursor-pointer items-center gap-2.5 text-sm text-slate-700">
-            <input
-              type="checkbox"
-              checked={values.replaceExisting}
-              disabled={isSubmitting}
-              onChange={(event) => setValues((current) => ({ ...current, replaceExisting: event.target.checked }))}
-              className="h-4 w-4 rounded border-slate-300 text-blue-600"
-            />
-            Ghi đè mã trùng (replaceExisting)
-          </label>
-
           <div className="flex gap-2 pt-1">
             <Button type="button" variant="secondary" className="flex-1" disabled={isSubmitting} onClick={onClose}>
               Hủy

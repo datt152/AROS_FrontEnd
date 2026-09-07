@@ -44,20 +44,17 @@ export function TopicForm({
 
     const nextErrors: TopicFormErrors = {}
     if (!values.name.trim()) nextErrors.name = 'Vui lòng nhập tên chủ đề'
-    if (values.displayOrder === '' || Number(values.displayOrder) < 0) {
-      nextErrors.displayOrder = 'Thứ tự phải ≥ 0'
-    }
 
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) {
-      focusFirstFormError(nextErrors, ['name', 'displayOrder'])
+      focusFirstFormError(nextErrors, ['name'])
       return
     }
 
     await onSubmit({
       name: values.name.trim(),
       description: values.description.trim(),
-      displayOrder: Number(values.displayOrder),
+      displayOrder: Number(values.displayOrder) || 1,
       isActive: values.isActive,
     })
   }
@@ -96,24 +93,6 @@ export function TopicForm({
           onChange={(event) => updateField('description', event.target.value)}
           className="w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 disabled:opacity-60"
         />
-      </div>
-
-      <div className="space-y-1.5">
-        <label htmlFor="displayOrder" className="text-sm font-medium text-slate-700">
-          Thứ tự hiển thị
-        </label>
-        <Input
-          id="displayOrder"
-          type="number"
-          min={0}
-          value={values.displayOrder}
-          hasError={Boolean(errors.displayOrder)}
-          disabled={isSubmitting}
-          onChange={(event) =>
-            updateField('displayOrder', event.target.value === '' ? '' : Number(event.target.value))
-          }
-        />
-        {errors.displayOrder ? <p className="text-sm text-red-500">{errors.displayOrder}</p> : null}
       </div>
 
       {mode === 'edit' ? (
