@@ -9,6 +9,7 @@ import {
   getClassrooms,
   getClassroomStudents,
   getMyClasses,
+  importClassroomStudents,
   removeStudentFromClass,
   updateClassroom,
   updateClassroomStudentCode,
@@ -139,6 +140,18 @@ export function useUpdateClassroomStudentCode() {
       studentId: number
       studentCode: string
     }) => updateClassroomStudentCode(classroomId, studentId, { studentCode }),
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({ queryKey: classroomKeys.students(variables.classroomId) })
+    },
+  })
+}
+
+export function useImportClassroomStudents() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ classroomId, file }: { classroomId: number; file: File }) =>
+      importClassroomStudents(classroomId, file),
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({ queryKey: classroomKeys.students(variables.classroomId) })
     },

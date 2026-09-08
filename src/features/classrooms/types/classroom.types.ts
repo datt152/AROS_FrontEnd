@@ -67,6 +67,24 @@ export type UpdateClassroomStudentCodePayload = {
   studentCode: string
 }
 
+/** POST /v1/classes/{id}/students/import — StudentImportResultResponse */
+export type StudentImportRowResult = {
+  row: number
+  email: string
+  fullName: string
+  studentCode: string | null
+  message: string
+}
+
+export type StudentImportResult = {
+  total: number
+  success: number
+  failed: number
+  skipped: number
+  errors: StudentImportRowResult[]
+  successes: StudentImportRowResult[]
+}
+
 /** Matches EnrollStudentRequest from backend */
 export type EnrollStudentPayload = {
   studentEmails: string[]

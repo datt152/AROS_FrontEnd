@@ -1,5 +1,5 @@
-import { FileSpreadsheet, Pencil, Trash2, UserPlus, X } from 'lucide-react'
-import { useState } from 'react'
+import { Download, FileSpreadsheet, Pencil, Trash2, UserPlus, X } from 'lucide-react'
+import { useRef, useState } from 'react'
 
 import { Button } from '../../../components/ui/Button'
 import { EmptyState } from '../../../components/ui/EmptyState'
@@ -9,6 +9,7 @@ import type {
   ClassroomItem,
   ClassroomStudent,
   EnrollStudentFormErrors,
+  StudentImportResult,
 } from '../types/classroom.types'
 
 type ClassroomStudentsPanelProps = {
@@ -22,15 +23,21 @@ type ClassroomStudentsPanelProps = {
   isRemoving?: boolean
   isUpdatingStudentCode?: boolean
   updateStudentCodeError?: string | null
+  isImporting?: boolean
+  importError?: string | null
+  importResult?: StudentImportResult | null
   onClose: () => void
   onEnroll: (studentEmails: string[]) => void | Promise<void>
   onRemove: (student: ClassroomStudent) => void | Promise<void>
   onUpdateStudentCode: (student: ClassroomStudent, studentCode: string) => void | Promise<void>
   onBeginEditStudentCode?: () => void
+  onImportFile: (file: File) => void | Promise<void>
+  onClearImportResult?: () => void
 }
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const STUDENT_CODE_PATTERN = /^\d{8}$/
+const STUDENT_IMPORT_TEMPLATE_URL = '/templates/students-import.xlsx'
 
 export function ClassroomStudentsPanel({
   classroom,
@@ -43,18 +50,26 @@ export function ClassroomStudentsPanel({
   isRemoving = false,
   isUpdatingStudentCode = false,
   updateStudentCodeError = null,
+  isImporting = false,
+  importError = null,
+  importResult = null,
   onClose,
   onEnroll,
   onRemove,
   onUpdateStudentCode,
   onBeginEditStudentCode,
+  onImportFile,
+  onClearImportResult,
 }: ClassroomStudentsPanelProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [studentEmailsText, setStudentEmailsText] = useState('')
   const [errors, setErrors] = useState<EnrollStudentFormErrors>({})
   const [removingStudent, setRemovingStudent] = useState<ClassroomStudent | null>(null)
   const [editingStudent, setEditingStudent] = useState<ClassroomStudent | null>(null)
   const [editCode, setEditCode] = useState('')
   const [editCodeError, setEditCodeError] = useState<string | undefined>()
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null)
+  const [localImportError, setLocalImportError] = useState<string | null>(null)
 
   async function handleEnroll(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -127,6 +142,27 @@ export function ClassroomStudentsPanel({
     }
   }
 
+  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+
+    if (!file.name.toLowerCase().endsWith('.xlsx')) {
+      setSelectedFileName(null)
+      setLocalImportError('Chỉ chấp nhận file .xlsx')
+      onClearImportResult?.()
+      return
+    }
+
+    setLocalImportError(null)
+    setSelectedFileName(file.name)
+    try {
+      await onImportFile(file)
+    } catch {
+      // Error surfaced via importError
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40">
       <button type="button" className="flex-1 cursor-default" aria-label="Đóng bảng" onClick={onClose} />
@@ -151,11 +187,118 @@ export function ClassroomStudentsPanel({
         </div>
 
         <div className="space-y-5 overflow-y-auto px-5 py-4">
+          <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+            <div>
+              <p className="text-sm font-medium text-slate-800">Nhập Excel</p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                File <span className="font-medium">.xlsx</span> — cột A email, B họ tên, C MSSV (tuỳ chọn, 8 số). Tối đa
+                500 dòng.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <a
+                href={STUDENT_IMPORT_TEMPLATE_URL}
+                download="mau-import-sinh-vien.xlsx"
+                className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
+              >
+                <Download className="h-3.5 w-3.5" strokeWidth={1.75} />
+                Tải mẫu
+              </a>
+              <Button
+                variant="secondary"
+                className="h-9"
+                disabled={isImporting}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <FileSpreadsheet className="h-3.5 w-3.5" strokeWidth={1.75} />
+                {isImporting ? 'Đang import...' : 'Chọn file .xlsx'}
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                className="hidden"
+                onChange={(event) => void handleFileChange(event)}
+              />
+            </div>
+
+            {selectedFileName ? (
+              <p className="truncate text-xs text-slate-500">
+                Đã chọn: <span className="font-medium text-slate-700">{selectedFileName}</span>
+              </p>
+            ) : null}
+
+            {localImportError || importError ? (
+              <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                {localImportError || importError}
+              </p>
+            ) : null}
+
+            {importResult ? (
+              <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm font-medium text-slate-800">Kết quả import</p>
+                  <button
+                    type="button"
+                    className="text-xs font-medium text-slate-500 hover:text-slate-700"
+                    onClick={() => {
+                      setSelectedFileName(null)
+                      setLocalImportError(null)
+                      onClearImportResult?.()
+                    }}
+                  >
+                    Đóng
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                  <StatChip label="Tổng" value={importResult.total} />
+                  <StatChip label="Thành công" value={importResult.success} tone="success" />
+                  <StatChip label="Bỏ qua" value={importResult.skipped} tone="muted" />
+                  <StatChip label="Lỗi" value={importResult.failed} tone="danger" />
+                </div>
+
+                {importResult.errors.length > 0 ? (
+                  <div className="max-h-40 space-y-2 overflow-y-auto">
+                    <p className="text-xs font-medium text-red-700">Chi tiết lỗi</p>
+                    {importResult.errors.map((item) => (
+                      <div
+                        key={`err-${item.row}-${item.email}`}
+                        className="rounded-lg border border-red-100 bg-red-50/80 px-2.5 py-2 text-xs text-red-800"
+                      >
+                        <p className="font-medium">
+                          Dòng {item.row}
+                          {item.email ? ` · ${item.email}` : ''}
+                        </p>
+                        <p className="mt-0.5 text-red-700">{item.message}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+
+                {importResult.successes.length > 0 ? (
+                  <details className="text-xs text-slate-600">
+                    <summary className="cursor-pointer font-medium text-slate-700">
+                      Chi tiết thành công / bỏ qua ({importResult.successes.length})
+                    </summary>
+                    <ul className="mt-2 max-h-32 space-y-1.5 overflow-y-auto">
+                      {importResult.successes.map((item) => (
+                        <li
+                          key={`ok-${item.row}-${item.email}`}
+                          className="rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-1.5"
+                        >
+                          Dòng {item.row}
+                          {item.email ? ` · ${item.email}` : ''}: {item.message}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" className="h-9" disabled title="Sắp ra mắt — backend chưa sẵn sàng">
-              <FileSpreadsheet className="h-3.5 w-3.5" strokeWidth={1.75} />
-              Nhập Excel
-            </Button>
             <Button variant="secondary" className="h-9" disabled title="Sắp ra mắt — backend chưa sẵn sàng">
               <UserPlus className="h-3.5 w-3.5" strokeWidth={1.75} />
               Tạo tài khoản hàng loạt
@@ -216,7 +359,7 @@ export function ClassroomStudentsPanel({
             {!isLoadingStudents && !studentsError && students.length === 0 ? (
               <EmptyState
                 title="Chưa có sinh viên nào"
-                description="Ghi danh sinh viên bằng email, hoặc dùng Nhập Excel khi có sẵn."
+                description="Ghi danh bằng email hoặc dùng Nhập Excel với file .xlsx."
               />
             ) : null}
 
@@ -362,6 +505,32 @@ export function ClassroomStudentsPanel({
           </div>
         </div>
       ) : null}
+    </div>
+  )
+}
+
+function StatChip({
+  label,
+  value,
+  tone = 'default',
+}: {
+  label: string
+  value: number
+  tone?: 'default' | 'success' | 'danger' | 'muted'
+}) {
+  const toneClass =
+    tone === 'success'
+      ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+      : tone === 'danger'
+        ? 'border-red-200 bg-red-50 text-red-800'
+        : tone === 'muted'
+          ? 'border-slate-200 bg-slate-50 text-slate-600'
+          : 'border-slate-200 bg-white text-slate-800'
+
+  return (
+    <div className={`rounded-xl border px-2.5 py-2 ${toneClass}`}>
+      <p className="text-[11px] uppercase tracking-wide opacity-80">{label}</p>
+      <p className="mt-0.5 text-base font-semibold tabular-nums">{value}</p>
     </div>
   )
 }

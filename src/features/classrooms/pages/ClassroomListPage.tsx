@@ -62,9 +62,15 @@ import {
 
   useUpdateClassroomStudentCode,
 
+  useImportClassroomStudents,
+
 } from '../hooks/useClassrooms'
 
-import type { ClassroomFormSubmit, ClassroomItem as ClassroomItemType } from '../types/classroom.types'
+import type {
+  ClassroomFormSubmit,
+  ClassroomItem as ClassroomItemType,
+  StudentImportResult,
+} from '../types/classroom.types'
 
 
 
@@ -92,6 +98,8 @@ export function ClassroomListPage() {
 
   const updateStudentCode = useUpdateClassroomStudentCode()
 
+  const importStudents = useImportClassroomStudents()
+
 
 
   const [modalMode, setModalMode] = useState<ModalMode>(null)
@@ -109,6 +117,10 @@ export function ClassroomListPage() {
   const [enrollError, setEnrollError] = useState<string | null>(null)
 
   const [studentCodeError, setStudentCodeError] = useState<string | null>(null)
+
+  const [importError, setImportError] = useState<string | null>(null)
+
+  const [importResult, setImportResult] = useState<StudentImportResult | null>(null)
 
 
 
@@ -320,6 +332,40 @@ export function ClassroomListPage() {
 
 
 
+  async function handleImportStudents(file: File) {
+
+    if (!managingClassroom) return
+
+    setImportError(null)
+
+    setImportResult(null)
+
+
+
+    try {
+
+      const result = await importStudents.mutateAsync({
+
+        classroomId: managingClassroom.id,
+
+        file,
+
+      })
+
+      setImportResult(result)
+
+    } catch (error) {
+
+      setImportError(getApiErrorMessage(error, 'Không thể import file Excel'))
+
+      throw error
+
+    }
+
+  }
+
+
+
   return (
 
     <section className="space-y-5">
@@ -512,6 +558,10 @@ export function ClassroomListPage() {
 
                       setStudentCodeError(null)
 
+                      setImportError(null)
+
+                      setImportResult(null)
+
                       setManagingClassroom(item)
 
                     }}
@@ -702,6 +752,12 @@ export function ClassroomListPage() {
 
           updateStudentCodeError={studentCodeError}
 
+          isImporting={importStudents.isPending}
+
+          importError={importError}
+
+          importResult={importResult}
+
           onClose={() => setManagingClassroom(null)}
 
           onEnroll={handleEnroll}
@@ -711,6 +767,16 @@ export function ClassroomListPage() {
           onUpdateStudentCode={(student, code) => handleUpdateStudentCode(student.id, code)}
 
           onBeginEditStudentCode={() => setStudentCodeError(null)}
+
+          onImportFile={handleImportStudents}
+
+          onClearImportResult={() => {
+
+            setImportResult(null)
+
+            setImportError(null)
+
+          }}
 
         />
 

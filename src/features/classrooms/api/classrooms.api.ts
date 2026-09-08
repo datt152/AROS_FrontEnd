@@ -5,6 +5,8 @@ import type {
   ClassroomStudent,
   ClassroomUpdatePayload,
   EnrollStudentPayload,
+  StudentImportResult,
+  StudentImportRowResult,
 } from '../types/classroom.types'
 
 type ClassroomDto = {
@@ -186,4 +188,71 @@ export async function updateClassroomStudentCode(
     studentCode: payload.studentCode.trim(),
     missingStudentCode: !payload.studentCode.trim(),
   } satisfies ClassroomStudent
+}
+
+type StudentImportRowDto = {
+  row?: number
+  email?: string
+  fullName?: string
+  studentCode?: string | null
+  message?: string
+}
+
+type StudentImportResultDto = {
+  total?: number
+  success?: number
+  failed?: number
+  skipped?: number
+  errors?: StudentImportRowDto[]
+  successes?: StudentImportRowDto[]
+}
+
+function normalizeImportRow(dto: StudentImportRowDto): StudentImportRowResult {
+  return {
+    row: dto.row ?? 0,
+    email: dto.email?.trim() ?? '',
+    fullName: dto.fullName?.trim() ?? '',
+    studentCode: dto.studentCode?.trim() || null,
+    message: dto.message?.trim() ?? '',
+  }
+}
+
+function normalizeImportResult(dto: StudentImportResultDto): StudentImportResult {
+  return {
+    total: dto.total ?? 0,
+    success: dto.success ?? 0,
+    failed: dto.failed ?? 0,
+    skipped: dto.skipped ?? 0,
+    errors: (dto.errors ?? []).map(normalizeImportRow),
+    successes: (dto.successes ?? []).map(normalizeImportRow),
+  }
+}
+
+/** POST multipart — part name must be `file` (.xlsx, max 500 data rows). */
+export async function importClassroomStudents(classroomId: number, file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await apiClient.post<StudentImportResultDto>(
+    `/v1/classes/${classroomId}/students/import`,
+    formData,
+    {
+      timeout: 60_000,
+      transformRequest: [
+        (data, headers) => {
+          // Drop default application/json so the browser sets multipart boundary.
+          if (data instanceof FormData) {
+            if (typeof headers.set === 'function') {
+              headers.set('Content-Type', false)
+            } else {
+              delete (headers as Record<string, unknown>)['Content-Type']
+            }
+          }
+          return data
+        },
+      ],
+    },
+  )
+
+  return normalizeImportResult(response.data ?? {})
 }
