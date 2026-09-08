@@ -60,6 +60,8 @@ import {
 
   useUpdateClassroom,
 
+  useUpdateClassroomStudentCode,
+
 } from '../hooks/useClassrooms'
 
 import type { ClassroomFormSubmit, ClassroomItem as ClassroomItemType } from '../types/classroom.types'
@@ -88,6 +90,8 @@ export function ClassroomListPage() {
 
   const removeStudent = useRemoveStudentFromClass()
 
+  const updateStudentCode = useUpdateClassroomStudentCode()
+
 
 
   const [modalMode, setModalMode] = useState<ModalMode>(null)
@@ -103,6 +107,8 @@ export function ClassroomListPage() {
   const [hideError, setHideError] = useState<string | null>(null)
 
   const [enrollError, setEnrollError] = useState<string | null>(null)
+
+  const [studentCodeError, setStudentCodeError] = useState<string | null>(null)
 
 
 
@@ -277,6 +283,38 @@ export function ClassroomListPage() {
       studentId,
 
     })
+
+  }
+
+
+
+  async function handleUpdateStudentCode(studentId: number, studentCode: string) {
+
+    if (!managingClassroom) return
+
+    setStudentCodeError(null)
+
+
+
+    try {
+
+      await updateStudentCode.mutateAsync({
+
+        classroomId: managingClassroom.id,
+
+        studentId,
+
+        studentCode,
+
+      })
+
+    } catch (error) {
+
+      setStudentCodeError(getApiErrorMessage(error, 'Không thể cập nhật mã sinh viên'))
+
+      throw error
+
+    }
 
   }
 
@@ -472,6 +510,8 @@ export function ClassroomListPage() {
 
                       setEnrollError(null)
 
+                      setStudentCodeError(null)
+
                       setManagingClassroom(item)
 
                     }}
@@ -658,11 +698,19 @@ export function ClassroomListPage() {
 
           isRemoving={removeStudent.isPending}
 
+          isUpdatingStudentCode={updateStudentCode.isPending}
+
+          updateStudentCodeError={studentCodeError}
+
           onClose={() => setManagingClassroom(null)}
 
           onEnroll={handleEnroll}
 
           onRemove={(student) => void handleRemoveStudent(student.id)}
+
+          onUpdateStudentCode={(student, code) => handleUpdateStudentCode(student.id, code)}
+
+          onBeginEditStudentCode={() => setStudentCodeError(null)}
 
         />
 

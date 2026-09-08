@@ -27,17 +27,22 @@ type ClassroomStudentDto = {
   email?: string
   phone?: string
   studentCode?: string
+  missingStudentCode?: boolean
 }
 
 function normalizeStudent(dto: ClassroomStudentDto): ClassroomStudent | null {
   if (dto.id === undefined || !dto.fullName?.trim() || !dto.email?.trim()) return null
+
+  const studentCode = dto.studentCode?.trim() ?? ''
+  const missingStudentCode = dto.missingStudentCode ?? !studentCode
 
   return {
     id: dto.id,
     fullName: dto.fullName.trim(),
     email: dto.email.trim(),
     phone: dto.phone?.trim() ?? '',
-    studentCode: dto.studentCode?.trim() ?? '',
+    studentCode,
+    missingStudentCode,
   }
 }
 
@@ -159,4 +164,26 @@ export async function enrollStudents(classroomId: number, payload: EnrollStudent
 
 export async function removeStudentFromClass(classroomId: number, studentId: number) {
   await apiClient.delete(`/v1/classes/${classroomId}/students/${studentId}`)
+}
+
+export async function updateClassroomStudentCode(
+  classroomId: number,
+  studentId: number,
+  payload: { studentCode: string },
+) {
+  const response = await apiClient.patch<ClassroomStudentDto>(
+    `/v1/classes/${classroomId}/students/${studentId}/student-code`,
+    payload,
+  )
+  const student = normalizeStudent(response.data)
+  if (student) return student
+
+  return {
+    id: studentId,
+    fullName: '',
+    email: '',
+    phone: '',
+    studentCode: payload.studentCode.trim(),
+    missingStudentCode: !payload.studentCode.trim(),
+  } satisfies ClassroomStudent
 }

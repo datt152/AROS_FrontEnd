@@ -27,6 +27,7 @@ import { SubmissionHistoryPage } from '../features/submissions/pages/SubmissionH
 import { GuestRoute } from './GuestRoute'
 import { ProtectedRoute } from './ProtectedRoute'
 import { RoleRoute } from './RoleRoute'
+import { StudentProfileGate } from './StudentProfileGate'
 import { ROUTES, STUDENT_PATHS, TEACHER_PATHS } from './routes.config'
 
 function teacherPageForPath(path: string) {
@@ -91,11 +92,16 @@ export const router = createBrowserRouter([
             element: <RoleRoute allowedRoles={['student']} />,
             children: [
               {
-                element: <StudentLayout />,
-                children: STUDENT_PATHS.map((path) => ({
-                  path,
-                  element: studentPageForPath(path),
-                })),
+                element: <StudentProfileGate />,
+                children: [
+                  {
+                    element: <StudentLayout />,
+                    children: STUDENT_PATHS.map((path) => ({
+                      path,
+                      element: studentPageForPath(path),
+                    })),
+                  },
+                ],
               },
             ],
           },

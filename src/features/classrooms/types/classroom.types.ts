@@ -60,6 +60,11 @@ export type ClassroomStudent = {
   email: string
   phone: string
   studentCode: string
+  missingStudentCode: boolean
+}
+
+export type UpdateClassroomStudentCodePayload = {
+  studentCode: string
 }
 
 /** Matches EnrollStudentRequest from backend */

@@ -11,6 +11,7 @@ import {
   getMyClasses,
   removeStudentFromClass,
   updateClassroom,
+  updateClassroomStudentCode,
 } from '../api/classrooms.api'
 import type { ClassroomCreatePayload, ClassroomUpdatePayload, EnrollStudentPayload } from '../types/classroom.types'
 
@@ -119,6 +120,25 @@ export function useRemoveStudentFromClass() {
   return useMutation({
     mutationFn: ({ classroomId, studentId }: { classroomId: number; studentId: number }) =>
       removeStudentFromClass(classroomId, studentId),
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({ queryKey: classroomKeys.students(variables.classroomId) })
+    },
+  })
+}
+
+export function useUpdateClassroomStudentCode() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      classroomId,
+      studentId,
+      studentCode,
+    }: {
+      classroomId: number
+      studentId: number
+      studentCode: string
+    }) => updateClassroomStudentCode(classroomId, studentId, { studentCode }),
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({ queryKey: classroomKeys.students(variables.classroomId) })
     },
