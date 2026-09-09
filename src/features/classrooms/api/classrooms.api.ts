@@ -4,6 +4,10 @@ import type {
   ClassroomItem,
   ClassroomStudent,
   ClassroomUpdatePayload,
+  CreateStudentAccountsPayload,
+  CreateStudentAccountsResult,
+  CreateStudentAccountRowResult,
+  CreateStudentAccountStatus,
   EnrollStudentPayload,
   StudentImportResult,
   StudentImportRowResult,
@@ -30,6 +34,7 @@ type ClassroomStudentDto = {
   phone?: string
   studentCode?: string
   missingStudentCode?: boolean
+  hasAccount?: boolean
 }
 
 function normalizeStudent(dto: ClassroomStudentDto): ClassroomStudent | null {
@@ -45,6 +50,7 @@ function normalizeStudent(dto: ClassroomStudentDto): ClassroomStudent | null {
     phone: dto.phone?.trim() ?? '',
     studentCode,
     missingStudentCode,
+    hasAccount: dto.hasAccount ?? false,
   }
 }
 
@@ -187,6 +193,7 @@ export async function updateClassroomStudentCode(
     phone: '',
     studentCode: payload.studentCode.trim(),
     missingStudentCode: !payload.studentCode.trim(),
+    hasAccount: false,
   } satisfies ClassroomStudent
 }
 
@@ -255,4 +262,65 @@ export async function importClassroomStudents(classroomId: number, file: File) {
   )
 
   return normalizeImportResult(response.data ?? {})
+}
+
+type CreateStudentAccountRowDto = {
+  studentId?: number
+  email?: string
+  fullName?: string
+  status?: string
+  message?: string
+}
+
+type CreateStudentAccountsResultDto = {
+  total?: number
+  created?: number
+  skipped?: number
+  failed?: number
+  mailQueued?: number
+  results?: CreateStudentAccountRowDto[]
+}
+
+function normalizeAccountStatus(value: string | undefined): CreateStudentAccountStatus {
+  const upper = value?.toUpperCase()
+  if (upper === 'CREATED' || upper === 'SKIPPED' || upper === 'FAILED') return upper
+  return 'FAILED'
+}
+
+function normalizeCreateAccountRow(dto: CreateStudentAccountRowDto): CreateStudentAccountRowResult {
+  return {
+    studentId: dto.studentId ?? 0,
+    email: dto.email?.trim() ?? '',
+    fullName: dto.fullName?.trim() ?? '',
+    status: normalizeAccountStatus(dto.status),
+    message: dto.message?.trim() ?? '',
+  }
+}
+
+function normalizeCreateAccountsResult(dto: CreateStudentAccountsResultDto): CreateStudentAccountsResult {
+  return {
+    total: dto.total ?? 0,
+    created: dto.created ?? 0,
+    skipped: dto.skipped ?? 0,
+    failed: dto.failed ?? 0,
+    mailQueued: dto.mailQueued ?? 0,
+    results: (dto.results ?? []).map(normalizeCreateAccountRow),
+  }
+}
+
+/** POST — body `{}` = all without account; `{ studentIds }` = selected only. */
+export async function createClassroomStudentAccounts(
+  classroomId: number,
+  payload: CreateStudentAccountsPayload = {},
+) {
+  const body =
+    payload.studentIds && payload.studentIds.length > 0 ? { studentIds: payload.studentIds } : {}
+
+  const response = await apiClient.post<CreateStudentAccountsResultDto>(
+    `/v1/classes/${classroomId}/students/create-accounts`,
+    body,
+    { timeout: 60_000 },
+  )
+
+  return normalizeCreateAccountsResult(response.data ?? {})
 }

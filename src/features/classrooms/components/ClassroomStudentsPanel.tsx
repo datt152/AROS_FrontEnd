@@ -1,5 +1,5 @@
 import { Download, FileSpreadsheet, Pencil, Trash2, UserPlus, X } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { Button } from '../../../components/ui/Button'
 import { EmptyState } from '../../../components/ui/EmptyState'
@@ -8,9 +8,12 @@ import { Spinner } from '../../../components/ui/Spinner'
 import type {
   ClassroomItem,
   ClassroomStudent,
+  CreateStudentAccountsResult,
   EnrollStudentFormErrors,
   StudentImportResult,
 } from '../types/classroom.types'
+
+type CreateAccountsMode = 'selected' | 'all'
 
 type ClassroomStudentsPanelProps = {
   classroom: ClassroomItem
@@ -26,6 +29,9 @@ type ClassroomStudentsPanelProps = {
   isImporting?: boolean
   importError?: string | null
   importResult?: StudentImportResult | null
+  isCreatingAccounts?: boolean
+  createAccountsError?: string | null
+  createAccountsResult?: CreateStudentAccountsResult | null
   onClose: () => void
   onEnroll: (studentEmails: string[]) => void | Promise<void>
   onRemove: (student: ClassroomStudent) => void | Promise<void>
@@ -33,6 +39,8 @@ type ClassroomStudentsPanelProps = {
   onBeginEditStudentCode?: () => void
   onImportFile: (file: File) => void | Promise<void>
   onClearImportResult?: () => void
+  onCreateAccounts: (studentIds?: number[]) => void | Promise<void>
+  onClearCreateAccountsResult?: () => void
 }
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -53,6 +61,9 @@ export function ClassroomStudentsPanel({
   isImporting = false,
   importError = null,
   importResult = null,
+  isCreatingAccounts = false,
+  createAccountsError = null,
+  createAccountsResult = null,
   onClose,
   onEnroll,
   onRemove,
@@ -60,6 +71,8 @@ export function ClassroomStudentsPanel({
   onBeginEditStudentCode,
   onImportFile,
   onClearImportResult,
+  onCreateAccounts,
+  onClearCreateAccountsResult,
 }: ClassroomStudentsPanelProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [studentEmailsText, setStudentEmailsText] = useState('')
@@ -70,6 +83,27 @@ export function ClassroomStudentsPanel({
   const [editCodeError, setEditCodeError] = useState<string | undefined>()
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null)
   const [localImportError, setLocalImportError] = useState<string | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [confirmCreate, setConfirmCreate] = useState<CreateAccountsMode | null>(null)
+
+  const withoutAccount = useMemo(() => students.filter((s) => !s.hasAccount), [students])
+  const withoutAccountIds = useMemo(() => new Set(withoutAccount.map((s) => s.id)), [withoutAccount])
+
+  useEffect(() => {
+    setSelectedIds((current) => {
+      const next = new Set<number>()
+      for (const id of current) {
+        if (withoutAccountIds.has(id)) next.add(id)
+      }
+      return next
+    })
+  }, [withoutAccountIds])
+
+  const selectedCount = selectedIds.size
+  const canCreateSelected = selectedCount > 0
+  const canCreateAll = withoutAccount.length > 0
+  const confirmCount =
+    confirmCreate === 'selected' ? selectedCount : confirmCreate === 'all' ? withoutAccount.length : 0
 
   async function handleEnroll(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -160,6 +194,41 @@ export function ClassroomStudentsPanel({
       await onImportFile(file)
     } catch {
       // Error surfaced via importError
+    }
+  }
+
+  function toggleSelect(studentId: number) {
+    setSelectedIds((current) => {
+      const next = new Set(current)
+      if (next.has(studentId)) next.delete(studentId)
+      else next.add(studentId)
+      return next
+    })
+  }
+
+  function toggleSelectAllWithoutAccount() {
+    if (selectedCount === withoutAccount.length) {
+      setSelectedIds(new Set())
+      return
+    }
+    setSelectedIds(new Set(withoutAccount.map((s) => s.id)))
+  }
+
+  async function confirmCreateAccounts() {
+    if (!confirmCreate) return
+    const mode = confirmCreate
+    setConfirmCreate(null)
+
+    try {
+      if (mode === 'selected') {
+        await onCreateAccounts([...selectedIds])
+        setSelectedIds(new Set())
+      } else {
+        await onCreateAccounts()
+        setSelectedIds(new Set())
+      }
+    } catch {
+      // Error surfaced via createAccountsError
     }
   }
 
@@ -298,11 +367,106 @@ export function ClassroomStudentsPanel({
             ) : null}
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" className="h-9" disabled title="Sắp ra mắt — backend chưa sẵn sàng">
-              <UserPlus className="h-3.5 w-3.5" strokeWidth={1.75} />
-              Tạo tài khoản hàng loạt
-            </Button>
+          <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+            <div>
+              <p className="text-sm font-medium text-slate-800">Tạo tài khoản hàng loạt</p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                BE tạo mật khẩu tạm và xếp hàng gửi email. Không cần MSSV. Email có thể vào spam.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="secondary"
+                className="h-9"
+                disabled={!canCreateSelected || isCreatingAccounts}
+                onClick={() => setConfirmCreate('selected')}
+              >
+                <UserPlus className="h-3.5 w-3.5" strokeWidth={1.75} />
+                Tạo đã chọn ({selectedCount})
+              </Button>
+              <Button
+                className="h-9"
+                disabled={!canCreateAll || isCreatingAccounts}
+                onClick={() => setConfirmCreate('all')}
+              >
+                <UserPlus className="h-3.5 w-3.5" strokeWidth={1.75} />
+                {isCreatingAccounts ? 'Đang tạo...' : `Tạo tất cả chưa có (${withoutAccount.length})`}
+              </Button>
+            </div>
+
+            {createAccountsError ? (
+              <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                {createAccountsError}
+              </p>
+            ) : null}
+
+            {createAccountsResult ? (
+              <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm font-medium text-slate-800">Kết quả tạo tài khoản</p>
+                  <button
+                    type="button"
+                    className="text-xs font-medium text-slate-500 hover:text-slate-700"
+                    onClick={() => onClearCreateAccountsResult?.()}
+                  >
+                    Đóng
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
+                  <StatChip label="Tổng" value={createAccountsResult.total} />
+                  <StatChip label="Đã tạo" value={createAccountsResult.created} tone="success" />
+                  <StatChip label="Bỏ qua" value={createAccountsResult.skipped} tone="muted" />
+                  <StatChip label="Lỗi" value={createAccountsResult.failed} tone="danger" />
+                  <StatChip label="Mail xếp hàng" value={createAccountsResult.mailQueued} tone="info" />
+                </div>
+
+                {createAccountsResult.results.some((r) => r.status === 'FAILED') ? (
+                  <div className="max-h-40 space-y-2 overflow-y-auto">
+                    <p className="text-xs font-medium text-red-700">Chi tiết lỗi</p>
+                    {createAccountsResult.results
+                      .filter((r) => r.status === 'FAILED')
+                      .map((item) => (
+                        <div
+                          key={`fail-${item.studentId}-${item.email}`}
+                          className="rounded-lg border border-red-100 bg-red-50/80 px-2.5 py-2 text-xs text-red-800"
+                        >
+                          <p className="font-medium">
+                            {item.fullName || '—'}
+                            {item.email ? ` · ${item.email}` : ''}
+                          </p>
+                          <p className="mt-0.5 text-red-700">{item.message}</p>
+                        </div>
+                      ))}
+                  </div>
+                ) : null}
+
+                {createAccountsResult.results.length > 0 ? (
+                  <details className="text-xs text-slate-600">
+                    <summary className="cursor-pointer font-medium text-slate-700">
+                      Chi tiết tất cả ({createAccountsResult.results.length})
+                    </summary>
+                    <ul className="mt-2 max-h-36 space-y-1.5 overflow-y-auto">
+                      {createAccountsResult.results.map((item) => (
+                        <li
+                          key={`res-${item.studentId}-${item.status}-${item.email}`}
+                          className={`rounded-lg border px-2.5 py-1.5 ${
+                            item.status === 'FAILED'
+                              ? 'border-red-100 bg-red-50 text-red-800'
+                              : item.status === 'CREATED'
+                                ? 'border-emerald-100 bg-emerald-50 text-emerald-800'
+                                : 'border-slate-100 bg-slate-50'
+                          }`}
+                        >
+                          <span className="font-medium">{item.status}</span>
+                          {' · '}
+                          {item.fullName || item.email || item.studentId}: {item.message}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                ) : null}
+              </div>
+            ) : null}
           </div>
 
           <form className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/60 p-4" onSubmit={handleEnroll}>
@@ -337,10 +501,21 @@ export function ClassroomStudentsPanel({
           </form>
 
           <div>
-            <div className="mb-3 flex items-center justify-between gap-2">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm font-medium text-slate-800">
                 Danh sách <span className="text-slate-400">({students.length})</span>
               </p>
+              {withoutAccount.length > 0 ? (
+                <button
+                  type="button"
+                  className="text-xs font-medium text-blue-600 hover:text-blue-700"
+                  onClick={toggleSelectAllWithoutAccount}
+                >
+                  {selectedCount === withoutAccount.length
+                    ? 'Bỏ chọn tất cả chưa có account'
+                    : 'Chọn tất cả chưa có account'}
+                </button>
+              ) : null}
             </div>
 
             {isLoadingStudents ? <Spinner label="Đang tải sinh viên..." className="py-8" /> : null}
@@ -367,14 +542,27 @@ export function ClassroomStudentsPanel({
               <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200">
                 {students.map((student) => {
                   const missing = student.missingStudentCode
+                  const needsAccount = !student.hasAccount
                   return (
                     <li
                       key={student.id}
-                      className={`flex items-center justify-between gap-3 px-3 py-3 ${
-                        missing ? 'border-l-4 border-l-amber-400 bg-amber-50/70' : 'hover:bg-slate-50/70'
+                      className={`flex items-start gap-2 px-3 py-3 ${
+                        missing || needsAccount
+                          ? 'border-l-4 border-l-amber-400 bg-amber-50/70'
+                          : 'hover:bg-slate-50/70'
                       }`}
                     >
-                      <div className="min-w-0">
+                      <div className="pt-0.5">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/30 disabled:opacity-40"
+                          checked={selectedIds.has(student.id)}
+                          disabled={!needsAccount || isCreatingAccounts}
+                          aria-label={`Chọn ${student.fullName}`}
+                          onChange={() => toggleSelect(student.id)}
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="truncate text-sm font-medium text-slate-900">{student.fullName}</p>
                           {missing ? (
@@ -382,6 +570,15 @@ export function ClassroomStudentsPanel({
                               Thiếu MSSV
                             </span>
                           ) : null}
+                          {needsAccount ? (
+                            <span className="inline-flex rounded-lg border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-800">
+                              Chưa có account
+                            </span>
+                          ) : (
+                            <span className="inline-flex rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                              Đã có account
+                            </span>
+                          )}
                         </div>
                         <p className="mt-0.5 truncate text-xs text-slate-600">
                           MSSV:{' '}
@@ -422,6 +619,34 @@ export function ClassroomStudentsPanel({
           </div>
         </div>
       </aside>
+
+      {confirmCreate ? (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/40 px-4">
+          <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
+            <h3 className="text-base font-semibold text-slate-900">Tạo tài khoản?</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              Tạo tài khoản và gửi email mật khẩu tạm cho{' '}
+              <span className="font-medium text-slate-900">{confirmCount}</span> sinh viên?
+            </p>
+            <p className="mt-2 text-xs text-slate-500">
+              Email gửi bất đồng bộ — có thể vào spam. Không đợi gửi xong trong request này.
+            </p>
+            <div className="mt-5 flex gap-2">
+              <Button
+                variant="secondary"
+                className="flex-1"
+                disabled={isCreatingAccounts}
+                onClick={() => setConfirmCreate(null)}
+              >
+                Hủy
+              </Button>
+              <Button className="flex-1" disabled={isCreatingAccounts} onClick={() => void confirmCreateAccounts()}>
+                {isCreatingAccounts ? 'Đang tạo...' : 'Xác nhận'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {removingStudent ? (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/40 px-4">
@@ -516,7 +741,7 @@ function StatChip({
 }: {
   label: string
   value: number
-  tone?: 'default' | 'success' | 'danger' | 'muted'
+  tone?: 'default' | 'success' | 'danger' | 'muted' | 'info'
 }) {
   const toneClass =
     tone === 'success'
@@ -525,7 +750,9 @@ function StatChip({
         ? 'border-red-200 bg-red-50 text-red-800'
         : tone === 'muted'
           ? 'border-slate-200 bg-slate-50 text-slate-600'
-          : 'border-slate-200 bg-white text-slate-800'
+          : tone === 'info'
+            ? 'border-blue-200 bg-blue-50 text-blue-800'
+            : 'border-slate-200 bg-white text-slate-800'
 
   return (
     <div className={`rounded-xl border px-2.5 py-2 ${toneClass}`}>

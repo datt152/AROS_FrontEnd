@@ -1,4 +1,3 @@
-/** Matches ClassroomResponse from backend */
 export type ClassroomItem = {
   id: number
   className: string
@@ -8,12 +7,10 @@ export type ClassroomItem = {
   isActive: boolean
   subjectId: number
   subjectName: string
-  /** Có khi GET /v1/classes/my (sinh viên) */
   teacherName?: string
   teacherEmail?: string
 }
 
-/** POST /v1/classes — ClassroomRequest */
 export type ClassroomCreatePayload = {
   className: string
   description: string
@@ -23,7 +20,6 @@ export type ClassroomCreatePayload = {
   subjectId: number
 }
 
-/** PUT /v1/classes/{id} — ClassroomUpdateRequest (không có subjectId) */
 export type ClassroomUpdatePayload = {
   className: string
   description: string
@@ -53,7 +49,6 @@ export type ClassroomFormErrors = {
   subjectId?: string
 }
 
-/** Matches student item from GET /v1/classes/:id/students */
 export type ClassroomStudent = {
   id: number
   fullName: string
@@ -61,13 +56,36 @@ export type ClassroomStudent = {
   phone: string
   studentCode: string
   missingStudentCode: boolean
+  hasAccount: boolean
 }
 
 export type UpdateClassroomStudentCodePayload = {
   studentCode: string
 }
 
-/** POST /v1/classes/{id}/students/import — StudentImportResultResponse */
+export type CreateStudentAccountsPayload = {
+  studentIds?: number[]
+}
+
+export type CreateStudentAccountStatus = 'CREATED' | 'SKIPPED' | 'FAILED'
+
+export type CreateStudentAccountRowResult = {
+  studentId: number
+  email: string
+  fullName: string
+  status: CreateStudentAccountStatus
+  message: string
+}
+
+export type CreateStudentAccountsResult = {
+  total: number
+  created: number
+  skipped: number
+  failed: number
+  mailQueued: number
+  results: CreateStudentAccountRowResult[]
+}
+
 export type StudentImportRowResult = {
   row: number
   email: string
@@ -85,7 +103,6 @@ export type StudentImportResult = {
   successes: StudentImportRowResult[]
 }
 
-/** Matches EnrollStudentRequest from backend */
 export type EnrollStudentPayload = {
   studentEmails: string[]
 }
@@ -98,7 +115,6 @@ export type EnrollStudentFormErrors = {
   studentEmailsText?: string
 }
 
-/** Option for subject select (chỉ môn active) */
 export type SubjectOption = {
   id: number
   subjectName: string

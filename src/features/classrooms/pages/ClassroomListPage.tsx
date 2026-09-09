@@ -64,11 +64,14 @@ import {
 
   useImportClassroomStudents,
 
+  useCreateClassroomStudentAccounts,
+
 } from '../hooks/useClassrooms'
 
 import type {
   ClassroomFormSubmit,
   ClassroomItem as ClassroomItemType,
+  CreateStudentAccountsResult,
   StudentImportResult,
 } from '../types/classroom.types'
 
@@ -100,6 +103,8 @@ export function ClassroomListPage() {
 
   const importStudents = useImportClassroomStudents()
 
+  const createAccounts = useCreateClassroomStudentAccounts()
+
 
 
   const [modalMode, setModalMode] = useState<ModalMode>(null)
@@ -121,6 +126,10 @@ export function ClassroomListPage() {
   const [importError, setImportError] = useState<string | null>(null)
 
   const [importResult, setImportResult] = useState<StudentImportResult | null>(null)
+
+  const [createAccountsError, setCreateAccountsError] = useState<string | null>(null)
+
+  const [createAccountsResult, setCreateAccountsResult] = useState<CreateStudentAccountsResult | null>(null)
 
 
 
@@ -366,6 +375,40 @@ export function ClassroomListPage() {
 
 
 
+  async function handleCreateAccounts(studentIds?: number[]) {
+
+    if (!managingClassroom) return
+
+    setCreateAccountsError(null)
+
+    setCreateAccountsResult(null)
+
+
+
+    try {
+
+      const result = await createAccounts.mutateAsync({
+
+        classroomId: managingClassroom.id,
+
+        payload: studentIds && studentIds.length > 0 ? { studentIds } : {},
+
+      })
+
+      setCreateAccountsResult(result)
+
+    } catch (error) {
+
+      setCreateAccountsError(getApiErrorMessage(error, 'Không thể tạo tài khoản'))
+
+      throw error
+
+    }
+
+  }
+
+
+
   return (
 
     <section className="space-y-5">
@@ -561,6 +604,10 @@ export function ClassroomListPage() {
                       setImportError(null)
 
                       setImportResult(null)
+
+                      setCreateAccountsError(null)
+
+                      setCreateAccountsResult(null)
 
                       setManagingClassroom(item)
 
@@ -758,6 +805,12 @@ export function ClassroomListPage() {
 
           importResult={importResult}
 
+          isCreatingAccounts={createAccounts.isPending}
+
+          createAccountsError={createAccountsError}
+
+          createAccountsResult={createAccountsResult}
+
           onClose={() => setManagingClassroom(null)}
 
           onEnroll={handleEnroll}
@@ -775,6 +828,16 @@ export function ClassroomListPage() {
             setImportResult(null)
 
             setImportError(null)
+
+          }}
+
+          onCreateAccounts={handleCreateAccounts}
+
+          onClearCreateAccountsResult={() => {
+
+            setCreateAccountsResult(null)
+
+            setCreateAccountsError(null)
 
           }}
 

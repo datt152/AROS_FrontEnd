@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { STALE_TIME } from '../../../lib/queryStaleTime'
 import {
   createClassroom,
+  createClassroomStudentAccounts,
   deleteClassroom,
   enrollStudents,
   getClassroom,
@@ -14,7 +15,12 @@ import {
   updateClassroom,
   updateClassroomStudentCode,
 } from '../api/classrooms.api'
-import type { ClassroomCreatePayload, ClassroomUpdatePayload, EnrollStudentPayload } from '../types/classroom.types'
+import type {
+  ClassroomCreatePayload,
+  ClassroomUpdatePayload,
+  CreateStudentAccountsPayload,
+  EnrollStudentPayload,
+} from '../types/classroom.types'
 
 export const classroomKeys = {
   all: ['classrooms'] as const,
@@ -152,6 +158,23 @@ export function useImportClassroomStudents() {
   return useMutation({
     mutationFn: ({ classroomId, file }: { classroomId: number; file: File }) =>
       importClassroomStudents(classroomId, file),
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({ queryKey: classroomKeys.students(variables.classroomId) })
+    },
+  })
+}
+
+export function useCreateClassroomStudentAccounts() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      classroomId,
+      payload,
+    }: {
+      classroomId: number
+      payload?: CreateStudentAccountsPayload
+    }) => createClassroomStudentAccounts(classroomId, payload),
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({ queryKey: classroomKeys.students(variables.classroomId) })
     },
