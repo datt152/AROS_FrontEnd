@@ -29,6 +29,7 @@ export type AuthSession = {
 /** GET /v1/users/me */
 export type UserProfile = {
   id: number
+  accountId: number | null
   email: string
   fullName: string
   role: string
@@ -38,4 +39,10 @@ export type UserProfile = {
 
 export type UpdateStudentCodePayload = {
   studentCode: string
+}
+
+/** PUT /v1/users/me — email không gửi; studentCode chỉ STUDENT (optional). */
+export type UpdateMePayload = {
+  fullName: string
+  studentCode?: string
 }

@@ -1,8 +1,9 @@
 import { apiClient } from '../../../lib/axios'
-import type { UpdateStudentCodePayload, UserProfile } from '../types/auth.types'
+import type { UpdateMePayload, UpdateStudentCodePayload, UserProfile } from '../types/auth.types'
 
 type UserProfileDto = {
   id?: number
+  accountId?: number
   email?: string
   fullName?: string
   role?: string
@@ -21,6 +22,7 @@ function normalizeProfile(dto: UserProfileDto): UserProfile {
 
   return {
     id: dto.id,
+    accountId: dto.accountId ?? null,
     email: dto.email.trim(),
     fullName: dto.fullName?.trim() ?? '',
     role: dto.role?.trim() ?? '',
@@ -34,6 +36,18 @@ export async function getMe() {
   return normalizeProfile(response.data)
 }
 
+export async function updateMe(payload: UpdateMePayload) {
+  const body: UpdateMePayload = {
+    fullName: payload.fullName.trim(),
+  }
+  if (payload.studentCode !== undefined) {
+    body.studentCode = payload.studentCode.trim()
+  }
+
+  const response = await apiClient.put<UserProfileDto>('/v1/users/me', body)
+  return normalizeProfile(response.data)
+}
+
 export async function updateMyStudentCode(payload: UpdateStudentCodePayload) {
   const response = await apiClient.put<UserProfileDto | string | null>(
     '/v1/users/me/student-code',
@@ -44,6 +58,5 @@ export async function updateMyStudentCode(payload: UpdateStudentCodePayload) {
     return normalizeProfile(response.data)
   }
 
-  
   return getMe()
 }

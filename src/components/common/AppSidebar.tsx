@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react'
+import { useState } from 'react'
 import {
   BookOpen,
   ChevronRight,
@@ -9,10 +10,12 @@ import {
   Library,
   LogOut,
   PanelRight,
+  UserRound,
   Users,
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 
+import { AccountProfileModal } from '../../features/auth/components/AccountProfileModal'
 import { useLogout } from '../../features/auth/hooks/useLogout'
 import { MENU_BY_ROLE, type Role } from '../../routes/routes.config'
 
@@ -39,6 +42,7 @@ const iconByLabel: Record<string, ComponentType<{ className?: string; strokeWidt
   'Bài luyện tập': BookOpen,
   'Tạo bài luyện tập': BookOpen,
   'Thống kê bài thi': ClipboardCheck,
+  'Quản lý bài thi': FileText,
 }
 
 const workspaceLabel: Record<Role, string> = {
@@ -73,11 +77,28 @@ function NavItems({ role, onNavigate }: { role: Role; onNavigate?: () => void })
   )
 }
 
-function LogoutRow({ onNavigate }: { onNavigate?: () => void }) {
+function AccountActions({
+  onNavigate,
+  onOpenAccount,
+}: {
+  onNavigate?: () => void
+  onOpenAccount: () => void
+}) {
   const logoutMutation = useLogout()
 
   return (
-    <div className="border-t border-slate-200 p-3">
+    <div className="space-y-1 border-t border-slate-200 p-3">
+      <button
+        type="button"
+        onClick={() => {
+          onNavigate?.()
+          onOpenAccount()
+        }}
+        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+      >
+        <UserRound className="h-4.5 w-4.5 shrink-0" strokeWidth={1.75} />
+        <span className="truncate">Tài khoản</span>
+      </button>
       <button
         type="button"
         disabled={logoutMutation.isPending}
@@ -101,6 +122,8 @@ export function AppSidebar({
   isMobileOpen,
   onCloseMobile,
 }: AppSidebarProps) {
+  const [isAccountOpen, setIsAccountOpen] = useState(false)
+
   return (
     <>
       {isDesktopCollapsed ? (
@@ -133,7 +156,7 @@ export function AppSidebar({
           <div className="min-h-0 flex-1 overflow-y-auto py-2">
             <NavItems role={role} />
           </div>
-          <LogoutRow />
+          <AccountActions onOpenAccount={() => setIsAccountOpen(true)} />
         </aside>
       )}
 
@@ -160,8 +183,10 @@ export function AppSidebar({
         <div className="min-h-0 flex-1 overflow-y-auto py-2">
           <NavItems role={role} onNavigate={onCloseMobile} />
         </div>
-        <LogoutRow onNavigate={onCloseMobile} />
+        <AccountActions onNavigate={onCloseMobile} onOpenAccount={() => setIsAccountOpen(true)} />
       </aside>
+
+      {isAccountOpen ? <AccountProfileModal onClose={() => setIsAccountOpen(false)} /> : null}
     </>
   )
 }
