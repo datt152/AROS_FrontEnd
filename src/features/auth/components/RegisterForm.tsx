@@ -20,7 +20,6 @@ export function RegisterForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [isTeacher, setIsTeacher] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [errors, setErrors] = useState<FieldErrors>({})
 
@@ -62,7 +61,7 @@ export function RegisterForm() {
         email: email.trim(),
         password,
         confirmPassword,
-        role: isTeacher ? 'TEACHER' : 'STUDENT',
+        role: 'TEACHER',
       })
 
       navigate(ROUTES.login, {
@@ -212,16 +211,6 @@ export function RegisterForm() {
           <p className="text-sm text-red-500">{errors.confirmPassword}</p>
         ) : null}
       </div>
-
-      <label className="flex cursor-pointer items-center gap-2.5">
-        <input
-          type="checkbox"
-          checked={isTeacher}
-          onChange={(event) => setIsTeacher(event.target.checked)}
-          className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/30"
-        />
-        <span className="text-sm text-slate-600">Tôi đăng ký với vai trò giáo viên</span>
-      </label>
 
       <button
         type="submit"

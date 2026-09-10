@@ -20,7 +20,7 @@ export function RegisterPage() {
       <div className="mb-5 hidden lg:block">
         <p className="text-sm font-medium text-blue-600">Bắt đầu ngay</p>
         <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-900">Tạo tài khoản</h2>
-        <p className="mt-1.5 text-sm text-slate-500">Tham gia với vai trò sinh viên hoặc giáo viên để bắt đầu học.</p>
+        <p className="mt-1.5 text-sm text-slate-500">Đăng ký tài khoản giáo viên để quản lý lớp và đề thi.</p>
       </div>
 
       <RegisterForm />

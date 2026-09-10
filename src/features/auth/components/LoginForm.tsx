@@ -233,7 +233,7 @@ export function LoginForm() {
       </button>
 
       <p className="text-center text-sm text-slate-600">
-        Chưa có tài khoản?{' '}
+        Chưa có tài khoản giáo viên?{' '}
         <Link to={ROUTES.register} className="font-medium text-blue-600 transition hover:text-blue-700">
           Đăng ký
         </Link>
