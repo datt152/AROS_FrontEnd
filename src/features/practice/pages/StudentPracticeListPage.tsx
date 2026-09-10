@@ -13,23 +13,51 @@ import { useMyExams } from '../../exams/hooks/useExams'
 import { useMyClasses } from '../../classrooms/hooks/useClassrooms'
 import type { ClassroomItem } from '../../classrooms/types/classroom.types'
 
+const PAGE_SIZE = 10
+const SEARCH_FETCH_SIZE = 100
+
 export function StudentPracticeListPage() {
   const [selected, setSelected] = useState<ClassroomItem | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [page, setPage] = useState(0)
+  const [classesPage, setClassesPage] = useState(0)
 
-  const classesQuery = useMyClasses()
+  const hasSearch = searchQuery.trim() !== ''
+
+  const classesQuery = useMyClasses({ page: classesPage, size: PAGE_SIZE })
   const examsQuery = useMyExams(
-    selected ? { classroomId: selected.id, purpose: 'PRACTICE' } : undefined,
+    selected
+      ? {
+          classroomId: selected.id,
+          purpose: 'PRACTICE',
+          page: hasSearch ? 0 : page,
+          size: hasSearch ? SEARCH_FETCH_SIZE : PAGE_SIZE,
+        }
+      : undefined,
   )
 
-  const classrooms = classesQuery.data ?? []
-  const exams = examsQuery.data ?? []
+  const classrooms = classesQuery.data?.items ?? []
+  const exams = examsQuery.data?.items ?? []
 
   const filteredExams = useMemo(() => {
     const keyword = searchQuery.trim().toLowerCase()
     if (!keyword) return exams
     return exams.filter((exam) => exam.title.toLowerCase().includes(keyword))
   }, [exams, searchQuery])
+
+  const classesTotalPages = Math.max(1, classesQuery.data?.totalPages ?? 1)
+  const classesTotal = classesQuery.data?.totalElements ?? classrooms.length
+
+  const totalElements = hasSearch
+    ? filteredExams.length
+    : (examsQuery.data?.totalElements ?? filteredExams.length)
+  const totalPages = hasSearch
+    ? Math.max(1, Math.ceil(filteredExams.length / PAGE_SIZE))
+    : Math.max(1, examsQuery.data?.totalPages ?? 1)
+  const currentPage = Math.min(page, totalPages - 1)
+  const pagedExams = hasSearch
+    ? filteredExams.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE)
+    : filteredExams
 
   return (
     <section className="space-y-5">
@@ -54,14 +82,14 @@ export function StudentPracticeListPage() {
         />
       ) : null}
 
-      {classesQuery.isSuccess && classrooms.length === 0 ? (
+      {classesQuery.isSuccess && classrooms.length === 0 && classesPage === 0 ? (
         <EmptyState
           title="Chưa có lớp học"
           description="Bạn chưa được ghi danh vào lớp nào. Liên hệ giáo viên để được thêm vào lớp."
         />
       ) : null}
 
-      {classesQuery.isSuccess && classrooms.length > 0 ? (
+      {classesQuery.isSuccess && (classrooms.length > 0 || classesPage > 0) ? (
         <div className="grid gap-5 lg:grid-cols-[minmax(0,20rem)_1fr]">
           <div className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Lớp — môn học</p>
@@ -73,9 +101,35 @@ export function StudentPracticeListPage() {
                 onSelect={(classroom) => {
                   setSelected(classroom)
                   setSearchQuery('')
+                  setPage(0)
                 }}
               />
             ))}
+            {classesTotalPages > 1 ? (
+              <div className="flex items-center justify-between gap-2 text-xs text-slate-500">
+                <span>
+                  {classesPage + 1}/{classesTotalPages} · {classesTotal}
+                </span>
+                <div className="flex gap-1">
+                  <Button
+                    variant="secondary"
+                    className="h-8 px-2"
+                    disabled={classesPage === 0}
+                    onClick={() => setClassesPage((v) => Math.max(0, v - 1))}
+                  >
+                    Trước
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className="h-8 px-2"
+                    disabled={classesPage >= classesTotalPages - 1}
+                    onClick={() => setClassesPage((v) => v + 1)}
+                  >
+                    Sau
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </div>
 
           <div className="min-w-0 space-y-3">
@@ -92,7 +146,10 @@ export function StudentPracticeListPage() {
                   value={searchQuery}
                   placeholder="Tìm theo tên bài luyện tập..."
                   className="pl-9"
-                  onChange={(event) => setSearchQuery(event.target.value)}
+                  onChange={(event) => {
+                    setSearchQuery(event.target.value)
+                    setPage(0)
+                  }}
                 />
               </div>
             ) : null}
@@ -132,11 +189,36 @@ export function StudentPracticeListPage() {
             ) : null}
 
             {selected && examsQuery.isSuccess && filteredExams.length > 0 ? (
-              <div className="space-y-3">
-                {filteredExams.map((exam) => (
-                  <StudentExamCard key={exam.id} exam={exam} mode="PRACTICE" />
-                ))}
-              </div>
+              <>
+                <div className="space-y-3">
+                  {pagedExams.map((exam) => (
+                    <StudentExamCard key={exam.id} exam={exam} mode="PRACTICE" />
+                  ))}
+                </div>
+                <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
+                  <p>
+                    Trang {currentPage + 1} / {totalPages} · {totalElements} bài luyện tập
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="secondary"
+                      className="h-9"
+                      disabled={currentPage === 0}
+                      onClick={() => setPage((value) => Math.max(0, value - 1))}
+                    >
+                      Trước
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      className="h-9"
+                      disabled={currentPage >= totalPages - 1}
+                      onClick={() => setPage((value) => value + 1)}
+                    >
+                      Sau
+                    </Button>
+                  </div>
+                </div>
+              </>
             ) : null}
           </div>
         </div>

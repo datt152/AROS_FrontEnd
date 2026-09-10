@@ -79,13 +79,14 @@ import type {
 
 type ModalMode = 'create' | 'edit' | null
 
-
+const PAGE_SIZE = 10
 
 export function ClassroomListPage() {
 
   const [includeInactive, setIncludeInactive] = useState(false)
+  const [page, setPage] = useState(0)
 
-  const classroomsQuery = useClassrooms(undefined, { includeInactive })
+  const classroomsQuery = useClassrooms(undefined, { includeInactive, page, size: PAGE_SIZE })
 
   const subjectsQuery = useSubjects()
 
@@ -143,11 +144,15 @@ export function ClassroomListPage() {
 
 
 
-  const classrooms = classroomsQuery.data ?? []
+  const classrooms = classroomsQuery.data?.items ?? []
+
+  const totalElements = classroomsQuery.data?.totalElements ?? classrooms.length
+  const totalPages = Math.max(1, classroomsQuery.data?.totalPages ?? 1)
+  const currentPage = Math.min(page, totalPages - 1)
 
   const subjectOptions = useMemo(
 
-    () => (subjectsQuery.data ?? []).map((subject) => ({ id: subject.id, subjectName: subject.subjectName })),
+    () => (subjectsQuery.data?.items ?? []).map((subject) => ({ id: subject.id, subjectName: subject.subjectName })),
 
     [subjectsQuery.data],
 
@@ -439,7 +444,13 @@ export function ClassroomListPage() {
 
       </div>
 
-      <IncludeInactiveToggle checked={includeInactive} onChange={setIncludeInactive} />
+      <IncludeInactiveToggle
+        checked={includeInactive}
+        onChange={(checked) => {
+          setIncludeInactive(checked)
+          setPage(0)
+        }}
+      />
 
 
 
@@ -541,17 +552,17 @@ export function ClassroomListPage() {
 
               <TableColGroup>
 
-                <TableCol width="20%" />
+                <TableCol />
 
-                <TableCol width="20%" />
+                <TableCol width="12rem" />
 
-                <TableCol width="6.5%" />
+                <TableCol width="6rem" />
 
-                <TableCol width="7.5%" />
+                <TableCol width="7rem" />
 
-                <TableCol width="11%" />
+                <TableCol width="9rem" />
 
-                <TableCol width="25%" />
+                <TableCol width="8.5rem" />
 
               </TableColGroup>
 
@@ -621,6 +632,30 @@ export function ClassroomListPage() {
 
             </Table>
 
+          </div>
+
+          <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-sm text-slate-500">
+            <p>
+              Trang {currentPage + 1} / {totalPages} · {totalElements} lớp học
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                className="h-9"
+                disabled={currentPage === 0}
+                onClick={() => setPage((value) => Math.max(0, value - 1))}
+              >
+                Trước
+              </Button>
+              <Button
+                variant="secondary"
+                className="h-9"
+                disabled={currentPage >= totalPages - 1}
+                onClick={() => setPage((value) => value + 1)}
+              >
+                Sau
+              </Button>
+            </div>
           </div>
 
         </div>

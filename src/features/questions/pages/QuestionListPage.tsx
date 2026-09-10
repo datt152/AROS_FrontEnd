@@ -98,7 +98,7 @@ export function QuestionListPage() {
   const [topicFormError, setTopicFormError] = useState<string | null>(null)
   const [includeInactiveTopics, setIncludeInactiveTopics] = useState(false)
 
-  const subjects = subjectsQuery.data ?? []
+  const subjects = subjectsQuery.data?.items ?? []
   const subjectIds = subjects.map((subject) => subject.id)
   const countQueries = useQuestionCounts(subjectIds)
 
@@ -605,7 +605,7 @@ export function QuestionListPage() {
                       <TableCol width="8.5rem" />
                       <TableCol width="7.5rem" />
                       <TableCol width="4.5rem" />
-                      <TableCol width="12rem" />
+                      <TableCol width="7rem" />
                     </TableColGroup>
                     <TableHeader>
                       <TableRow className="border-b-0 hover:bg-transparent">

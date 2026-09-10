@@ -11,16 +11,25 @@ import { StudentClassroomSubjectCard } from '../components/StudentClassroomSubje
 import { StudentExamCard } from '../components/StudentExamCard'
 import { useMyExams } from '../hooks/useExams'
 
+const PAGE_SIZE = 10
+
 export function StudentExamListPage() {
   const [selected, setSelected] = useState<ClassroomItem | null>(null)
+  const [page, setPage] = useState(0)
+  const [classesPage, setClassesPage] = useState(0)
 
-  const classesQuery = useMyClasses()
+  const classesQuery = useMyClasses({ page: classesPage, size: PAGE_SIZE })
   const examsQuery = useMyExams(
-    selected ? { classroomId: selected.id, purpose: 'EXAM' } : undefined,
+    selected ? { classroomId: selected.id, purpose: 'EXAM', page, size: PAGE_SIZE } : undefined,
   )
 
-  const classrooms = classesQuery.data ?? []
-  const exams = examsQuery.data ?? []
+  const classrooms = classesQuery.data?.items ?? []
+  const exams = examsQuery.data?.items ?? []
+
+  const classesTotalPages = Math.max(1, classesQuery.data?.totalPages ?? 1)
+  const examsTotalPages = Math.max(1, examsQuery.data?.totalPages ?? 1)
+  const examsTotal = examsQuery.data?.totalElements ?? exams.length
+  const classesTotal = classesQuery.data?.totalElements ?? classrooms.length
 
   return (
     <section className="space-y-5">
@@ -45,14 +54,14 @@ export function StudentExamListPage() {
         />
       ) : null}
 
-      {classesQuery.isSuccess && classrooms.length === 0 ? (
+      {classesQuery.isSuccess && classrooms.length === 0 && classesPage === 0 ? (
         <EmptyState
           title="Chưa có lớp học"
           description="Bạn chưa được ghi danh vào lớp nào. Liên hệ giáo viên để được thêm vào lớp."
         />
       ) : null}
 
-      {classesQuery.isSuccess && classrooms.length > 0 ? (
+      {classesQuery.isSuccess && (classrooms.length > 0 || classesPage > 0) ? (
         <div className="grid gap-5 lg:grid-cols-[minmax(0,20rem)_1fr]">
           <div className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Lớp — môn học</p>
@@ -61,9 +70,37 @@ export function StudentExamListPage() {
                 key={item.id}
                 item={item}
                 selected={selected?.id === item.id}
-                onSelect={setSelected}
+                onSelect={(classroom) => {
+                  setSelected(classroom)
+                  setPage(0)
+                }}
               />
             ))}
+            {classesTotalPages > 1 ? (
+              <div className="flex items-center justify-between gap-2 text-xs text-slate-500">
+                <span>
+                  {classesPage + 1}/{classesTotalPages} · {classesTotal}
+                </span>
+                <div className="flex gap-1">
+                  <Button
+                    variant="secondary"
+                    className="h-8 px-2"
+                    disabled={classesPage === 0}
+                    onClick={() => setClassesPage((v) => Math.max(0, v - 1))}
+                  >
+                    Trước
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className="h-8 px-2"
+                    disabled={classesPage >= classesTotalPages - 1}
+                    onClick={() => setClassesPage((v) => v + 1)}
+                  >
+                    Sau
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </div>
 
           <div className="min-w-0 space-y-3">
@@ -101,11 +138,36 @@ export function StudentExamListPage() {
             ) : null}
 
             {selected && examsQuery.isSuccess && exams.length > 0 ? (
-              <div className="space-y-3">
-                {exams.map((exam) => (
-                  <StudentExamCard key={exam.id} exam={exam} />
-                ))}
-              </div>
+              <>
+                <div className="space-y-3">
+                  {exams.map((exam) => (
+                    <StudentExamCard key={exam.id} exam={exam} />
+                  ))}
+                </div>
+                <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
+                  <p>
+                    Trang {page + 1} / {examsTotalPages} · {examsTotal} đề thi
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="secondary"
+                      className="h-9"
+                      disabled={page === 0}
+                      onClick={() => setPage((value) => Math.max(0, value - 1))}
+                    >
+                      Trước
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      className="h-9"
+                      disabled={page >= examsTotalPages - 1}
+                      onClick={() => setPage((value) => value + 1)}
+                    >
+                      Sau
+                    </Button>
+                  </div>
+                </div>
+              </>
             ) : null}
           </div>
         </div>

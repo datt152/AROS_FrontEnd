@@ -32,7 +32,7 @@ import type { ExamTemplateFormValues, ExamTemplateItem } from '../types/examTemp
 
 type ModalMode = 'create' | 'edit' | null
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = 10
 
 export function ExamTemplateListPage() {
   const subjectsQuery = useSubjects()
@@ -73,7 +73,7 @@ export function ExamTemplateListPage() {
       : undefined,
   )
 
-  const subjects = subjectsQuery.data ?? []
+  const subjects = subjectsQuery.data?.items ?? []
   const subjectOptions = useMemo(
     () => subjects.map((item) => ({ id: item.id, subjectName: item.subjectName })),
     [subjects],
@@ -267,7 +267,7 @@ export function ExamTemplateListPage() {
                 <TableCol />
                 <TableCol width="5rem" />
                 <TableCol width="8rem" />
-                <TableCol width="12rem" />
+                <TableCol width="7rem" />
               </TableColGroup>
               <TableHeader>
                 <TableRow className="border-b-0 hover:bg-transparent">

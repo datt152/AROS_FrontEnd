@@ -56,13 +56,14 @@ import type { SubjectFormValues, SubjectItem as SubjectItemType, SubjectUpdatePa
 
 type ModalMode = 'create' | 'edit' | null
 
-
+const PAGE_SIZE = 10
 
 export function SubjectListPage() {
 
   const [includeInactive, setIncludeInactive] = useState(false)
+  const [page, setPage] = useState(0)
 
-  const subjectsQuery = useSubjects({ includeInactive })
+  const subjectsQuery = useSubjects({ includeInactive, page, size: PAGE_SIZE })
 
   const createSubject = useCreateSubject()
 
@@ -84,7 +85,10 @@ export function SubjectListPage() {
 
 
 
-  const subjects = subjectsQuery.data ?? []
+  const subjects = subjectsQuery.data?.items ?? []
+  const totalElements = subjectsQuery.data?.totalElements ?? subjects.length
+  const totalPages = Math.max(1, subjectsQuery.data?.totalPages ?? 1)
+  const currentPage = Math.min(page, totalPages - 1)
 
   const isFormSubmitting = createSubject.isPending || updateSubject.isPending
 
@@ -232,7 +236,13 @@ export function SubjectListPage() {
 
       </div>
 
-      <IncludeInactiveToggle checked={includeInactive} onChange={setIncludeInactive} />
+      <IncludeInactiveToggle
+        checked={includeInactive}
+        onChange={(checked) => {
+          setIncludeInactive(checked)
+          setPage(0)
+        }}
+      />
 
 
 
@@ -332,7 +342,7 @@ export function SubjectListPage() {
 
                 <TableCol width="8rem" />
 
-                <TableCol width="20%" />
+                <TableCol width="5.5rem" />
 
               </TableColGroup>
 
@@ -380,6 +390,30 @@ export function SubjectListPage() {
 
             </Table>
 
+          </div>
+
+          <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-sm text-slate-500">
+            <p>
+              Trang {currentPage + 1} / {totalPages} · {totalElements} môn học
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                className="h-9"
+                disabled={currentPage === 0}
+                onClick={() => setPage((value) => Math.max(0, value - 1))}
+              >
+                Trước
+              </Button>
+              <Button
+                variant="secondary"
+                className="h-9"
+                disabled={currentPage >= totalPages - 1}
+                onClick={() => setPage((value) => value + 1)}
+              >
+                Sau
+              </Button>
+            </div>
           </div>
 
         </div>

@@ -58,7 +58,7 @@ import type {
 type ModalMode = 'create' | 'edit' | null
 
 const FETCH_SIZE = 100
-const PAGE_SIZE = 5
+const PAGE_SIZE = 10
 
 function buildUpdatePayload(
   exam: ExamItemType,
@@ -79,9 +79,20 @@ function buildUpdatePayload(
 
 export function ExamListPage() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const [subjectFilter, setSubjectFilter] = useState<number | ''>('')
+  const [modeFilter, setModeFilter] = useState<ExamMode | ''>('')
+  const [statusFilter, setStatusFilter] = useState<ExamStatus | ''>('')
+  const [page, setPage] = useState(0)
+
+  const hasClientFilters = subjectFilter !== '' || modeFilter !== '' || statusFilter !== ''
+  const examsQuery = useExams({
+    page: hasClientFilters ? 0 : page,
+    size: hasClientFilters ? FETCH_SIZE : PAGE_SIZE,
+    purpose: 'EXAM',
+  })
+
   const subjectsQuery = useSubjects()
   const classroomsQuery = useClassrooms()
-  const examsQuery = useExams({ page: 0, size: FETCH_SIZE, purpose: 'EXAM' })
 
   const createExam = useCreateExam()
   const updateExam = useUpdateExam()
@@ -89,11 +100,6 @@ export function ExamListPage() {
   const updateClassrooms = useUpdateExamClassrooms()
   const createVersions = useCreateExamVersions()
   const saveAsTemplate = useSaveExamAsTemplate()
-
-  const [subjectFilter, setSubjectFilter] = useState<number | ''>('')
-  const [modeFilter, setModeFilter] = useState<ExamMode | ''>('')
-  const [statusFilter, setStatusFilter] = useState<ExamStatus | ''>('')
-  const [page, setPage] = useState(0)
 
   const [modalMode, setModalMode] = useState<ModalMode>(null)
   const [editingExam, setEditingExam] = useState<ExamItemType | null>(null)
@@ -197,9 +203,16 @@ export function ExamListPage() {
     })
   }, [exams, subjectFilter, modeFilter, statusFilter])
 
-  const totalPages = Math.max(1, Math.ceil(filteredExams.length / PAGE_SIZE))
+  const totalElements = hasClientFilters
+    ? filteredExams.length
+    : (examsQuery.data?.totalElements ?? filteredExams.length)
+  const totalPages = hasClientFilters
+    ? Math.max(1, Math.ceil(filteredExams.length / PAGE_SIZE))
+    : Math.max(1, examsQuery.data?.totalPages ?? 1)
   const currentPage = Math.min(page, totalPages - 1)
-  const pagedExams = filteredExams.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE)
+  const pagedExams = hasClientFilters
+    ? filteredExams.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE)
+    : filteredExams
 
   const draftIdsOnPage = pagedExams.filter((exam) => exam.status === 'DRAFT').map((exam) => exam.id)
   const versionQueries = useExamVersionsMany(draftIdsOnPage)
@@ -242,13 +255,13 @@ export function ExamListPage() {
   ])
 
   const subjectOptions = useMemo(
-    () => (subjectsQuery.data ?? []).map((subject) => ({ id: subject.id, subjectName: subject.subjectName })),
+    () => (subjectsQuery.data?.items ?? []).map((subject) => ({ id: subject.id, subjectName: subject.subjectName })),
     [subjectsQuery.data],
   )
 
   const classroomOptions = useMemo(
     () =>
-      (classroomsQuery.data ?? []).map((classroom) => ({
+      (classroomsQuery.data?.items ?? []).map((classroom) => ({
         id: classroom.id,
         className: classroom.className,
         subjectId: classroom.subjectId,
@@ -584,7 +597,7 @@ export function ExamListPage() {
                   <TableCol width="7rem" />
                   <TableCol width="14%" />
                   <TableCol width="4.5rem" />
-                  <TableCol width="20rem" />
+                  <TableCol width="8.5rem" />
                 </TableColGroup>
                 <TableHeader>
                   <TableRow className="border-b-0 hover:bg-transparent">
@@ -608,7 +621,7 @@ export function ExamListPage() {
 
           <div className="mt-auto flex items-center justify-between border-t border-slate-200 px-4 py-3 text-sm text-slate-500">
             <p>
-              Trang {currentPage + 1} / {totalPages} · {filteredExams.length} đề thi
+              Trang {currentPage + 1} / {totalPages} · {totalElements} đề thi
             </p>
             <div className="flex gap-2">
               <Button

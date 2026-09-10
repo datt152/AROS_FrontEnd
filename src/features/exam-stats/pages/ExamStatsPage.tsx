@@ -40,13 +40,13 @@ export function ExamStatsPage() {
   )
 
   const subjects = useMemo(
-    () => (subjectsQuery.data ?? []).map((item) => ({ id: item.id, subjectName: item.subjectName })),
+    () => (subjectsQuery.data?.items ?? []).map((item) => ({ id: item.id, subjectName: item.subjectName })),
     [subjectsQuery.data],
   )
 
   const classrooms = useMemo(
     () =>
-      (classroomsQuery.data ?? []).map((item) => ({
+      (classroomsQuery.data?.items ?? []).map((item) => ({
         id: item.id,
         className: item.className,
         subjectId: item.subjectId,

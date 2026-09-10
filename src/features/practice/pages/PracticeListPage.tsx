@@ -53,6 +53,7 @@ import { examToPracticeItem } from '../types/practice.types'
 type DrawerMode = 'create' | 'edit' | null
 
 const FETCH_SIZE = 100
+const PAGE_SIZE = 10
 
 function buildUpdatePayload(exam: ExamItemType, patch: Partial<ExamUpdatePayload>): ExamUpdatePayload {
   return {
@@ -72,7 +73,6 @@ export function PracticeListPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const subjectsQuery = useSubjects()
   const classroomsQuery = useClassrooms()
-  const examsQuery = useExams({ page: 0, size: FETCH_SIZE, purpose: 'PRACTICE' })
 
   const createExam = useCreateExam()
   const updateExam = useUpdateExam()
@@ -85,7 +85,16 @@ export function PracticeListPage() {
   const [classroomId, setClassroomId] = useState<number | ''>('')
   const [status, setStatus] = useState<PracticeStatus | ''>('')
   const [searchQuery, setSearchQuery] = useState('')
+  const [page, setPage] = useState(0)
   const [drawerMode, setDrawerMode] = useState<DrawerMode>(null)
+
+  const hasClientFilters = searchQuery.trim() !== '' || subjectId !== '' || status !== ''
+  const examsQuery = useExams({
+    page: hasClientFilters ? 0 : page,
+    size: hasClientFilters ? FETCH_SIZE : PAGE_SIZE,
+    purpose: 'PRACTICE',
+    classroomId: classroomId === '' ? undefined : classroomId,
+  })
   const [editing, setEditing] = useState<PracticeItem | null>(null)
   const [detailId, setDetailId] = useState<number | null>(null)
   const [assignExam, setAssignExam] = useState<ExamItemType | null>(null)
@@ -157,13 +166,13 @@ export function PracticeListPage() {
   const practices = useMemo(() => examsWithVersions.map(examToPracticeItem), [examsWithVersions])
 
   const subjects = useMemo(
-    () => (subjectsQuery.data ?? []).map((item) => ({ id: item.id, subjectName: item.subjectName })),
+    () => (subjectsQuery.data?.items ?? []).map((item) => ({ id: item.id, subjectName: item.subjectName })),
     [subjectsQuery.data],
   )
 
   const classrooms = useMemo(
     () =>
-      (classroomsQuery.data ?? []).map((item) => ({
+      (classroomsQuery.data?.items ?? []).map((item) => ({
         id: item.id,
         className: item.className,
         subjectId: item.subjectId,
@@ -178,7 +187,7 @@ export function PracticeListPage() {
 
   const classroomOptions = useMemo(
     () =>
-      (classroomsQuery.data ?? []).map((item) => ({
+      (classroomsQuery.data?.items ?? []).map((item) => ({
         id: item.id,
         className: item.className,
         subjectId: item.subjectId,
@@ -209,11 +218,22 @@ export function PracticeListPage() {
     return practices.filter((item) => {
       if (keyword && !item.title.toLowerCase().includes(keyword)) return false
       if (subjectId !== '' && item.subjectId !== subjectId) return false
-      if (classroomId !== '' && !item.classroomIds.includes(classroomId)) return false
+      if (hasClientFilters && classroomId !== '' && !item.classroomIds.includes(classroomId)) return false
       if (status !== '' && item.status !== status) return false
       return true
     })
-  }, [practices, searchQuery, subjectId, classroomId, status])
+  }, [practices, searchQuery, subjectId, classroomId, status, hasClientFilters])
+
+  const totalElements = hasClientFilters
+    ? filtered.length
+    : (examsQuery.data?.totalElements ?? filtered.length)
+  const totalPages = hasClientFilters
+    ? Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+    : Math.max(1, examsQuery.data?.totalPages ?? 1)
+  const currentPage = Math.min(page, totalPages - 1)
+  const paged = hasClientFilters
+    ? filtered.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE)
+    : filtered
 
   const detailQuestionsFromBank = useMemo(() => {
     const ids = detailQuery.data?.questionIds ?? []
@@ -499,13 +519,23 @@ export function PracticeListPage() {
           classroomId={classroomId}
           status={status}
           searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
+          onSearchChange={(value) => {
+            setSearchQuery(value)
+            setPage(0)
+          }}
           onSubjectChange={(value) => {
             setSubjectId(value)
             setClassroomId('')
+            setPage(0)
           }}
-          onClassroomChange={setClassroomId}
-          onStatusChange={setStatus}
+          onClassroomChange={(value) => {
+            setClassroomId(value)
+            setPage(0)
+          }}
+          onStatusChange={(value) => {
+            setStatus(value)
+            setPage(0)
+          }}
         />
       ) : null}
 
@@ -534,12 +564,12 @@ export function PracticeListPage() {
             <Table>
               <TableColGroup>
                 <TableCol />
-                <TableCol width="7rem" />
-                <TableCol width="12%" />
+                <TableCol width="9rem" />
+                <TableCol width="9rem" />
                 <TableCol width="8rem" />
                 <TableCol width="8rem" />
                 <TableCol width="5rem" />
-                <TableCol width="14rem" />
+                <TableCol width="8.5rem" />
               </TableColGroup>
               <TableHeader>
                 <TableRow className="border-b-0 hover:bg-transparent">
@@ -553,7 +583,7 @@ export function PracticeListPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((item) => (
+                {paged.map((item) => (
                   <PracticeTableRow
                     key={item.id}
                     item={item}
@@ -570,6 +600,29 @@ export function PracticeListPage() {
                 ))}
               </TableBody>
             </Table>
+          </div>
+          <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-sm text-slate-500">
+            <p>
+              Trang {currentPage + 1} / {totalPages} · {totalElements} bài luyện tập
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                className="h-9"
+                disabled={currentPage === 0}
+                onClick={() => setPage((value) => Math.max(0, value - 1))}
+              >
+                Trước
+              </Button>
+              <Button
+                variant="secondary"
+                className="h-9"
+                disabled={currentPage >= totalPages - 1}
+                onClick={() => setPage((value) => value + 1)}
+              >
+                Sau
+              </Button>
+            </div>
           </div>
         </div>
       ) : null}

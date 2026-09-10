@@ -53,13 +53,13 @@ export function GradingPage() {
   const detailQuery = useSubmissionDetail(selectedSubmissionId)
 
   const subjects = useMemo(
-    () => (subjectsQuery.data ?? []).map((item) => ({ id: item.id, subjectName: item.subjectName })),
+    () => (subjectsQuery.data?.items ?? []).map((item) => ({ id: item.id, subjectName: item.subjectName })),
     [subjectsQuery.data],
   )
 
   const classrooms = useMemo(
     () =>
-      (classroomsQuery.data ?? []).map((item) => ({
+      (classroomsQuery.data?.items ?? []).map((item) => ({
         id: item.id,
         className: item.className,
         subjectId: item.subjectId,
@@ -305,7 +305,7 @@ export function GradingPage() {
                         <TableCol width="5rem" />
                         <TableCol width="5.5rem" />
                         <TableCol width="9rem" />
-                        <TableCol width="7.5rem" />
+                        <TableCol width="5.5rem" />
                       </TableColGroup>
                       <TableHeader>
                         <TableRow className="border-b-0 hover:bg-transparent">
