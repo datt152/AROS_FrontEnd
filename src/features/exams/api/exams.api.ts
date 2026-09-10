@@ -327,6 +327,16 @@ export type GetExamsParams = {
 export type GetMyExamsParams = {
   classroomId: number
   purpose?: 'EXAM' | 'PRACTICE'
+  page?: number
+  size?: number
+}
+
+export type MyExamsPageResult = {
+  items: StudentExamListItem[]
+  totalElements: number
+  totalPages: number
+  page: number
+  size: number
 }
 
 const STUDENT_EXAM_STATUSES: StudentExamStatus[] = ['UPCOMING', 'ONGOING', 'COMPLETED', 'CLOSED']
@@ -425,19 +435,32 @@ export async function getExams(params: GetExamsParams = {}): Promise<ExamsPageRe
 }
 
 /** Đề giao cho SV trong lớp — GET /v1/exams/my */
-export async function getMyExams(params: GetMyExamsParams): Promise<StudentExamListItem[]> {
+export async function getMyExams(params: GetMyExamsParams): Promise<MyExamsPageResult> {
   const purpose = params.purpose ?? 'EXAM'
+  const page = params.page ?? 0
+  const size = params.size ?? 10
+
   const response = await apiClient.get<unknown>('/v1/exams/my', {
     params: {
       classroomId: params.classroomId,
       purpose,
+      page,
+      size,
     },
   })
 
   const pageData = unwrapPage(response.data)
-  return pageData.items
+  const items = pageData.items
     .map((item) => normalizeMyExam(item as MyExamDto, purpose))
     .filter((item): item is StudentExamListItem => item !== null)
+
+  return {
+    items,
+    totalElements: pageData.totalElements,
+    totalPages: pageData.totalPages,
+    page: pageData.page,
+    size: pageData.size,
+  }
 }
 
 export async function getExam(id: number) {

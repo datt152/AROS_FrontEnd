@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { STALE_TIME } from '../../../lib/queryStaleTime'
 import {
+  CLASSROOMS_PICKER_SIZE,
   createClassroom,
   createClassroomStudentAccounts,
   deleteClassroom,
@@ -14,6 +15,8 @@ import {
   removeStudentFromClass,
   updateClassroom,
   updateClassroomStudentCode,
+  type GetClassroomsParams,
+  type GetMyClassesParams,
 } from '../api/classrooms.api'
 import type {
   ClassroomCreatePayload,
@@ -25,9 +28,8 @@ import type {
 export const classroomKeys = {
   all: ['classrooms'] as const,
   lists: () => [...classroomKeys.all, 'list'] as const,
-  list: (params?: { subjectId?: number; includeInactive?: boolean }) =>
-    [...classroomKeys.lists(), params ?? {}] as const,
-  mine: () => [...classroomKeys.all, 'mine'] as const,
+  list: (params?: GetClassroomsParams) => [...classroomKeys.lists(), params ?? {}] as const,
+  mine: (params?: GetMyClassesParams) => [...classroomKeys.all, 'mine', params ?? {}] as const,
   details: () => [...classroomKeys.all, 'detail'] as const,
   detail: (id: number) => [...classroomKeys.details(), id] as const,
   students: (classroomId: number) => [...classroomKeys.all, 'students', classroomId] as const,
@@ -35,22 +37,32 @@ export const classroomKeys = {
 
 export function useClassrooms(
   subjectId?: number,
-  options?: { enabled?: boolean; includeInactive?: boolean },
+  options?: { enabled?: boolean; includeInactive?: boolean; page?: number; size?: number },
 ) {
-  const includeInactive = options?.includeInactive ?? false
+  const params: GetClassroomsParams = {
+    subjectId,
+    includeInactive: options?.includeInactive ?? false,
+    page: options?.page ?? 0,
+    size: options?.size ?? CLASSROOMS_PICKER_SIZE,
+  }
 
   return useQuery({
-    queryKey: classroomKeys.list({ subjectId, includeInactive }),
-    queryFn: () => getClassrooms({ subjectId, page: 0, size: 50, includeInactive }),
+    queryKey: classroomKeys.list(params),
+    queryFn: () => getClassrooms(params),
     staleTime: STALE_TIME.reference,
     enabled: options?.enabled ?? true,
   })
 }
 
-export function useMyClasses(options?: { enabled?: boolean }) {
+export function useMyClasses(params?: GetMyClassesParams, options?: { enabled?: boolean }) {
+  const queryParams: GetMyClassesParams = {
+    page: params?.page ?? 0,
+    size: params?.size ?? CLASSROOMS_PICKER_SIZE,
+  }
+
   return useQuery({
-    queryKey: classroomKeys.mine(),
-    queryFn: getMyClasses,
+    queryKey: classroomKeys.mine(queryParams),
+    queryFn: () => getMyClasses(queryParams),
     staleTime: STALE_TIME.reference,
     enabled: options?.enabled ?? true,
   })

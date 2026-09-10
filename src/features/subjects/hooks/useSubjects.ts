@@ -7,23 +7,22 @@ import {
   getSubject,
   getSubjects,
   updateSubject,
+  type GetSubjectsParams,
 } from '../api/subjects.api'
 import type { SubjectPayload, SubjectUpdatePayload } from '../types/subject.types'
 
 export const subjectKeys = {
   all: ['subjects'] as const,
   lists: () => [...subjectKeys.all, 'list'] as const,
-  list: (includeInactive?: boolean) => [...subjectKeys.lists(), { includeInactive: includeInactive ?? false }] as const,
+  list: (params?: GetSubjectsParams) => [...subjectKeys.lists(), params ?? {}] as const,
   details: () => [...subjectKeys.all, 'detail'] as const,
   detail: (id: number) => [...subjectKeys.details(), id] as const,
 }
 
-export function useSubjects(options?: { includeInactive?: boolean }) {
-  const includeInactive = options?.includeInactive ?? false
-
+export function useSubjects(params?: GetSubjectsParams) {
   return useQuery({
-    queryKey: subjectKeys.list(includeInactive),
-    queryFn: () => getSubjects({ includeInactive }),
+    queryKey: subjectKeys.list(params),
+    queryFn: () => getSubjects(params),
     staleTime: STALE_TIME.reference,
   })
 }
