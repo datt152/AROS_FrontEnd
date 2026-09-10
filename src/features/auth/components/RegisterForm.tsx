@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Eye, EyeOff, Lock, Mail, User } from 'lucide-react'
+import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { getApiErrorMessage } from '../../../lib/apiError'
@@ -11,16 +12,22 @@ type FieldErrors = {
   email?: string
   password?: string
   confirmPassword?: string
+  captchaToken?: string
 }
+
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined
 
 export function RegisterForm() {
   const navigate = useNavigate()
   const registerMutation = useRegister()
+  const turnstileRef = useRef<TurnstileInstance | null>(null)
+
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   const [errors, setErrors] = useState<FieldErrors>({})
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -52,6 +59,12 @@ export function RegisterForm() {
       nextErrors.confirmPassword = 'Mật khẩu không khớp'
     }
 
+    if (!TURNSTILE_SITE_KEY) {
+      nextErrors.captchaToken = 'Thiếu cấu hình captcha (VITE_TURNSTILE_SITE_KEY)'
+    } else if (!captchaToken) {
+      nextErrors.captchaToken = 'Vui lòng hoàn thành xác minh captcha'
+    }
+
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
 
@@ -62,15 +75,21 @@ export function RegisterForm() {
         password,
         confirmPassword,
         role: 'TEACHER',
+        captchaToken: captchaToken!,
       })
 
       navigate(ROUTES.login, {
         replace: true,
         state: {
-          notice: typeof message === 'string' && message.trim() ? message : 'Tạo tài khoản thành công. Vui lòng đăng nhập.',
+          notice:
+            typeof message === 'string' && message.trim()
+              ? message
+              : 'Tạo tài khoản thành công. Vui lòng đăng nhập.',
         },
       })
     } catch {
+      setCaptchaToken(null)
+      turnstileRef.current?.reset()
       // Error is shown via registerMutation.error
     }
   }
@@ -86,8 +105,10 @@ export function RegisterForm() {
         : 'border-slate-200 focus:border-blue-400 focus:ring-blue-100'
     }`
 
+  const canSubmit = Boolean(captchaToken) && !registerMutation.isPending && Boolean(TURNSTILE_SITE_KEY)
+
   return (
-    <form className="space-y-3.5" onSubmit={handleSubmit} noValidate>
+    <form className="space-y-3.5" onSubmit={(e) => void handleSubmit(e)} noValidate>
       {apiError ? (
         <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">{apiError}</p>
       ) : null}
@@ -212,9 +233,31 @@ export function RegisterForm() {
         ) : null}
       </div>
 
+      <div className="space-y-1.5">
+        {TURNSTILE_SITE_KEY ? (
+          <Turnstile
+            ref={turnstileRef}
+            siteKey={TURNSTILE_SITE_KEY}
+            options={{ theme: 'light' }}
+            onSuccess={(token) => {
+              setCaptchaToken(token)
+              if (errors.captchaToken) setErrors((current) => ({ ...current, captchaToken: undefined }))
+            }}
+            onExpire={() => setCaptchaToken(null)}
+            onError={() => setCaptchaToken(null)}
+          />
+        ) : (
+          <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            Chưa cấu hình <code className="text-xs">VITE_TURNSTILE_SITE_KEY</code> — không thể xác minh
+            captcha.
+          </p>
+        )}
+        {errors.captchaToken ? <p className="text-sm text-red-500">{errors.captchaToken}</p> : null}
+      </div>
+
       <button
         type="submit"
-        disabled={registerMutation.isPending}
+        disabled={!canSubmit}
         className="h-10 w-full rounded-xl bg-linear-to-r from-blue-600 to-emerald-600 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:from-blue-700 hover:to-emerald-700 focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-70"
       >
         {registerMutation.isPending ? 'Đang tạo tài khoản...' : 'Tạo tài khoản'}

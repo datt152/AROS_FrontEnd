@@ -18,6 +18,8 @@ export type RegisterPayload = {
   password: string
   confirmPassword: string
   role: RegisterRole
+  /** Cloudflare Turnstile token — verified by BE on /auth/register only */
+  captchaToken: string
 }
 
 export type AuthSession = {
