@@ -1,19 +1,20 @@
-import { Download, FileSpreadsheet, Pencil, Trash2, UserPlus, X } from 'lucide-react'
+import { Download, FileSpreadsheet, Pencil, Search, Trash2, UserPlus, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { Button } from '../../../components/ui/Button'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { Input } from '../../../components/ui/Input'
 import { Spinner } from '../../../components/ui/Spinner'
+import { buildStudentsImportXlsxFile } from '../lib/buildStudentsImportXlsx'
 import type {
   ClassroomItem,
   ClassroomStudent,
   CreateStudentAccountsResult,
-  EnrollStudentFormErrors,
   StudentImportResult,
 } from '../types/classroom.types'
 
-type CreateAccountsMode = 'selected' | 'all'
+type PanelTab = 'list' | 'add'
+type AddMethod = 'manual' | 'excel'
 
 type ClassroomStudentsPanelProps = {
   classroom: ClassroomItem
@@ -33,7 +34,8 @@ type ClassroomStudentsPanelProps = {
   createAccountsError?: string | null
   createAccountsResult?: CreateStudentAccountsResult | null
   onClose: () => void
-  onEnroll: (studentEmails: string[]) => void | Promise<void>
+  /** Giữ prop để page không đổi wiring; tab Thêm thủ công dùng import xlsx 1 dòng. */
+  onEnroll?: (studentEmails: string[]) => void | Promise<void>
   onRemove: (student: ClassroomStudent) => void | Promise<void>
   onUpdateStudentCode: (student: ClassroomStudent, studentCode: string) => void | Promise<void>
   onBeginEditStudentCode?: () => void
@@ -47,14 +49,18 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const STUDENT_CODE_PATTERN = /^\d{8}$/
 const STUDENT_IMPORT_TEMPLATE_URL = '/templates/students-import.xlsx'
 
+type ManualFormErrors = {
+  fullName?: string
+  studentCode?: string
+  email?: string
+}
+
 export function ClassroomStudentsPanel({
   classroom,
   students,
   isLoadingStudents = false,
   studentsError = null,
   onRetryStudents,
-  isEnrolling = false,
-  enrollError = null,
   isRemoving = false,
   isUpdatingStudentCode = false,
   updateStudentCodeError = null,
@@ -65,7 +71,6 @@ export function ClassroomStudentsPanel({
   createAccountsError = null,
   createAccountsResult = null,
   onClose,
-  onEnroll,
   onRemove,
   onUpdateStudentCode,
   onBeginEditStudentCode,
@@ -74,20 +79,43 @@ export function ClassroomStudentsPanel({
   onCreateAccounts,
   onClearCreateAccountsResult,
 }: ClassroomStudentsPanelProps) {
+  // onEnroll kept in props for API surface compatibility (page wiring unchanged).
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [studentEmailsText, setStudentEmailsText] = useState('')
-  const [errors, setErrors] = useState<EnrollStudentFormErrors>({})
+
+  const [tab, setTab] = useState<PanelTab>('list')
+  const [addMethod, setAddMethod] = useState<AddMethod>('manual')
+
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [showCreateResult, setShowCreateResult] = useState(false)
+
+  const [isImportResultOpen, setIsImportResultOpen] = useState(false)
+
+  const [manualFullName, setManualFullName] = useState('')
+  const [manualStudentCode, setManualStudentCode] = useState('')
+  const [manualEmail, setManualEmail] = useState('')
+  const [manualErrors, setManualErrors] = useState<ManualFormErrors>({})
+  const [manualLocalError, setManualLocalError] = useState<string | null>(null)
+
   const [removingStudent, setRemovingStudent] = useState<ClassroomStudent | null>(null)
   const [editingStudent, setEditingStudent] = useState<ClassroomStudent | null>(null)
   const [editCode, setEditCode] = useState('')
   const [editCodeError, setEditCodeError] = useState<string | undefined>()
-  const [selectedFileName, setSelectedFileName] = useState<string | null>(null)
-  const [localImportError, setLocalImportError] = useState<string | null>(null)
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
-  const [confirmCreate, setConfirmCreate] = useState<CreateAccountsMode | null>(null)
+  const [studentSearch, setStudentSearch] = useState('')
 
   const withoutAccount = useMemo(() => students.filter((s) => !s.hasAccount), [students])
   const withoutAccountIds = useMemo(() => new Set(withoutAccount.map((s) => s.id)), [withoutAccount])
+
+  const filteredStudents = useMemo(() => {
+    const q = studentSearch.trim().toLowerCase()
+    if (!q) return students
+    return students.filter((s) => {
+      const name = s.fullName?.toLowerCase() ?? ''
+      const email = s.email?.toLowerCase() ?? ''
+      const code = s.studentCode?.toLowerCase() ?? ''
+      return name.includes(q) || email.includes(q) || code.includes(q)
+    })
+  }, [students, studentSearch])
 
   useEffect(() => {
     setSelectedIds((current) => {
@@ -99,53 +127,107 @@ export function ClassroomStudentsPanel({
     })
   }, [withoutAccountIds])
 
-  const selectedCount = selectedIds.size
-  const canCreateSelected = selectedCount > 0
-  const canCreateAll = withoutAccount.length > 0
-  const confirmCount =
-    confirmCreate === 'selected' ? selectedCount : confirmCreate === 'all' ? withoutAccount.length : 0
+  useEffect(() => {
+    if (importResult || importError) setIsImportResultOpen(true)
+  }, [importResult, importError])
 
-  async function handleEnroll(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  useEffect(() => {
+    if (createAccountsResult || createAccountsError) setShowCreateResult(true)
+  }, [createAccountsResult, createAccountsError])
 
-    const nextErrors: EnrollStudentFormErrors = {}
-    const emails = studentEmailsText
-      .split(/[\s,;]+/)
-      .map((part) => part.trim().toLowerCase())
-      .filter(Boolean)
+  function openCreateModal() {
+    onClearCreateAccountsResult?.()
+    setShowCreateResult(false)
+    setSelectedIds(new Set(withoutAccount.map((s) => s.id)))
+    setIsCreateModalOpen(true)
+  }
 
-    if (emails.length === 0) {
-      nextErrors.studentEmailsText = 'Danh sách email không được để trống'
-      setErrors(nextErrors)
+  function closeCreateModal() {
+    setIsCreateModalOpen(false)
+    setShowCreateResult(false)
+    onClearCreateAccountsResult?.()
+  }
+
+  function closeImportResultModal() {
+    setIsImportResultOpen(false)
+    setManualLocalError(null)
+    onClearImportResult?.()
+  }
+
+  function toggleSelect(studentId: number) {
+    setSelectedIds((current) => {
+      const next = new Set(current)
+      if (next.has(studentId)) next.delete(studentId)
+      else next.add(studentId)
+      return next
+    })
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.size === withoutAccount.length) {
+      setSelectedIds(new Set())
       return
     }
+    setSelectedIds(new Set(withoutAccount.map((s) => s.id)))
+  }
 
-    for (const email of emails) {
-      if (!EMAIL_PATTERN.test(email)) {
-        nextErrors.studentEmailsText = `"${email}" không phải email hợp lệ`
-        setErrors(nextErrors)
-        return
-      }
-    }
-
-    setErrors({})
-
+  async function handleCreateAccountsSubmit() {
+    if (selectedIds.size === 0) return
     try {
-      await onEnroll(emails)
-      setStudentEmailsText('')
+      await onCreateAccounts([...selectedIds])
     } catch {
-      // Error surfaced via enrollError prop from page
+      // Error via createAccountsError
     }
   }
 
-  async function confirmRemove() {
-    if (!removingStudent) return
+  async function handleManualSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const nextErrors: ManualFormErrors = {}
+    const fullName = manualFullName.trim()
+    const studentCode = manualStudentCode.trim()
+    const email = manualEmail.trim().toLowerCase()
+
+    if (!fullName) nextErrors.fullName = 'Vui lòng nhập họ tên'
+    if (!studentCode) nextErrors.studentCode = 'Vui lòng nhập MSSV'
+    else if (!STUDENT_CODE_PATTERN.test(studentCode)) nextErrors.studentCode = 'MSSV phải gồm đúng 8 chữ số'
+    if (!email) nextErrors.email = 'Vui lòng nhập email'
+    else if (!EMAIL_PATTERN.test(email)) nextErrors.email = 'Email không hợp lệ'
+
+    setManualErrors(nextErrors)
+    if (Object.keys(nextErrors).length > 0) return
+
+    setManualLocalError(null)
+    onClearImportResult?.()
 
     try {
-      await onRemove(removingStudent)
-      setRemovingStudent(null)
+      const file = buildStudentsImportXlsxFile([{ email, fullName, studentCode }], 'them-sinh-vien.xlsx')
+      await onImportFile(file)
+      setManualFullName('')
+      setManualStudentCode('')
+      setManualEmail('')
     } catch {
-      setRemovingStudent(null)
+      // Error via importError
+    }
+  }
+
+  async function handleExcelFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+
+    if (!file.name.toLowerCase().endsWith('.xlsx')) {
+      setManualLocalError('Chỉ chấp nhận file .xlsx')
+      setIsImportResultOpen(true)
+      onClearImportResult?.()
+      return
+    }
+
+    setManualLocalError(null)
+    onClearImportResult?.()
+    try {
+      await onImportFile(file)
+    } catch {
+      // Error via importError
     }
   }
 
@@ -159,84 +241,48 @@ export function ClassroomStudentsPanel({
   async function handleSaveStudentCode(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!editingStudent) return
-
     const value = editCode.trim()
     if (!STUDENT_CODE_PATTERN.test(value)) {
       setEditCodeError('Mã sinh viên phải gồm đúng 8 chữ số')
       return
     }
-
     setEditCodeError(undefined)
-
     try {
       await onUpdateStudentCode(editingStudent, value)
       setEditingStudent(null)
     } catch {
-      // Error surfaced via updateStudentCodeError
+      // via updateStudentCodeError
     }
   }
 
-  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-    if (!file) return
-
-    if (!file.name.toLowerCase().endsWith('.xlsx')) {
-      setSelectedFileName(null)
-      setLocalImportError('Chỉ chấp nhận file .xlsx')
-      onClearImportResult?.()
-      return
-    }
-
-    setLocalImportError(null)
-    setSelectedFileName(file.name)
+  async function confirmRemove() {
+    if (!removingStudent) return
     try {
-      await onImportFile(file)
+      await onRemove(removingStudent)
+      setRemovingStudent(null)
     } catch {
-      // Error surfaced via importError
+      setRemovingStudent(null)
     }
   }
 
-  function toggleSelect(studentId: number) {
-    setSelectedIds((current) => {
-      const next = new Set(current)
-      if (next.has(studentId)) next.delete(studentId)
-      else next.add(studentId)
-      return next
-    })
-  }
+  const createdCount = createAccountsResult?.created ?? 0
+  const createTotal = createAccountsResult?.total ?? 0
+  const createFailures = createAccountsResult?.results.filter((r) => r.status === 'FAILED') ?? []
 
-  function toggleSelectAllWithoutAccount() {
-    if (selectedCount === withoutAccount.length) {
-      setSelectedIds(new Set())
-      return
-    }
-    setSelectedIds(new Set(withoutAccount.map((s) => s.id)))
-  }
+  const importSuccessCount = importResult?.success ?? 0
+  const importTotal = importResult?.total ?? 0
+  const importFailedCount = importResult?.failed ?? 0
+  const importSkippedCount = importResult?.skipped ?? 0
+  const importNotAddedCount = importFailedCount + importSkippedCount
 
-  async function confirmCreateAccounts() {
-    if (!confirmCreate) return
-    const mode = confirmCreate
-    setConfirmCreate(null)
-
-    try {
-      if (mode === 'selected') {
-        await onCreateAccounts([...selectedIds])
-        setSelectedIds(new Set())
-      } else {
-        await onCreateAccounts()
-        setSelectedIds(new Set())
-      }
-    } catch {
-      // Error surfaced via createAccountsError
-    }
-  }
+  const importNotAddedRows = importResult?.errors ?? []
+  const importRealSuccesses = importResult?.successes ?? []
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40">
       <button type="button" className="flex-1 cursor-default" aria-label="Đóng bảng" onClick={onClose} />
 
-      <aside className="flex h-full w-full max-w-lg flex-col border-l border-slate-200 bg-white shadow-2xl">
+      <aside className="flex h-full w-full max-w-xl flex-col border-l border-slate-200 bg-white shadow-2xl">
         <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
           <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-wider text-blue-600">Sinh viên</p>
@@ -255,509 +301,566 @@ export function ClassroomStudentsPanel({
           </button>
         </div>
 
-        <div className="space-y-5 overflow-y-auto px-5 py-4">
-          <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
-            <div>
-              <p className="text-sm font-medium text-slate-800">Nhập Excel</p>
-              <p className="mt-0.5 text-xs text-slate-500">
-                File <span className="font-medium">.xlsx</span> — cột A email, B họ tên, C MSSV (tuỳ chọn, 8 số). Tối đa
-                500 dòng.
-              </p>
-            </div>
+        <div className="border-b border-slate-200 px-5">
+          <div className="flex gap-1">
+            <TabButton active={tab === 'list'} onClick={() => setTab('list')}>
+              Danh sách sinh viên hiện tại
+            </TabButton>
+            <TabButton active={tab === 'add'} onClick={() => setTab('add')}>
+              Thêm sinh viên
+            </TabButton>
+          </div>
+        </div>
 
-            <div className="flex flex-wrap gap-2">
-              <a
-                href={STUDENT_IMPORT_TEMPLATE_URL}
-                download="mau-import-sinh-vien.xlsx"
-                className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
-              >
-                <Download className="h-3.5 w-3.5" strokeWidth={1.75} />
-                Tải mẫu
-              </a>
-              <Button
-                variant="secondary"
-                className="h-9"
-                disabled={isImporting}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <FileSpreadsheet className="h-3.5 w-3.5" strokeWidth={1.75} />
-                {isImporting ? 'Đang import...' : 'Chọn file .xlsx'}
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+          {tab === 'list' ? (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm text-slate-500">
+                  {students.length} sinh viên
+                  {withoutAccount.length > 0 ? (
+                    <span className="text-slate-400"> · {withoutAccount.length} chưa có tài khoản</span>
+                  ) : null}
+                </p>
+                <Button
+                  className="h-9"
+                  disabled={withoutAccount.length === 0 || isCreatingAccounts}
+                  onClick={openCreateModal}
+                >
+                  <UserPlus className="h-3.5 w-3.5" strokeWidth={1.75} />
+                  Tạo tài khoản
+                </Button>
+              </div>
+
+              {students.length > 0 ? (
+                <div className="relative">
+                  <Search
+                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                    strokeWidth={1.75}
+                  />
+                  <Input
+                    value={studentSearch}
+                    onChange={(e) => setStudentSearch(e.target.value)}
+                    placeholder="Tìm theo tên, MSSV hoặc email..."
+                    className="pl-9"
+                    aria-label="Tìm sinh viên"
+                  />
+                </div>
+              ) : null}
+
+              {isLoadingStudents ? <Spinner label="Đang tải sinh viên..." className="py-8" /> : null}
+
+              {studentsError ? (
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-center">
+                  <p className="text-sm text-red-600">{studentsError}</p>
+                  {onRetryStudents ? (
+                    <Button variant="secondary" className="mt-3 h-9" onClick={onRetryStudents}>
+                      Thử lại
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {!isLoadingStudents && !studentsError && students.length === 0 ? (
+                <EmptyState
+                  title="Chưa có sinh viên nào"
+                  description="Chuyển sang tab Thêm sinh viên để ghi danh thủ công hoặc bằng Excel."
+                />
+              ) : null}
+
+              {!isLoadingStudents && !studentsError && students.length > 0 && filteredStudents.length === 0 ? (
+                <EmptyState
+                  title="Không tìm thấy sinh viên"
+                  description="Thử từ khóa khác theo tên, MSSV hoặc email."
+                />
+              ) : null}
+
+              {!isLoadingStudents && !studentsError && filteredStudents.length > 0 ? (
+                <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200">
+                  {filteredStudents.map((student) => {
+                    const missing = student.missingStudentCode
+                    const needsAccount = !student.hasAccount
+                    return (
+                      <li
+                        key={student.id}
+                        className={`flex items-start gap-3 px-3 py-3 ${
+                          missing || needsAccount
+                            ? 'border-l-4 border-l-amber-400 bg-amber-50/70'
+                            : 'hover:bg-slate-50/70'
+                        }`}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-sm font-medium text-slate-900">{student.fullName}</p>
+                            {missing ? (
+                              <span className="inline-flex rounded-lg border border-amber-200 bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                                Thiếu MSSV
+                              </span>
+                            ) : null}
+                            {needsAccount ? (
+                              <span className="inline-flex rounded-lg border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-800">
+                                Chưa có tài khoản
+                              </span>
+                            ) : (
+                              <span className="inline-flex rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                                Đã có tài khoản
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-1 text-xs text-slate-600">
+                            MSSV:{' '}
+                            <span className={missing ? 'font-medium text-amber-800' : 'font-medium text-slate-800'}>
+                              {student.studentCode || 'Chưa có'}
+                            </span>
+                          </p>
+                          <p className="mt-0.5 text-xs text-slate-500">
+                            {[student.email, student.phone].filter(Boolean).join(' · ')}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            title="Sửa MSSV"
+                            aria-label="Sửa MSSV"
+                            disabled={isUpdatingStudentCode}
+                            onClick={() => openEditCode(student)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+                          </button>
+                          <button
+                            type="button"
+                            title="Gỡ bỏ"
+                            aria-label="Gỡ bỏ"
+                            disabled={isRemoving}
+                            onClick={() => setRemovingStudent(student)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+                          </button>
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ul>
+              ) : null}
+            </div>
+          ) : (
+            <div className="space-y-5">
+              <div className="grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-1">
+                <button
+                  type="button"
+                  onClick={() => setAddMethod('manual')}
+                  className={`rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                    addMethod === 'manual'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Thêm thủ công
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAddMethod('excel')}
+                  className={`rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                    addMethod === 'excel'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Thêm bằng Excel
+                </button>
+              </div>
+
+              {addMethod === 'manual' ? (
+                <form className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4" onSubmit={(e) => void handleManualSubmit(e)} noValidate>
+                  <p className="text-xs text-slate-500">Họ tên, MSSV (8 số) và Email đều bắt buộc.</p>
+
+                  <div className="space-y-1.5">
+                    <label htmlFor="manualFullName" className="text-sm font-medium text-slate-700">
+                      Họ tên sinh viên
+                    </label>
+                    <Input
+                      id="manualFullName"
+                      value={manualFullName}
+                      hasError={Boolean(manualErrors.fullName)}
+                      disabled={isImporting}
+                      placeholder="Nguyễn Văn A"
+                      onChange={(e) => {
+                        setManualFullName(e.target.value)
+                        if (manualErrors.fullName) setManualErrors((c) => ({ ...c, fullName: undefined }))
+                      }}
+                    />
+                    {manualErrors.fullName ? <p className="text-sm text-red-500">{manualErrors.fullName}</p> : null}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label htmlFor="manualStudentCode" className="text-sm font-medium text-slate-700">
+                      MSSV
+                    </label>
+                    <Input
+                      id="manualStudentCode"
+                      inputMode="numeric"
+                      maxLength={8}
+                      value={manualStudentCode}
+                      hasError={Boolean(manualErrors.studentCode)}
+                      disabled={isImporting}
+                      placeholder="12345678"
+                      onChange={(e) => {
+                        setManualStudentCode(e.target.value.replace(/\D/g, '').slice(0, 8))
+                        if (manualErrors.studentCode) setManualErrors((c) => ({ ...c, studentCode: undefined }))
+                      }}
+                    />
+                    {manualErrors.studentCode ? (
+                      <p className="text-sm text-red-500">{manualErrors.studentCode}</p>
+                    ) : null}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label htmlFor="manualEmail" className="text-sm font-medium text-slate-700">
+                      Email
+                    </label>
+                    <Input
+                      id="manualEmail"
+                      type="email"
+                      value={manualEmail}
+                      hasError={Boolean(manualErrors.email)}
+                      disabled={isImporting}
+                      placeholder="sv@uni.edu.vn"
+                      onChange={(e) => {
+                        setManualEmail(e.target.value)
+                        if (manualErrors.email) setManualErrors((c) => ({ ...c, email: undefined }))
+                      }}
+                    />
+                    {manualErrors.email ? <p className="text-sm text-red-500">{manualErrors.email}</p> : null}
+                  </div>
+
+                  <Button type="submit" className="w-full" disabled={isImporting}>
+                    <UserPlus className="h-3.5 w-3.5" strokeWidth={1.75} />
+                    {isImporting ? 'Đang thêm...' : 'Thêm sinh viên'}
+                  </Button>
+                </form>
+              ) : (
+                <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
+                  <p className="text-sm text-slate-600">
+                    File <span className="font-medium">.xlsx</span> — cột A email, B họ tên, C MSSV. Tối đa 500 dòng.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <a
+                      href={STUDENT_IMPORT_TEMPLATE_URL}
+                      download="mau-import-sinh-vien.xlsx"
+                      className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                    >
+                      <Download className="h-3.5 w-3.5" strokeWidth={1.75} />
+                      Tải file mẫu
+                    </a>
+                    <Button
+                      variant="secondary"
+                      disabled={isImporting}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <FileSpreadsheet className="h-3.5 w-3.5" strokeWidth={1.75} />
+                      {isImporting ? 'Đang tải lên...' : 'Thêm bằng Excel'}
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                      className="hidden"
+                      onChange={(e) => void handleExcelFileChange(e)}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </aside>
+
+      {/* Create accounts modal */}
+      {isCreateModalOpen ? (
+        <ModalShell title="Tạo tài khoản hàng loạt" onClose={closeCreateModal} busy={isCreatingAccounts}>
+          {showCreateResult && (createAccountsResult || createAccountsError) ? (
+            <div className="space-y-3">
+              {createAccountsError ? (
+                <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                  {createAccountsError}
+                </p>
+              ) : null}
+
+              {createAccountsResult ? (
+                <>
+                  <p className="text-sm text-slate-800">
+                    Đã tạo thành công{' '}
+                    <span className="font-semibold text-emerald-700">
+                      {createdCount} / {createTotal}
+                    </span>{' '}
+                    tài khoản.
+                  </p>
+                  {createdCount > 0 || (createAccountsResult.mailQueued ?? 0) > 0 ? (
+                    <p className="text-sm text-emerald-700">
+                      Thông tin tài khoản đã được gửi về email của các sinh viên.
+                    </p>
+                  ) : null}
+                  {createFailures.length > 0 ? (
+                    <div className="max-h-48 space-y-2 overflow-y-auto">
+                      <p className="text-xs font-medium text-red-700">Chi tiết lỗi</p>
+                      {createFailures.map((item) => (
+                        <p key={`fail-${item.studentId}-${item.email}`} className="text-sm text-red-600">
+                          {item.fullName || item.email}: {item.message}
+                        </p>
+                      ))}
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
+
+              <Button className="w-full" variant="secondary" onClick={closeCreateModal}>
+                Đóng
               </Button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                className="hidden"
-                onChange={(event) => void handleFileChange(event)}
-              />
             </div>
-
-            {selectedFileName ? (
-              <p className="truncate text-xs text-slate-500">
-                Đã chọn: <span className="font-medium text-slate-700">{selectedFileName}</span>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm text-slate-600">
+                Chọn sinh viên chưa có tài khoản. Hệ thống sẽ tạo mật khẩu tạm và xếp hàng gửi email.
               </p>
-            ) : null}
 
-            {localImportError || importError ? (
+              {withoutAccount.length === 0 ? (
+                <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600">
+                  Tất cả sinh viên trong lớp đã có tài khoản.
+                </p>
+              ) : (
+                <>
+                  <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-slate-300 text-blue-600"
+                      checked={selectedIds.size === withoutAccount.length && withoutAccount.length > 0}
+                      onChange={toggleSelectAll}
+                    />
+                    Chọn tất cả ({withoutAccount.length})
+                  </label>
+                  <ul className="max-h-64 divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-200">
+                    {withoutAccount.map((student) => (
+                      <li key={student.id} className="flex items-start gap-3 px-3 py-2.5">
+                        <input
+                          type="checkbox"
+                          className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600"
+                          checked={selectedIds.has(student.id)}
+                          onChange={() => toggleSelect(student.id)}
+                        />
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-slate-900">{student.fullName}</p>
+                          <p className="truncate text-xs text-slate-500">{student.email}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+
+              <Button
+                className="w-full"
+                disabled={selectedIds.size === 0 || isCreatingAccounts}
+                onClick={() => void handleCreateAccountsSubmit()}
+              >
+                {isCreatingAccounts ? 'Đang tạo...' : `Tạo tài khoản (${selectedIds.size})`}
+              </Button>
+            </div>
+          )}
+        </ModalShell>
+      ) : null}
+
+      {/* Import / manual add result modal */}
+      {isImportResultOpen ? (
+        <ModalShell title="Kết quả thêm sinh viên" onClose={closeImportResultModal} busy={isImporting}>
+          <div className="space-y-3">
+            {manualLocalError || importError ? (
               <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
-                {localImportError || importError}
+                {manualLocalError || importError}
               </p>
             ) : null}
 
             {importResult ? (
-              <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-3">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm font-medium text-slate-800">Kết quả import</p>
-                  <button
-                    type="button"
-                    className="text-xs font-medium text-slate-500 hover:text-slate-700"
-                    onClick={() => {
-                      setSelectedFileName(null)
-                      setLocalImportError(null)
-                      onClearImportResult?.()
-                    }}
-                  >
-                    Đóng
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
-                  <StatChip label="Tổng" value={importResult.total} />
-                  <StatChip label="Thành công" value={importResult.success} tone="success" />
-                  <StatChip label="Bỏ qua" value={importResult.skipped} tone="muted" />
-                  <StatChip label="Lỗi" value={importResult.failed} tone="danger" />
-                </div>
+              <>
+                {importSuccessCount > 0 ? (
+                  <p className="text-sm text-slate-800">
+                    Thêm thành công{' '}
+                    <span className="font-semibold text-emerald-700">
+                      {importSuccessCount} / {importTotal}
+                    </span>{' '}
+                    tài khoản.
+                    {importNotAddedCount > 0 ? (
+                      <>
+                        {' '}
+                        Không thêm được:{' '}
+                        <span className="font-semibold text-red-600">{importNotAddedCount}</span>.
+                      </>
+                    ) : null}
+                  </p>
+                ) : (
+                  <p className="text-sm text-red-700">
+                    Thêm không thành công{' '}
+                    <span className="font-semibold">
+                      {importSuccessCount} / {importTotal}
+                    </span>{' '}
+                    tài khoản.
+                  </p>
+                )}
 
-                {importResult.errors.length > 0 ? (
-                  <div className="max-h-40 space-y-2 overflow-y-auto">
-                    <p className="text-xs font-medium text-red-700">Chi tiết lỗi</p>
-                    {importResult.errors.map((item) => (
-                      <div
-                        key={`err-${item.row}-${item.email}`}
-                        className="rounded-lg border border-red-100 bg-red-50/80 px-2.5 py-2 text-xs text-red-800"
-                      >
-                        <p className="font-medium">
-                          Dòng {item.row}
-                          {item.email ? ` · ${item.email}` : ''}
-                        </p>
-                        <p className="mt-0.5 text-red-700">{item.message}</p>
-                      </div>
+                {importNotAddedRows.length > 0 ? (
+                  <div className="max-h-48 space-y-2 overflow-y-auto">
+                    <p className="text-xs font-medium text-red-700">Lý do</p>
+                    {importNotAddedRows.map((item) => (
+                      <p key={`inot-${item.row}-${item.email}-${item.message}`} className="text-sm text-red-600">
+                        {item.fullName || item.email || `Dòng ${item.row}`}: {item.message}
+                      </p>
                     ))}
                   </div>
+                ) : importSuccessCount === 0 && importTotal > 0 ? (
+                  <p className="text-sm text-red-600">Không thêm được — vui lòng kiểm tra lại thông tin sinh viên.</p>
                 ) : null}
 
-                {importResult.successes.length > 0 ? (
+                {importRealSuccesses.length > 0 && importSuccessCount > 0 ? (
                   <details className="text-xs text-slate-600">
                     <summary className="cursor-pointer font-medium text-slate-700">
-                      Chi tiết thành công / bỏ qua ({importResult.successes.length})
+                      Chi tiết đã thêm ({importRealSuccesses.length})
                     </summary>
-                    <ul className="mt-2 max-h-32 space-y-1.5 overflow-y-auto">
-                      {importResult.successes.map((item) => (
-                        <li
-                          key={`ok-${item.row}-${item.email}`}
-                          className="rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-1.5"
-                        >
-                          Dòng {item.row}
-                          {item.email ? ` · ${item.email}` : ''}: {item.message}
+                    <ul className="mt-2 max-h-32 space-y-1 overflow-y-auto">
+                      {importRealSuccesses.map((item) => (
+                        <li key={`iok-${item.row}-${item.email}`} className="text-slate-600">
+                          {item.fullName || item.email || `Dòng ${item.row}`}
+                          {item.message ? `: ${item.message}` : ''}
                         </li>
                       ))}
                     </ul>
                   </details>
                 ) : null}
-              </div>
-            ) : null}
-          </div>
-
-          <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
-            <div>
-              <p className="text-sm font-medium text-slate-800">Tạo tài khoản hàng loạt</p>
-              <p className="mt-0.5 text-xs text-slate-500">
-                BE tạo mật khẩu tạm và xếp hàng gửi email. Không cần MSSV. Email có thể vào spam.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="secondary"
-                className="h-9"
-                disabled={!canCreateSelected || isCreatingAccounts}
-                onClick={() => setConfirmCreate('selected')}
-              >
-                <UserPlus className="h-3.5 w-3.5" strokeWidth={1.75} />
-                Tạo đã chọn ({selectedCount})
-              </Button>
-              <Button
-                className="h-9"
-                disabled={!canCreateAll || isCreatingAccounts}
-                onClick={() => setConfirmCreate('all')}
-              >
-                <UserPlus className="h-3.5 w-3.5" strokeWidth={1.75} />
-                {isCreatingAccounts ? 'Đang tạo...' : `Tạo tất cả chưa có (${withoutAccount.length})`}
-              </Button>
-            </div>
-
-            {createAccountsError ? (
-              <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
-                {createAccountsError}
-              </p>
+              </>
             ) : null}
 
-            {createAccountsResult ? (
-              <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-3">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm font-medium text-slate-800">Kết quả tạo tài khoản</p>
-                  <button
-                    type="button"
-                    className="text-xs font-medium text-slate-500 hover:text-slate-700"
-                    onClick={() => onClearCreateAccountsResult?.()}
-                  >
-                    Đóng
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
-                  <StatChip label="Tổng" value={createAccountsResult.total} />
-                  <StatChip label="Đã tạo" value={createAccountsResult.created} tone="success" />
-                  <StatChip label="Bỏ qua" value={createAccountsResult.skipped} tone="muted" />
-                  <StatChip label="Lỗi" value={createAccountsResult.failed} tone="danger" />
-                  <StatChip label="Mail xếp hàng" value={createAccountsResult.mailQueued} tone="info" />
-                </div>
-
-                {createAccountsResult.results.some((r) => r.status === 'FAILED') ? (
-                  <div className="max-h-40 space-y-2 overflow-y-auto">
-                    <p className="text-xs font-medium text-red-700">Chi tiết lỗi</p>
-                    {createAccountsResult.results
-                      .filter((r) => r.status === 'FAILED')
-                      .map((item) => (
-                        <div
-                          key={`fail-${item.studentId}-${item.email}`}
-                          className="rounded-lg border border-red-100 bg-red-50/80 px-2.5 py-2 text-xs text-red-800"
-                        >
-                          <p className="font-medium">
-                            {item.fullName || '—'}
-                            {item.email ? ` · ${item.email}` : ''}
-                          </p>
-                          <p className="mt-0.5 text-red-700">{item.message}</p>
-                        </div>
-                      ))}
-                  </div>
-                ) : null}
-
-                {createAccountsResult.results.length > 0 ? (
-                  <details className="text-xs text-slate-600">
-                    <summary className="cursor-pointer font-medium text-slate-700">
-                      Chi tiết tất cả ({createAccountsResult.results.length})
-                    </summary>
-                    <ul className="mt-2 max-h-36 space-y-1.5 overflow-y-auto">
-                      {createAccountsResult.results.map((item) => (
-                        <li
-                          key={`res-${item.studentId}-${item.status}-${item.email}`}
-                          className={`rounded-lg border px-2.5 py-1.5 ${
-                            item.status === 'FAILED'
-                              ? 'border-red-100 bg-red-50 text-red-800'
-                              : item.status === 'CREATED'
-                                ? 'border-emerald-100 bg-emerald-50 text-emerald-800'
-                                : 'border-slate-100 bg-slate-50'
-                          }`}
-                        >
-                          <span className="font-medium">{item.status}</span>
-                          {' · '}
-                          {item.fullName || item.email || item.studentId}: {item.message}
-                        </li>
-                      ))}
-                    </ul>
-                  </details>
-                ) : null}
-              </div>
+            {!importResult && !importError && !manualLocalError ? (
+              <p className="text-sm text-slate-600">Không có dữ liệu kết quả.</p>
             ) : null}
-          </div>
 
-          <form className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/60 p-4" onSubmit={handleEnroll}>
-            <div>
-              <p className="text-sm font-medium text-slate-800">Ghi danh sinh viên</p>
-              <p className="mt-0.5 text-xs text-slate-500">
-                Nhập email sinh viên, phân cách bằng dấu phẩy.
-              </p>
-            </div>
-            {enrollError ? (
-              <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">{enrollError}</p>
-            ) : null}
-            <div className="space-y-1.5">
-              <Input
-                value={studentEmailsText}
-                hasError={Boolean(errors.studentEmailsText)}
-                placeholder="Vui lòng nhập email sinh viên"
-                disabled={isEnrolling}
-                onChange={(event) => {
-                  setStudentEmailsText(event.target.value)
-                  if (errors.studentEmailsText) setErrors({})
-                }}
-              />
-              {errors.studentEmailsText ? (
-                <p className="text-sm text-red-500">{errors.studentEmailsText}</p>
-              ) : null}
-            </div>
-            <Button type="submit" className="w-full sm:w-auto" disabled={isEnrolling}>
-              <UserPlus className="h-3.5 w-3.5" strokeWidth={1.75} />
-              {isEnrolling ? 'Đang ghi danh...' : 'Thêm vào lớp'}
+            <Button className="w-full" variant="secondary" onClick={closeImportResultModal}>
+              Đóng
             </Button>
-          </form>
-
-          <div>
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-medium text-slate-800">
-                Danh sách <span className="text-slate-400">({students.length})</span>
-              </p>
-              {withoutAccount.length > 0 ? (
-                <button
-                  type="button"
-                  className="text-xs font-medium text-blue-600 hover:text-blue-700"
-                  onClick={toggleSelectAllWithoutAccount}
-                >
-                  {selectedCount === withoutAccount.length
-                    ? 'Bỏ chọn tất cả chưa có account'
-                    : 'Chọn tất cả chưa có account'}
-                </button>
-              ) : null}
-            </div>
-
-            {isLoadingStudents ? <Spinner label="Đang tải sinh viên..." className="py-8" /> : null}
-
-            {studentsError ? (
-              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-center">
-                <p className="text-sm text-red-600">{studentsError}</p>
-                {onRetryStudents ? (
-                  <Button variant="secondary" className="mt-3 h-9" onClick={onRetryStudents}>
-                    Thử lại
-                  </Button>
-                ) : null}
-              </div>
-            ) : null}
-
-            {!isLoadingStudents && !studentsError && students.length === 0 ? (
-              <EmptyState
-                title="Chưa có sinh viên nào"
-                description="Ghi danh bằng email hoặc dùng Nhập Excel với file .xlsx."
-              />
-            ) : null}
-
-            {!isLoadingStudents && !studentsError && students.length > 0 ? (
-              <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200">
-                {students.map((student) => {
-                  const missing = student.missingStudentCode
-                  const needsAccount = !student.hasAccount
-                  return (
-                    <li
-                      key={student.id}
-                      className={`flex items-start gap-2 px-3 py-3 ${
-                        missing || needsAccount
-                          ? 'border-l-4 border-l-amber-400 bg-amber-50/70'
-                          : 'hover:bg-slate-50/70'
-                      }`}
-                    >
-                      <div className="pt-0.5">
-                        <input
-                          type="checkbox"
-                          className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/30 disabled:opacity-40"
-                          checked={selectedIds.has(student.id)}
-                          disabled={!needsAccount || isCreatingAccounts}
-                          aria-label={`Chọn ${student.fullName}`}
-                          onChange={() => toggleSelect(student.id)}
-                        />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="truncate text-sm font-medium text-slate-900">{student.fullName}</p>
-                          {missing ? (
-                            <span className="inline-flex rounded-lg border border-amber-200 bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-                              Thiếu MSSV
-                            </span>
-                          ) : null}
-                          {needsAccount ? (
-                            <span className="inline-flex rounded-lg border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-800">
-                              Chưa có account
-                            </span>
-                          ) : (
-                            <span className="inline-flex rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                              Đã có account
-                            </span>
-                          )}
-                        </div>
-                        <p className="mt-0.5 truncate text-xs text-slate-600">
-                          MSSV:{' '}
-                          <span className={missing ? 'font-medium text-amber-800' : 'font-medium text-slate-800'}>
-                            {student.studentCode || 'Chưa có'}
-                          </span>
-                        </p>
-                        <p className="truncate text-xs text-slate-500">
-                          {[student.email, student.phone].filter(Boolean).join(' · ')}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          className="h-9 px-3"
-                          disabled={isUpdatingStudentCode}
-                          onClick={() => openEditCode(student)}
-                          title="Sửa mã sinh viên"
-                        >
-                          <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
-                          MSSV
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          className="h-9 px-3 text-red-600 hover:bg-red-50 hover:text-red-700"
-                          disabled={isRemoving}
-                          onClick={() => setRemovingStudent(student)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
-                          Gỡ bỏ
-                        </Button>
-                      </div>
-                    </li>
-                  )
-                })}
-              </ul>
-            ) : null}
           </div>
-        </div>
-      </aside>
-
-      {confirmCreate ? (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/40 px-4">
-          <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
-            <h3 className="text-base font-semibold text-slate-900">Tạo tài khoản?</h3>
-            <p className="mt-2 text-sm text-slate-600">
-              Tạo tài khoản và gửi email mật khẩu tạm cho{' '}
-              <span className="font-medium text-slate-900">{confirmCount}</span> sinh viên?
-            </p>
-            <p className="mt-2 text-xs text-slate-500">
-              Email gửi bất đồng bộ — có thể vào spam. Không đợi gửi xong trong request này.
-            </p>
-            <div className="mt-5 flex gap-2">
-              <Button
-                variant="secondary"
-                className="flex-1"
-                disabled={isCreatingAccounts}
-                onClick={() => setConfirmCreate(null)}
-              >
-                Hủy
-              </Button>
-              <Button className="flex-1" disabled={isCreatingAccounts} onClick={() => void confirmCreateAccounts()}>
-                {isCreatingAccounts ? 'Đang tạo...' : 'Xác nhận'}
-              </Button>
-            </div>
-          </div>
-        </div>
+        </ModalShell>
       ) : null}
 
       {removingStudent ? (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/40 px-4">
-          <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
-            <h3 className="text-base font-semibold text-slate-900">Gỡ sinh viên?</h3>
-            <p className="mt-2 text-sm text-slate-600">
-              Gỡ{' '}
-              <span className="font-medium text-slate-900">{removingStudent.fullName}</span> khỏi{' '}
-              <span className="font-medium text-slate-900">{classroom.className}</span>?
-            </p>
-            <div className="mt-5 flex gap-2">
-              <Button
-                variant="secondary"
-                className="flex-1"
-                disabled={isRemoving}
-                onClick={() => setRemovingStudent(null)}
-              >
-                Hủy
-              </Button>
-              <Button variant="danger" className="flex-1" disabled={isRemoving} onClick={() => void confirmRemove()}>
-                {isRemoving ? 'Đang gỡ...' : 'Gỡ bỏ'}
-              </Button>
-            </div>
+        <ModalShell title="Gỡ sinh viên?" onClose={() => setRemovingStudent(null)} busy={isRemoving}>
+          <p className="text-sm text-slate-600">
+            Gỡ <span className="font-medium text-slate-900">{removingStudent.fullName}</span> khỏi{' '}
+            <span className="font-medium text-slate-900">{classroom.className}</span>?
+          </p>
+          <div className="mt-5 flex gap-2">
+            <Button variant="secondary" className="flex-1" disabled={isRemoving} onClick={() => setRemovingStudent(null)}>
+              Hủy
+            </Button>
+            <Button variant="danger" className="flex-1" disabled={isRemoving} onClick={() => void confirmRemove()}>
+              {isRemoving ? 'Đang gỡ...' : 'Gỡ bỏ'}
+            </Button>
           </div>
-        </div>
+        </ModalShell>
       ) : null}
 
       {editingStudent ? (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/40 px-4">
-          <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
-            <h3 className="text-base font-semibold text-slate-900">Cập nhật mã sinh viên</h3>
-            <p className="mt-2 text-sm text-slate-600">
-              <span className="font-medium text-slate-900">{editingStudent.fullName}</span>
-              <span className="text-slate-400"> · </span>
-              {editingStudent.email}
-            </p>
-
-            <form className="mt-4 space-y-3" onSubmit={(event) => void handleSaveStudentCode(event)}>
-              {updateStudentCodeError ? (
-                <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
-                  {updateStudentCodeError}
-                </p>
-              ) : null}
-
-              <div className="space-y-1.5">
-                <label htmlFor="editStudentCode" className="text-sm font-medium text-slate-700">
-                  Mã sinh viên (8 số)
-                </label>
-                <Input
-                  id="editStudentCode"
-                  name="editStudentCode"
-                  inputMode="numeric"
-                  maxLength={8}
-                  value={editCode}
-                  hasError={Boolean(editCodeError)}
-                  disabled={isUpdatingStudentCode}
-                  placeholder="Ví dụ: 22520123"
-                  onChange={(event) => {
-                    setEditCode(event.target.value.replace(/\D/g, '').slice(0, 8))
-                    if (editCodeError) setEditCodeError(undefined)
-                  }}
-                />
-                {editCodeError ? <p className="text-sm text-red-500">{editCodeError}</p> : null}
-              </div>
-
-              <div className="flex gap-2 pt-1">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="flex-1"
-                  disabled={isUpdatingStudentCode}
-                  onClick={() => setEditingStudent(null)}
-                >
-                  Hủy
-                </Button>
-                <Button type="submit" className="flex-1" disabled={isUpdatingStudentCode}>
-                  {isUpdatingStudentCode ? 'Đang lưu...' : 'Lưu'}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <ModalShell title="Cập nhật mã sinh viên" onClose={() => setEditingStudent(null)} busy={isUpdatingStudentCode}>
+          <p className="mb-3 text-sm text-slate-600">
+            <span className="font-medium text-slate-900">{editingStudent.fullName}</span>
+            <span className="text-slate-400"> · </span>
+            {editingStudent.email}
+          </p>
+          <form className="space-y-3" onSubmit={(e) => void handleSaveStudentCode(e)}>
+            {updateStudentCodeError ? (
+              <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                {updateStudentCodeError}
+              </p>
+            ) : null}
+            <Input
+              id="editStudentCode"
+              inputMode="numeric"
+              maxLength={8}
+              value={editCode}
+              hasError={Boolean(editCodeError)}
+              disabled={isUpdatingStudentCode}
+              placeholder="Ví dụ: 22520123"
+              onChange={(e) => {
+                setEditCode(e.target.value.replace(/\D/g, '').slice(0, 8))
+                if (editCodeError) setEditCodeError(undefined)
+              }}
+            />
+            {editCodeError ? <p className="text-sm text-red-500">{editCodeError}</p> : null}
+            <div className="flex gap-2">
+              <Button type="button" variant="secondary" className="flex-1" disabled={isUpdatingStudentCode} onClick={() => setEditingStudent(null)}>
+                Hủy
+              </Button>
+              <Button type="submit" className="flex-1" disabled={isUpdatingStudentCode}>
+                {isUpdatingStudentCode ? 'Đang lưu...' : 'Lưu'}
+              </Button>
+            </div>
+          </form>
+        </ModalShell>
       ) : null}
     </div>
   )
 }
 
-function StatChip({
-  label,
-  value,
-  tone = 'default',
+function TabButton({
+  active,
+  onClick,
+  children,
 }: {
-  label: string
-  value: number
-  tone?: 'default' | 'success' | 'danger' | 'muted' | 'info'
+  active: boolean
+  onClick: () => void
+  children: React.ReactNode
 }) {
-  const toneClass =
-    tone === 'success'
-      ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-      : tone === 'danger'
-        ? 'border-red-200 bg-red-50 text-red-800'
-        : tone === 'muted'
-          ? 'border-slate-200 bg-slate-50 text-slate-600'
-          : tone === 'info'
-            ? 'border-blue-200 bg-blue-50 text-blue-800'
-            : 'border-slate-200 bg-white text-slate-800'
-
   return (
-    <div className={`rounded-xl border px-2.5 py-2 ${toneClass}`}>
-      <p className="text-[11px] uppercase tracking-wide opacity-80">{label}</p>
-      <p className="mt-0.5 text-base font-semibold tabular-nums">{value}</p>
+    <button
+      type="button"
+      onClick={onClick}
+      className={`relative flex-1 px-2 py-3 text-sm font-medium transition ${
+        active ? 'text-blue-700' : 'text-slate-500 hover:text-slate-800'
+      }`}
+    >
+      {children}
+      {active ? <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-blue-600" /> : null}
+    </button>
+  )
+}
+
+function ModalShell({
+  title,
+  onClose,
+  busy,
+  children,
+}: {
+  title: string
+  onClose: () => void
+  busy?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <div className="absolute inset-0 z-20 flex items-end justify-center bg-slate-900/45 p-0 sm:items-center sm:p-4">
+      <button type="button" className="absolute inset-0 cursor-default" aria-label="Đóng" onClick={onClose} disabled={busy} />
+      <div className="relative z-10 max-h-[85dvh] w-full overflow-y-auto rounded-t-3xl border border-slate-200 bg-white p-5 shadow-2xl sm:max-w-md sm:rounded-3xl sm:p-6">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <h3 className="text-base font-semibold text-slate-900">{title}</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
+            aria-label="Đóng"
+          >
+            <X className="h-4 w-4" strokeWidth={2} />
+          </button>
+        </div>
+        {children}
+      </div>
     </div>
   )
 }
