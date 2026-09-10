@@ -13,22 +13,64 @@ type ClassroomItemProps = {
   onManageStudents: (classroom: ClassroomItemType) => void
 }
 
+const iconBtn =
+  'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border p-0 transition disabled:cursor-not-allowed disabled:opacity-50'
+
 function StatusBadge({ isActive }: { isActive: boolean }) {
   if (!isActive) return <InactiveBadge />
   return <span className={ACTIVE_BADGE_CLASS}>Đang hoạt động</span>
 }
 
-function ClassroomActions({
+function ClassroomTableActions({
   classroom,
   onEdit,
   onHide,
   onManageStudents,
-  spread = false,
-}: Pick<ClassroomItemProps, 'classroom' | 'onEdit' | 'onHide' | 'onManageStudents'> & {
-  spread?: boolean
-}) {
+}: Pick<ClassroomItemProps, 'classroom' | 'onEdit' | 'onHide' | 'onManageStudents'>) {
   return (
-    <div className={`flex items-center ${spread ? 'w-full justify-evenly gap-1' : 'flex-wrap gap-2'}`}>
+    <div className="flex items-center justify-center gap-1.5">
+      <button
+        type="button"
+        title="Sinh viên"
+        aria-label="Sinh viên"
+        className={`${iconBtn} border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100`}
+        onClick={() => onManageStudents(classroom)}
+        disabled={!classroom.isActive}
+      >
+        <Users className="h-3.5 w-3.5" strokeWidth={1.75} />
+      </button>
+      <button
+        type="button"
+        title="Sửa"
+        aria-label="Sửa"
+        className={`${iconBtn} border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100`}
+        onClick={() => onEdit(classroom)}
+      >
+        <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+      </button>
+      {classroom.isActive ? (
+        <button
+          type="button"
+          title="Ẩn"
+          aria-label="Ẩn"
+          className={`${iconBtn} border-red-200 bg-red-50 text-red-700 hover:bg-red-100`}
+          onClick={() => onHide(classroom)}
+        >
+          <EyeOff className="h-3.5 w-3.5" strokeWidth={1.75} />
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
+function ClassroomCardActions({
+  classroom,
+  onEdit,
+  onHide,
+  onManageStudents,
+}: Pick<ClassroomItemProps, 'classroom' | 'onEdit' | 'onHide' | 'onManageStudents'>) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
       <Button
         variant="ghost"
         className="h-8 border border-blue-200 bg-blue-50 px-2.5 text-xs text-blue-700 hover:bg-blue-100 hover:text-blue-800"
@@ -104,7 +146,7 @@ export function ClassroomItem({
         <StatusBadge isActive={classroom.isActive} />
       </div>
 
-      <ClassroomActions
+      <ClassroomCardActions
         classroom={classroom}
         onEdit={onEdit}
         onHide={onHide}
@@ -140,24 +182,23 @@ export function ClassroomTableRow({
       </TableCell>
 
       <TableCell className="whitespace-nowrap">
-        <p className="truncate text-sm text-slate-700 text-center">{classroom.semester || '—'}</p>
+        <p className="truncate text-center text-sm text-slate-700">{classroom.semester || '—'}</p>
       </TableCell>
 
       <TableCell className="whitespace-nowrap">
-        <p className="truncate text-sm text-slate-700 text-center">{classroom.academicYear || '—'}</p>
+        <p className="truncate text-center text-sm text-slate-700">{classroom.academicYear || '—'}</p>
       </TableCell>
 
       <TableCell className="whitespace-nowrap" align="center">
         <StatusBadge isActive={classroom.isActive} />
       </TableCell>
 
-      <TableCell className="whitespace-nowrap">
-        <ClassroomActions
+      <TableCell className="whitespace-nowrap" align="center">
+        <ClassroomTableActions
           classroom={classroom}
           onEdit={onEdit}
           onHide={onHide}
           onManageStudents={onManageStudents}
-          spread
         />
       </TableCell>
     </TableRow>

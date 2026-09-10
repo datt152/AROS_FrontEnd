@@ -37,16 +37,16 @@ export function GradingStudentTableRow({ index, student, maxScore, onViewSubmiss
         {formatGradingDateTime(student.submitTime)}
       </TableCell>
       <TableCell align="center">
-        <Button
-          variant="secondary"
-          className="h-8 px-2.5 text-xs"
-          disabled={!canView}
+        <button
+          type="button"
           title={canView ? 'Xem bài đã nộp' : 'Chỉ xem được bài đã nộp'}
+          aria-label={canView ? 'Xem bài đã nộp' : 'Chỉ xem được bài đã nộp'}
+          disabled={!canView}
           onClick={() => onViewSubmission(student)}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Eye className="h-3.5 w-3.5" strokeWidth={1.75} />
-          Xem bài
-        </Button>
+        </button>
       </TableCell>
     </TableRow>
   )

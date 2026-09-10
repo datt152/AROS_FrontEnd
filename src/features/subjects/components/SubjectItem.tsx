@@ -12,19 +12,52 @@ type SubjectItemProps = {
   onHide: (subject: SubjectItemType) => void
 }
 
+const iconBtn =
+  'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border p-0 transition disabled:cursor-not-allowed disabled:opacity-50'
+
 function StatusBadge({ isActive }: { isActive: boolean }) {
   if (!isActive) return <InactiveBadge />
   return <span className={ACTIVE_BADGE_CLASS}>Đang hiển thị</span>
 }
 
-function SubjectActions({
+function SubjectTableActions({
   subject,
   onEdit,
   onHide,
-  spread = false,
-}: Pick<SubjectItemProps, 'subject' | 'onEdit' | 'onHide'> & { spread?: boolean }) {
+}: Pick<SubjectItemProps, 'subject' | 'onEdit' | 'onHide'>) {
   return (
-    <div className={`flex items-center ${spread ? 'w-full justify-evenly gap-1' : 'gap-2'}`}>
+    <div className="flex items-center justify-center gap-1.5">
+      <button
+        type="button"
+        title="Sửa"
+        aria-label="Sửa"
+        className={`${iconBtn} border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100`}
+        onClick={() => onEdit(subject)}
+      >
+        <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+      </button>
+      {subject.isActive ? (
+        <button
+          type="button"
+          title="Ẩn"
+          aria-label="Ẩn"
+          className={`${iconBtn} border-red-200 bg-red-50 text-red-700 hover:bg-red-100`}
+          onClick={() => onHide(subject)}
+        >
+          <EyeOff className="h-3.5 w-3.5" strokeWidth={1.75} />
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
+function SubjectCardActions({
+  subject,
+  onEdit,
+  onHide,
+}: Pick<SubjectItemProps, 'subject' | 'onEdit' | 'onHide'>) {
+  return (
+    <div className="flex items-center gap-2">
       <Button
         variant="ghost"
         className="h-8 border border-amber-200 bg-amber-50 px-2.5 text-xs text-amber-800 hover:bg-amber-100 hover:text-amber-900"
@@ -69,7 +102,7 @@ export function SubjectItem({ subject, onEdit, onHide }: SubjectItemProps) {
         <StatusBadge isActive={subject.isActive} />
       </div>
 
-      <SubjectActions subject={subject} onEdit={onEdit} onHide={onHide} />
+      <SubjectCardActions subject={subject} onEdit={onEdit} onHide={onHide} />
     </article>
   )
 }
@@ -89,12 +122,12 @@ export function SubjectTableRow({ subject, onEdit, onHide }: SubjectItemProps) {
         </p>
       </TableCell>
 
-      <TableCell className="whitespace-nowrap">
+      <TableCell className="whitespace-nowrap" align="center">
         <StatusBadge isActive={subject.isActive} />
       </TableCell>
 
-      <TableCell className="whitespace-nowrap">
-        <SubjectActions subject={subject} onEdit={onEdit} onHide={onHide} spread />
+      <TableCell className="whitespace-nowrap" align="center">
+        <SubjectTableActions subject={subject} onEdit={onEdit} onHide={onHide} />
       </TableCell>
     </TableRow>
   )

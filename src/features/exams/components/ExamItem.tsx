@@ -1,6 +1,5 @@
 import { Eye, Lock, Pencil, Trash2 } from 'lucide-react'
 
-import { Button } from '../../../components/ui/Button'
 import { TableCell, TableRow } from '../../../components/ui/Table'
 import type { ExamItem as ExamItemType } from '../types/exam.types'
 import {
@@ -41,56 +40,65 @@ function ExamActions({
   onEdit,
   onDelete,
   onCloseExam,
-  spread = false,
-}: ExamItemProps & { spread?: boolean }) {
+}: ExamItemProps) {
   const isDraft = exam.status === 'DRAFT'
   const isOngoing = exam.status === 'ONGOING' || exam.status === 'UPCOMING'
   const canDelete = !exam.hasSubmissions && (isDraft || exam.status === 'CLOSED')
+  const deleteTitle = exam.hasSubmissions
+    ? 'Không thể xóa đề đã có bài nộp'
+    : !canDelete
+      ? 'Không thể xóa đề ở trạng thái này'
+      : 'Xóa'
+
+  const iconBtn =
+    'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border p-0 transition disabled:cursor-not-allowed disabled:opacity-50'
 
   return (
-    <div className={`flex items-center ${spread ? 'w-full flex-wrap justify-evenly gap-1' : 'flex-wrap gap-2'}`}>
-      <Button
-        variant="ghost"
-        className="h-8 border border-blue-200 bg-blue-50 px-2 text-xs text-blue-700 hover:bg-blue-100"
+    <div className="flex items-center justify-center gap-1.5">
+      <button
+        type="button"
+        title="Chi tiết"
+        aria-label="Chi tiết"
+        className={`${iconBtn} border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100`}
         onClick={() => onDetail(exam)}
       >
         <Eye className="h-3.5 w-3.5" strokeWidth={1.75} />
-        Chi tiết
-      </Button>
+      </button>
 
       {isDraft ? (
-        <Button
-          variant="ghost"
-          className="h-8 border border-amber-200 bg-amber-50 px-2 text-xs text-amber-800 hover:bg-amber-100"
+        <button
+          type="button"
+          title="Sửa"
+          aria-label="Sửa"
+          className={`${iconBtn} border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100`}
           onClick={() => onEdit(exam)}
         >
           <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
-          Sửa
-        </Button>
+        </button>
       ) : null}
 
+      <button
+        type="button"
+        title={deleteTitle}
+        aria-label={deleteTitle}
+        disabled={!canDelete}
+        className={`${iconBtn} border-red-200 bg-red-50 text-red-700 hover:bg-red-100`}
+        onClick={() => onDelete(exam)}
+      >
+        <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+      </button>
+
       {isOngoing ? (
-        <Button
-          variant="ghost"
-          className="h-8 border border-slate-200 bg-slate-50 px-2 text-xs text-slate-700 hover:bg-slate-100"
+        <button
+          type="button"
+          title="Đóng thi"
+          aria-label="Đóng thi"
+          className={`${iconBtn} border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100`}
           onClick={() => onCloseExam(exam)}
         >
           <Lock className="h-3.5 w-3.5" strokeWidth={1.75} />
-          Đóng thi
-        </Button>
+        </button>
       ) : null}
-
-      <span title={exam.hasSubmissions ? 'Không thể xóa đề đã có bài nộp' : undefined}>
-        <Button
-          variant="ghost"
-          className="h-8 border border-red-200 bg-red-50 px-2 text-xs text-red-700 hover:bg-red-100"
-          disabled={!canDelete}
-          onClick={() => onDelete(exam)}
-        >
-          <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
-          Xóa
-        </Button>
-      </span>
     </div>
   )
 }
@@ -163,8 +171,8 @@ export function ExamTableRow(props: ExamItemProps) {
       <TableCell className="py-3.5" align="center">
         {exam.classroomIds?.length ?? 0}
       </TableCell>
-      <TableCell className="whitespace-nowrap py-3.5">
-        <ExamActions {...props} spread />
+      <TableCell className="whitespace-nowrap py-3.5" align="center">
+        <ExamActions {...props} />
       </TableCell>
     </TableRow>
   )

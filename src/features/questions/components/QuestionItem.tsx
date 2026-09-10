@@ -12,14 +12,45 @@ type QuestionItemProps = {
   onDelete: (question: QuestionItemType) => void
 }
 
-function QuestionActions({
+const iconBtn =
+  'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border p-0 transition disabled:cursor-not-allowed disabled:opacity-50'
+
+function QuestionTableActions({
   question,
   onEdit,
   onDelete,
-  spread = false,
-}: Pick<QuestionItemProps, 'question' | 'onEdit' | 'onDelete'> & { spread?: boolean }) {
+}: Pick<QuestionItemProps, 'question' | 'onEdit' | 'onDelete'>) {
   return (
-    <div className={`flex items-center ${spread ? 'w-full justify-evenly gap-1' : 'flex-wrap gap-2'}`}>
+    <div className="flex items-center justify-center gap-1.5">
+      <button
+        type="button"
+        title="Sửa"
+        aria-label="Sửa"
+        className={`${iconBtn} border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100`}
+        onClick={() => onEdit(question)}
+      >
+        <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+      </button>
+      <button
+        type="button"
+        title="Xóa"
+        aria-label="Xóa"
+        className={`${iconBtn} border-red-200 bg-red-50 text-red-700 hover:bg-red-100`}
+        onClick={() => onDelete(question)}
+      >
+        <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+      </button>
+    </div>
+  )
+}
+
+function QuestionCardActions({
+  question,
+  onEdit,
+  onDelete,
+}: Pick<QuestionItemProps, 'question' | 'onEdit' | 'onDelete'>) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
       <Button
         variant="ghost"
         className="h-8 border border-amber-200 bg-amber-50 px-2.5 text-xs text-amber-800 hover:bg-amber-100 hover:text-amber-900"
@@ -85,7 +116,7 @@ export function QuestionItem({ question, onEdit, onDelete }: QuestionItemProps) 
         <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Đáp án</p>
         <p className="text-sm text-slate-700">{question.options.length}</p>
       </div>
-      <QuestionActions question={question} onEdit={onEdit} onDelete={onDelete} />
+      <QuestionCardActions question={question} onEdit={onEdit} onDelete={onDelete} />
     </article>
   )
 }
@@ -98,15 +129,17 @@ export function QuestionTableRow({ question, onEdit, onDelete }: QuestionItemPro
           {question.content}
         </p>
       </TableCell>
-      <TableCell className="py-3.5" align='center'>
+      <TableCell className="py-3.5" align="center">
         <TypeBadge question={question} />
       </TableCell>
-      <TableCell className="py-3.5" align='center'>
+      <TableCell className="py-3.5" align="center">
         <DifficultyBadge question={question} />
       </TableCell>
-      <TableCell className="py-3.5" align='center'>{question.options.length}</TableCell>
-      <TableCell className="whitespace-nowrap py-3.5 align-evenly">
-        <QuestionActions question={question} onEdit={onEdit} onDelete={onDelete} spread />
+      <TableCell className="py-3.5" align="center">
+        {question.options.length}
+      </TableCell>
+      <TableCell className="whitespace-nowrap py-3.5" align="center">
+        <QuestionTableActions question={question} onEdit={onEdit} onDelete={onDelete} />
       </TableCell>
     </TableRow>
   )
