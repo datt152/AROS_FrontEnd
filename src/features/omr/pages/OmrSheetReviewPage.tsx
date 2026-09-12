@@ -1,18 +1,22 @@
 import { ArrowLeft, Check, ImageOff } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import { Button } from '../../../components/ui/Button'
 import { EmptyState } from '../../../components/ui/EmptyState'
-import { Input } from '../../../components/ui/Input'
+import { ErrorState } from '../../../components/ui/ErrorState'
+import { Spinner } from '../../../components/ui/Spinner'
+import { getApiErrorMessage } from '../../../lib/apiError'
 import { omrSessionPath, ROUTES } from '../../../routes/routes.config'
-import { getMockSheet } from '../lib/omr.mock'
-import type { OmrAnswerItem, OmrSheetItem } from '../types/omr.types'
+import { OmrWarpedImageOverlay } from '../components/OmrWarpedImageOverlay'
+import { useOmrSheet, useReviewOmrSheet } from '../hooks/useOmr'
+import type { OmrAnswerItem, OmrSheetReviewPayload } from '../types/omr.types'
 import {
   formatOmrDateTime,
   formatOmrScore,
   OMR_SHEET_STATUS_BADGE,
   OMR_SHEET_STATUS_LABEL,
+  resolveOmrSheetImageUrl,
 } from '../types/omr.types'
 
 const CHOICES = ['A', 'B', 'C', 'D'] as const
@@ -20,74 +24,88 @@ const CHOICES = ['A', 'B', 'C', 'D'] as const
 export function OmrSheetReviewPage() {
   const { sheetId: sheetIdParam } = useParams()
   const sheetId = Number(sheetIdParam)
-  const base = getMockSheet(sheetId)
+  const validSheetId = Number.isFinite(sheetId) && sheetId > 0 ? sheetId : undefined
 
-  const [sheet, setSheet] = useState<OmrSheetItem | null>(() => (base ? { ...base, answers: [...base.answers] } : null))
-  const [studentIdDraft, setStudentIdDraft] = useState(base?.studentId ?? '')
-  const [examCodeDraft, setExamCodeDraft] = useState(base?.examCode ?? '')
+  const sheetQuery = useOmrSheet(validSheetId)
+  const sheet = sheetQuery.data
+  const reviewMutation = useReviewOmrSheet(validSheetId, sheet?.examSessionId)
+
+  const [draftAnswers, setDraftAnswers] = useState<Record<number, string>>({})
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [savedNote, setSavedNote] = useState<string | null>(null)
+  const [highlightedQuestion, setHighlightedQuestion] = useState<number | null>(null)
+  /** Snapshot nhận dạng từ BE — không đổi khi sửa draft / sau lưu review */
+  const [overlaySnapshot, setOverlaySnapshot] = useState<OmrAnswerItem[]>([])
+
+  useEffect(() => {
+    if (!sheet) return
+    setOverlaySnapshot(
+      sheet.answers.map((answer) => ({
+        ...answer,
+        bubble: answer.bubble ? { ...answer.bubble } : null,
+      })),
+    )
+  }, [sheet?.submissionId])
+
+  useEffect(() => {
+    if (!sheet) return
+    const next: Record<number, string> = {}
+    sheet.answers.forEach((answer) => {
+      if (answer.chosen) next[answer.question] = answer.chosen
+    })
+    setDraftAnswers(next)
+  }, [sheet])
 
   const needSet = useMemo(() => new Set(sheet?.needReview ?? []), [sheet?.needReview])
+  const imageUrl = sheet ? resolveOmrSheetImageUrl(sheet) : null
+
+  const displayAnswers = useMemo(() => {
+    if (!sheet) return []
+    return sheet.answers.map((answer) => ({
+      ...answer,
+      chosen: draftAnswers[answer.question] ?? answer.chosen,
+    }))
+  }, [sheet, draftAnswers])
 
   function setAnswerChoice(question: number, choice: string) {
-    setSheet((prev) => {
-      if (!prev) return prev
-      const answers = prev.answers.map((item) => {
-        if (item.question !== question) return item
-        const isCorrect =
-          item.correctAnswer != null ? choice === item.correctAnswer : null
-        return {
-          ...item,
-          chosen: choice,
-          isCorrect,
-          status: 'OK',
-          bubble: item.bubble ? { ...item.bubble, choice } : { choice, x: 0, y: 0, w: 18, h: 18 },
-        }
-      })
-      return {
-        ...prev,
-        answers,
-        needReview: prev.needReview.filter((q) => q !== question),
-      }
-    })
+    setDraftAnswers((prev) => ({ ...prev, [question]: choice }))
+    setHighlightedQuestion(question)
+    setSavedNote(null)
   }
 
-  function handleSaveReview() {
+  async function handleSaveReview() {
     if (!sheet) return
-    const remaining = sheet.answers.filter(
-      (a) => needSet.has(a.question) || a.chosen == null,
-    ).length
-    const nextStatus =
-      remaining === 0 && studentIdDraft.trim() && examCodeDraft.trim()
-        ? 'GRADED'
-        : 'NEEDS_REVIEW'
-
-    let score: number | null = sheet.score
-    if (nextStatus === 'GRADED') {
-      const graded = sheet.answers.filter((a) => a.isCorrect != null)
-      const correct = graded.filter((a) => a.isCorrect).length
-      score = graded.length
-        ? Math.round((correct / graded.length) * (sheet.maxScore ?? 10) * 10) / 10
-        : 0
+    if (!sheet.examCode) {
+      setSaveError('Phiếu chưa có mã đề — không thể review. Cần chụp lại hoặc đợi nhận dạng mã đề.')
+      return
     }
 
-    setSheet({
-      ...sheet,
-      studentId: studentIdDraft.trim() || null,
-      examCode: examCodeDraft.trim() || null,
-      status: nextStatus,
-      score,
-      gradedAt: nextStatus === 'GRADED' ? new Date().toISOString() : sheet.gradedAt,
-      needReview: sheet.answers.filter((a) => a.chosen == null).map((a) => a.question),
-    })
-    setSavedNote(
-      nextStatus === 'GRADED'
-        ? 'Đã xác nhận review (mock). Phiếu chuyển sang Đã chấm.'
-        : 'Đã lưu chỉnh sửa (mock). Vẫn còn câu cần xem lại.',
-    )
+    const answers: OmrSheetReviewPayload['answers'] = {}
+    for (const [question, choice] of Object.entries(draftAnswers)) {
+      if (CHOICES.includes(choice as (typeof CHOICES)[number])) {
+        answers[question] = choice as (typeof CHOICES)[number]
+      }
+    }
+
+    if (Object.keys(answers).length === 0) {
+      setSaveError('Chọn ít nhất một đáp án trước khi lưu review.')
+      return
+    }
+
+    setSaveError(null)
+    try {
+      const updated = await reviewMutation.mutateAsync({ answers })
+      setSavedNote(
+        updated.status === 'GRADED'
+          ? 'Đã lưu review. Phiếu đã được chấm lại.'
+          : 'Đã lưu review. Phiếu vẫn cần kiểm tra thêm.',
+      )
+    } catch (error) {
+      setSaveError(getApiErrorMessage(error, 'Không lưu được review'))
+    }
   }
 
-  if (!Number.isFinite(sheetId) || !sheet) {
+  if (!validSheetId) {
     return (
       <div className="space-y-4">
         <Link
@@ -97,7 +115,38 @@ export function OmrSheetReviewPage() {
           <ArrowLeft className="h-4 w-4" strokeWidth={1.75} />
           Quay lại
         </Link>
-        <EmptyState title="Không tìm thấy phiếu" description="Phiếu OMR không tồn tại trong dữ liệu mock." />
+        <EmptyState title="Không tìm thấy phiếu" description="Mã phiếu không hợp lệ." />
+      </div>
+    )
+  }
+
+  if (sheetQuery.isLoading) {
+    return (
+      <div className="flex justify-center py-16">
+        <Spinner />
+      </div>
+    )
+  }
+
+  if (sheetQuery.isError || !sheet) {
+    return (
+      <div className="space-y-4">
+        <Link
+          to={ROUTES.teacher.omrUpload}
+          className="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900"
+        >
+          <ArrowLeft className="h-4 w-4" strokeWidth={1.75} />
+          Quay lại
+        </Link>
+        <ErrorState
+          title="Không tải được phiếu OMR"
+          message={getApiErrorMessage(sheetQuery.error, 'Phiếu không tồn tại.')}
+          action={
+            <Button variant="secondary" onClick={() => void sheetQuery.refetch()}>
+              Thử lại
+            </Button>
+          }
+        />
       </div>
     )
   }
@@ -131,16 +180,18 @@ export function OmrSheetReviewPage() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <p className="mb-3 text-sm font-medium text-slate-800">Ảnh phiếu</p>
-          {sheet.originalImageUrl || sheet.warpedUrl ? (
-            <img
-              src={sheet.originalImageUrl ?? sheet.warpedUrl ?? undefined}
+          {imageUrl ? (
+            <OmrWarpedImageOverlay
+              src={imageUrl}
               alt={`OMR sheet ${sheet.submissionId}`}
-              className="max-h-[70vh] w-full rounded-xl object-contain bg-slate-100"
+              answers={overlaySnapshot}
+              highlightedQuestion={highlightedQuestion}
+              onSelectQuestion={setHighlightedQuestion}
             />
           ) : (
             <div className="flex min-h-[320px] flex-col items-center justify-center gap-2 rounded-xl bg-slate-50 text-slate-500">
               <ImageOff className="h-8 w-8" strokeWidth={1.5} />
-              <p className="text-sm">Chưa có ảnh (mock — BE sẽ trả warpedUrl)</p>
+              <p className="text-sm">Chưa có URL ảnh xem được (warpedUrl)</p>
             </div>
           )}
         </section>
@@ -148,24 +199,25 @@ export function OmrSheetReviewPage() {
         <div className="space-y-4">
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <p className="mb-3 text-sm font-medium text-slate-800">Thông tin nhận dạng</p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="space-y-1.5">
-                <span className="text-sm text-slate-600">MSSV</span>
-                <Input
-                  value={studentIdDraft}
-                  onChange={(e) => setStudentIdDraft(e.target.value)}
-                  placeholder="21520001"
-                />
-              </label>
-              <label className="space-y-1.5">
-                <span className="text-sm text-slate-600">Mã đề</span>
-                <Input
-                  value={examCodeDraft}
-                  onChange={(e) => setExamCodeDraft(e.target.value)}
-                  placeholder="001"
-                />
-              </label>
-            </div>
+            <dl className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl bg-slate-50 px-3 py-2">
+                <dt className="text-xs text-slate-400">MSSV</dt>
+                <dd className="font-medium text-slate-800">{sheet.studentId ?? '—'}</dd>
+              </div>
+              <div className="rounded-xl bg-slate-50 px-3 py-2">
+                <dt className="text-xs text-slate-400">Họ tên</dt>
+                <dd className="font-medium text-slate-800">{sheet.studentName ?? '—'}</dd>
+              </div>
+              <div className="rounded-xl bg-slate-50 px-3 py-2 sm:col-span-2">
+                <dt className="text-xs text-slate-400">Mã đề</dt>
+                <dd className="font-medium text-slate-800">{sheet.examCode ?? '—'}</dd>
+              </div>
+            </dl>
+            {!sheet.examCode ? (
+              <p className="mt-3 text-xs text-amber-700">
+                Thiếu mã đề — API review yêu cầu phiếu đã có examCode.
+              </p>
+            ) : null}
             {sheet.needReview.length > 0 ? (
               <p className="mt-3 text-xs text-amber-700">
                 Cần xem lại câu: {sheet.needReview.join(', ')}
@@ -175,15 +227,16 @@ export function OmrSheetReviewPage() {
 
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <p className="mb-3 text-sm font-medium text-slate-800">Đáp án nhận dạng</p>
-            {sheet.answers.length === 0 ? (
+            {displayAnswers.length === 0 ? (
               <p className="text-sm text-slate-500">Chưa có đáp án (đang xử lý hoặc lỗi).</p>
             ) : (
               <ul className="max-h-[48vh] space-y-2 overflow-y-auto pr-1">
-                {sheet.answers.map((answer) => (
+                {displayAnswers.map((answer) => (
                   <AnswerRow
                     key={answer.question}
                     answer={answer}
-                    highlight={needSet.has(answer.question)}
+                    highlight={needSet.has(answer.question) || highlightedQuestion === answer.question}
+                    onFocusQuestion={() => setHighlightedQuestion(answer.question)}
                     onPick={(choice) => setAnswerChoice(answer.question, choice)}
                   />
                 ))}
@@ -192,10 +245,14 @@ export function OmrSheetReviewPage() {
           </section>
 
           <div className="flex flex-col gap-2">
-            <Button onClick={handleSaveReview}>
+            <Button
+              onClick={() => void handleSaveReview()}
+              disabled={reviewMutation.isPending || displayAnswers.length === 0}
+            >
               <Check className="h-4 w-4" strokeWidth={1.75} />
-              Lưu review
+              {reviewMutation.isPending ? 'Đang lưu...' : 'Lưu review'}
             </Button>
+            {saveError ? <p className="text-xs text-red-600">{saveError}</p> : null}
             {savedNote ? <p className="text-xs text-slate-600">{savedNote}</p> : null}
           </div>
         </div>
@@ -207,20 +264,29 @@ export function OmrSheetReviewPage() {
 function AnswerRow({
   answer,
   highlight,
+  onFocusQuestion,
   onPick,
 }: {
   answer: OmrAnswerItem
   highlight: boolean
+  onFocusQuestion: () => void
   onPick: (choice: string) => void
 }) {
   return (
     <li
       className={`rounded-xl border px-3 py-2 ${
-        highlight ? 'border-orange-200 bg-orange-50/70' : 'border-slate-100 bg-slate-50/80'
+        highlight ? 'border-blue-300 bg-blue-50/70' : 'border-slate-100 bg-slate-50/80'
       }`}
+      onMouseEnter={onFocusQuestion}
     >
       <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="text-sm font-medium text-slate-800">Câu {answer.question}</span>
+        <button
+          type="button"
+          onClick={onFocusQuestion}
+          className="text-sm font-medium text-slate-800 hover:text-blue-700"
+        >
+          Câu {answer.question}
+        </button>
         <span className="text-xs text-slate-500">
           {answer.isCorrect == null
             ? answer.status
