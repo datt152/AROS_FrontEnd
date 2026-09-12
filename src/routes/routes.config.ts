@@ -35,6 +35,9 @@ export const ROUTES = {
     grading: '/teacher/grading',
     questionBank: '/teacher/question-bank',
     omrUpload: '/teacher/omr-upload',
+    omrSessions: '/teacher/omr/exams/:examId/sessions',
+    omrSession: '/teacher/omr/sessions/:sessionId',
+    omrSheet: '/teacher/omr/sheets/:sheetId',
     practice: '/teacher/practice',
     createPractice: '/teacher/practice/create',
     examStats: '/teacher/exam-stats',
@@ -76,4 +79,16 @@ export function getHomePathForRole(role: Role) {
 
 export function studentHistoryDetailPath(submissionId: number) {
   return `/student/history/${submissionId}`
+}
+
+export function omrSessionsPath(examId: number) {
+  return `/teacher/omr/exams/${examId}/sessions`
+}
+
+export function omrSessionPath(sessionId: number) {
+  return `/teacher/omr/sessions/${sessionId}`
+}
+
+export function omrSheetPath(sheetId: number) {
+  return `/teacher/omr/sheets/${sheetId}`
 }

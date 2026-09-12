@@ -1,9 +1,9 @@
-import { BookmarkPlus, FileCode2, Play, Users, X } from 'lucide-react'
+import { BookmarkPlus, FileCode2, FileScan, Play, Users, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { Button } from '../../../components/ui/Button'
-import { ROUTES } from '../../../routes/routes.config'
+import { omrSessionsPath, ROUTES } from '../../../routes/routes.config'
 import type { ClassroomOption, ExamItem, QuestionPickItem } from '../types/exam.types'
 import {
   EXAM_MODE_BADGE_CLASS,
@@ -295,6 +295,15 @@ export function ExamDetailPanel({
               </Button>
             </span>
             {!readiness.ready ? <p className="text-center text-xs text-slate-500">{openBlockReason}</p> : null}
+            {exam.examMode === 'OMR_PAPER' ? (
+              <Link
+                to={omrSessionsPath(exam.id)}
+                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
+              >
+                <FileScan className="h-4 w-4" strokeWidth={1.75} />
+                Phiên chấm OMR
+              </Link>
+            ) : null}
             <Button
               variant="secondary"
               className="w-full"
@@ -310,6 +319,15 @@ export function ExamDetailPanel({
           </div>
         ) : (
           <div className="space-y-2 border-t border-slate-200 px-5 py-4">
+            {exam.examMode === 'OMR_PAPER' ? (
+              <Link
+                to={omrSessionsPath(exam.id)}
+                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-linear-to-r from-blue-600 to-emerald-600 px-4 text-sm font-medium text-white shadow-md shadow-blue-600/20 transition hover:from-blue-700 hover:to-emerald-700"
+              >
+                <FileScan className="h-4 w-4" strokeWidth={1.75} />
+                Phiên chấm OMR
+              </Link>
+            ) : null}
             <Button
               variant="secondary"
               className="w-full"

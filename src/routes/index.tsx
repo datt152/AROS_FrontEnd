@@ -19,6 +19,10 @@ import { NotFoundPage } from '../pages/NotFoundPage'
 import { UnauthorizedPage } from '../pages/UnauthorizedPage'
 import { ExamStatsPage } from '../features/exam-stats/pages/ExamStatsPage'
 import { GradingPage } from '../features/grading/pages/GradingPage'
+import { OmrExamListPage } from '../features/omr/pages/OmrExamListPage'
+import { OmrSessionsPage } from '../features/omr/pages/OmrSessionsPage'
+import { OmrSessionWorkspacePage } from '../features/omr/pages/OmrSessionWorkspacePage'
+import { OmrSheetReviewPage } from '../features/omr/pages/OmrSheetReviewPage'
 import { PracticeListPage } from '../features/practice/pages/PracticeListPage'
 import { PracticeTakePage } from '../features/practice/pages/PracticeTakePage'
 import { StudentPracticeListPage } from '../features/practice/pages/StudentPracticeListPage'
@@ -40,6 +44,10 @@ function teacherPageForPath(path: string) {
   if (path === ROUTES.teacher.examStats) return <ExamStatsPage />
   if (path === ROUTES.teacher.practice) return <PracticeListPage />
   if (path === ROUTES.teacher.createPractice) return <PracticeListPage />
+  if (path === ROUTES.teacher.omrUpload) return <OmrExamListPage />
+  if (path === ROUTES.teacher.omrSessions) return <OmrSessionsPage />
+  if (path === ROUTES.teacher.omrSession) return <OmrSessionWorkspacePage />
+  if (path === ROUTES.teacher.omrSheet) return <OmrSheetReviewPage />
   return null
 }
 

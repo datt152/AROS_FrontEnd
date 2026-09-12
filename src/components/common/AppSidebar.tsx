@@ -4,6 +4,7 @@ import {
   BookOpen,
   ChevronRight,
   ClipboardCheck,
+  FileScan,
   FileText,
   GraduationCap,
   HelpCircle,
@@ -13,7 +14,7 @@ import {
   UserRound,
   Users,
 } from 'lucide-react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 
 import { AccountProfileModal } from '../../features/auth/components/AccountProfileModal'
 import { useLogout } from '../../features/auth/hooks/useLogout'
@@ -38,7 +39,7 @@ const iconByLabel: Record<string, ComponentType<{ className?: string; strokeWidt
   'Ngân hàng câu hỏi': HelpCircle,
   'Thư viện đề': Library,
   'Tạo bài thi': FileText,
-  'Tải lên OMR': FileText,
+  'Tải lên OMR': FileScan,
   'Bài luyện tập': BookOpen,
   'Tạo bài luyện tập': BookOpen,
   'Thống kê bài thi': ClipboardCheck,
@@ -51,6 +52,8 @@ const workspaceLabel: Record<Role, string> = {
 }
 
 function NavItems({ role, onNavigate }: { role: Role; onNavigate?: () => void }) {
+  const { pathname } = useLocation()
+
   return (
     <nav className="space-y-1.5 px-3 pt-4">
       {MENU_BY_ROLE[role].map((item) => {
@@ -60,13 +63,17 @@ function NavItems({ role, onNavigate }: { role: Role; onNavigate?: () => void })
             key={item.path}
             to={item.path}
             onClick={onNavigate}
-            className={({ isActive }) =>
-              `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${
-                isActive
+            className={({ isActive }) => {
+              const omrActive =
+                item.label === 'Tải lên OMR' &&
+                (pathname.startsWith('/teacher/omr/') || pathname === '/teacher/omr-upload')
+              const active = isActive || omrActive
+              return `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${
+                active
                   ? 'bg-linear-to-r from-blue-600 to-emerald-600 text-white shadow-md shadow-blue-600/20'
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`
-            }
+            }}
           >
             <Icon className="h-4.5 w-4.5 shrink-0" strokeWidth={1.75} />
             <span className="truncate">{item.label}</span>
@@ -131,7 +138,7 @@ export function AppSidebar({
           <button
             type="button"
             onClick={onToggleDesktop}
-            className="absolute left-0 top-15 z-20 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-emerald-600 text-white shadow-lg shadow-blue-600/30 transition hover:scale-105 hover:shadow-xl hover:shadow-blue-600/40"
+            className="fixed left-0 top-15 z-20 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-emerald-600 text-white shadow-lg shadow-blue-600/30 transition hover:scale-105 hover:shadow-xl hover:shadow-blue-600/40"
             aria-label="Mở rộng thanh bên"
           >
             <ChevronRight className="h-5 w-5" strokeWidth={2.5} />
