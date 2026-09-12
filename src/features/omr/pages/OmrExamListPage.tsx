@@ -1,30 +1,79 @@
 import { ArrowRight, FileScan, Layers } from 'lucide-react'
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 
+import { Button } from '../../../components/ui/Button'
 import { EmptyState } from '../../../components/ui/EmptyState'
-import { omrSessionsPath } from '../../../routes/routes.config'
-import { MOCK_OMR_EXAMS } from '../lib/omr.mock'
+import { ErrorState } from '../../../components/ui/ErrorState'
+import { Spinner } from '../../../components/ui/Spinner'
+import { getApiErrorMessage } from '../../../lib/apiError'
+import { omrSessionsPath, ROUTES } from '../../../routes/routes.config'
+import { useExamVersionsMany, useExams } from '../../exams/hooks/useExams'
+import type { OmrExamCard } from '../types/omr.types'
+
+const FETCH_SIZE = 100
 
 export function OmrExamListPage() {
-  const exams = MOCK_OMR_EXAMS
+  const examsQuery = useExams({ page: 0, size: FETCH_SIZE, purpose: 'EXAM' })
+  const omrExams = useMemo(
+    () => (examsQuery.data?.items ?? []).filter((exam) => exam.examMode === 'OMR_PAPER'),
+    [examsQuery.data?.items],
+  )
+  const versionQueries = useExamVersionsMany(omrExams.map((exam) => exam.id))
+
+  const cards: OmrExamCard[] = useMemo(
+    () =>
+      omrExams.map((exam, index) => ({
+        id: exam.id,
+        title: exam.title,
+        subjectName: exam.subjectName ?? '',
+        versionCodes: versionQueries[index]?.data ?? exam.versionCodes ?? [],
+        classroomCount: exam.classroomIds?.length ?? 0,
+        totalQuestions: exam.totalQuestions ?? 0,
+        status: exam.status,
+      })),
+    [omrExams, versionQueries],
+  )
 
   return (
     <div className="space-y-6">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Chấm OMR</h1>
         <p className="text-sm text-slate-500">
-          Chọn đề thi giấy (OMR) để tạo phiên chấm và tải phiếu trả lời. Dữ liệu đang dùng mock — gắn API sau.
+          Chọn đề thi giấy (OMR) để tạo phiên chấm và tải phiếu trả lời.
         </p>
       </header>
 
-      {exams.length === 0 ? (
+      {examsQuery.isLoading ? (
+        <div className="flex justify-center py-16">
+          <Spinner />
+        </div>
+      ) : examsQuery.isError ? (
+        <ErrorState
+          title="Không tải được đề OMR"
+          message={getApiErrorMessage(examsQuery.error)}
+          action={
+            <Button variant="secondary" onClick={() => void examsQuery.refetch()}>
+              Thử lại
+            </Button>
+          }
+        />
+      ) : cards.length === 0 ? (
         <EmptyState
           title="Chưa có đề OMR"
           description="Tạo đề với hình thức OMR / Giấy trong Quản lý bài thi trước."
+          action={
+            <Link
+              to={ROUTES.teacher.exams}
+              className="text-sm font-medium text-blue-600 hover:text-blue-700"
+            >
+              Đi tới Quản lý bài thi
+            </Link>
+          }
         />
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {exams.map((exam) => {
+          {cards.map((exam) => {
             const ready = exam.versionCodes.length > 0 && exam.classroomCount > 0
             return (
               <li

@@ -4,7 +4,9 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { Button } from '../../../components/ui/Button'
 import { EmptyState } from '../../../components/ui/EmptyState'
+import { ErrorState } from '../../../components/ui/ErrorState'
 import { Input } from '../../../components/ui/Input'
+import { Spinner } from '../../../components/ui/Spinner'
 import {
   Table,
   TableBody,
@@ -15,12 +17,15 @@ import {
   TableHeader,
   TableRow,
 } from '../../../components/ui/Table'
+import { getApiErrorMessage } from '../../../lib/apiError'
+import { omrSessionPath, ROUTES } from '../../../routes/routes.config'
+import { useExam, useExamVersions } from '../../exams/hooks/useExams'
 import {
-  omrSessionPath,
-  ROUTES,
-} from '../../../routes/routes.config'
-import { getMockOmrExam, getMockSessionsByExam } from '../lib/omr.mock'
-import type { ExamSessionItem, ExamSessionStatus } from '../types/omr.types'
+  useCreateExamSession,
+  useExamSessions,
+  useUpdateExamSessionStatus,
+} from '../hooks/useOmr'
+import type { ExamSessionStatus } from '../types/omr.types'
 import {
   EXAM_SESSION_STATUS_BADGE,
   EXAM_SESSION_STATUS_LABEL,
@@ -31,43 +36,51 @@ export function OmrSessionsPage() {
   const { examId: examIdParam } = useParams()
   const examId = Number(examIdParam)
   const navigate = useNavigate()
-  const exam = getMockOmrExam(examId)
+  const validExamId = Number.isFinite(examId) && examId > 0 ? examId : undefined
 
-  const [sessions, setSessions] = useState<ExamSessionItem[]>(() =>
-    Number.isFinite(examId) ? getMockSessionsByExam(examId) : [],
-  )
+  const examQuery = useExam(validExamId)
+  const versionsQuery = useExamVersions(validExamId)
+  const sessionsQuery = useExamSessions(validExamId)
+  const createMutation = useCreateExamSession(validExamId)
+  const statusMutation = useUpdateExamSessionStatus(validExamId)
+
   const [createOpen, setCreateOpen] = useState(false)
   const [sessionName, setSessionName] = useState('')
+  const [actionError, setActionError] = useState<string | null>(null)
 
-  const title = exam?.title ?? 'Đề OMR'
+  const exam = examQuery.data
+  const versionCodes = versionsQuery.data ?? exam?.versionCodes ?? []
+  const title = exam?.title ?? (validExamId ? `Đề #${validExamId}` : 'Đề OMR')
 
   const sorted = useMemo(
-    () => [...sessions].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-    [sessions],
+    () => [...(sessionsQuery.data ?? [])].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    [sessionsQuery.data],
   )
 
-  function handleCreate() {
+  async function handleCreate() {
+    if (!validExamId) return
     const name = sessionName.trim()
     if (!name) return
-    const next: ExamSessionItem = {
-      id: Date.now(),
-      examId,
-      examTitle: title,
-      name,
-      status: 'OPEN',
-      createdAt: new Date().toISOString(),
-      sheetCount: 0,
+    setActionError(null)
+    try {
+      await createMutation.mutateAsync({ examId: validExamId, name })
+      setSessionName('')
+      setCreateOpen(false)
+    } catch (error) {
+      setActionError(getApiErrorMessage(error, 'Không tạo được phiên chấm'))
     }
-    setSessions((prev) => [next, ...prev])
-    setSessionName('')
-    setCreateOpen(false)
   }
 
-  function patchStatus(id: number, status: ExamSessionStatus) {
-    setSessions((prev) => prev.map((item) => (item.id === id ? { ...item, status } : item)))
+  async function patchStatus(sessionId: number, status: ExamSessionStatus) {
+    setActionError(null)
+    try {
+      await statusMutation.mutateAsync({ sessionId, status })
+    } catch (error) {
+      setActionError(getApiErrorMessage(error, 'Không cập nhật được trạng thái phiên'))
+    }
   }
 
-  if (!Number.isFinite(examId)) {
+  if (!validExamId) {
     return (
       <div className="space-y-4">
         <Link
@@ -96,17 +109,21 @@ export function OmrSessionsPage() {
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{title}</h1>
           <p className="text-sm text-slate-500">
             {exam
-              ? `${exam.subjectName} · ${exam.totalQuestions} câu · mã đề ${
-                  exam.versionCodes.length ? exam.versionCodes.join(', ') : '—'
+              ? `${exam.subjectName ?? '—'} · ${exam.totalQuestions ?? 0} câu · mã đề ${
+                  versionCodes.length ? versionCodes.join(', ') : '—'
                 }`
-              : `Đề #${examId} (mock — gắn API sau sẽ lấy thông tin thật)`}
+              : examQuery.isLoading
+                ? 'Đang tải thông tin đề...'
+                : `Đề #${examId}`}
           </p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
+        <Button onClick={() => setCreateOpen(true)} disabled={createMutation.isPending}>
           <Plus className="h-4 w-4" strokeWidth={1.75} />
           Tạo phiên chấm
         </Button>
       </div>
+
+      {actionError ? <p className="text-sm text-red-600">{actionError}</p> : null}
 
       {createOpen ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -118,24 +135,46 @@ export function OmrSessionsPage() {
                 value={sessionName}
                 onChange={(e) => setSessionName(e.target.value)}
                 placeholder="Vd: Ca sáng — lớp SE17"
+                disabled={createMutation.isPending}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleCreate()
+                  if (e.key === 'Enter') void handleCreate()
                 }}
               />
             </label>
             <div className="flex gap-2">
-              <Button variant="secondary" onClick={() => setCreateOpen(false)}>
+              <Button
+                variant="secondary"
+                onClick={() => setCreateOpen(false)}
+                disabled={createMutation.isPending}
+              >
                 Hủy
               </Button>
-              <Button disabled={!sessionName.trim()} onClick={handleCreate}>
-                Tạo
+              <Button
+                disabled={!sessionName.trim() || createMutation.isPending}
+                onClick={() => void handleCreate()}
+              >
+                {createMutation.isPending ? 'Đang tạo...' : 'Tạo'}
               </Button>
             </div>
           </div>
         </div>
       ) : null}
 
-      {sorted.length === 0 ? (
+      {sessionsQuery.isLoading ? (
+        <div className="flex justify-center py-16">
+          <Spinner />
+        </div>
+      ) : sessionsQuery.isError ? (
+        <ErrorState
+          title="Không tải được phiên chấm"
+          message={getApiErrorMessage(sessionsQuery.error)}
+          action={
+            <Button variant="secondary" onClick={() => void sessionsQuery.refetch()}>
+              Thử lại
+            </Button>
+          }
+        />
+      ) : sorted.length === 0 ? (
         <EmptyState
           title="Chưa có phiên chấm"
           description="Tạo phiên để bắt đầu tải phiếu trả lời OMR."
@@ -190,7 +229,8 @@ export function OmrSessionsPage() {
                           <Button
                             variant="ghost"
                             className="h-9 px-3"
-                            onClick={() => patchStatus(session.id, 'CLOSED')}
+                            disabled={statusMutation.isPending}
+                            onClick={() => void patchStatus(session.id, 'CLOSED')}
                             title="Khóa phiên"
                           >
                             <Lock className="h-4 w-4" strokeWidth={1.75} />
@@ -200,7 +240,8 @@ export function OmrSessionsPage() {
                           <Button
                             variant="ghost"
                             className="h-9 px-3"
-                            onClick={() => patchStatus(session.id, 'OPEN')}
+                            disabled={statusMutation.isPending}
+                            onClick={() => void patchStatus(session.id, 'OPEN')}
                             title="Mở lại"
                           >
                             <Unlock className="h-4 w-4" strokeWidth={1.75} />
@@ -210,7 +251,8 @@ export function OmrSessionsPage() {
                           <Button
                             variant="ghost"
                             className="h-9 px-3 text-blue-700"
-                            onClick={() => patchStatus(session.id, 'GRADED')}
+                            disabled={statusMutation.isPending}
+                            onClick={() => void patchStatus(session.id, 'GRADED')}
                           >
                             Kết thúc
                           </Button>

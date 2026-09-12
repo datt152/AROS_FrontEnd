@@ -44,7 +44,7 @@ export type OmrSheetItem = {
   gradedAt: string | null
 }
 
-/** Đề OMR (UI mock — sau gắn từ GET /exams filter OMR_PAPER) */
+/** Đề OMR — map từ GET /exams filter examMode === OMR_PAPER */
 export type OmrExamCard = {
   id: number
   title: string
@@ -53,6 +53,16 @@ export type OmrExamCard = {
   classroomCount: number
   totalQuestions: number
   status: string
+}
+
+export type CreateExamSessionPayload = {
+  examId: number
+  name: string
+}
+
+/** Map questionNumber → A|B|C|D — không rỗng; phiếu cần đã có examCode */
+export type OmrSheetReviewPayload = {
+  answers: Record<string, 'A' | 'B' | 'C' | 'D'>
 }
 
 export const EXAM_SESSION_STATUS_LABEL: Record<ExamSessionStatus, string> = {
@@ -99,4 +109,16 @@ export function formatOmrDateTime(value: string | null | undefined) {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+/** Prefer warped image; originalImageUrl may be a server filesystem path. */
+export function resolveOmrSheetImageUrl(sheet: Pick<OmrSheetItem, 'warpedUrl' | 'originalImageUrl'>) {
+  const warped = sheet.warpedUrl?.trim()
+  if (warped && /^https?:\/\//i.test(warped)) return warped
+  if (warped && warped.startsWith('/')) return warped
+
+  const original = sheet.originalImageUrl?.trim()
+  if (original && /^https?:\/\//i.test(original)) return original
+  if (original && original.startsWith('/')) return original
+  return null
 }

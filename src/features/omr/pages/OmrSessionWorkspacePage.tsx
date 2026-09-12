@@ -4,7 +4,9 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { Button } from '../../../components/ui/Button'
 import { EmptyState } from '../../../components/ui/EmptyState'
+import { ErrorState } from '../../../components/ui/ErrorState'
 import { Input } from '../../../components/ui/Input'
+import { Spinner } from '../../../components/ui/Spinner'
 import {
   Table,
   TableBody,
@@ -15,13 +17,10 @@ import {
   TableHeader,
   TableRow,
 } from '../../../components/ui/Table'
-import {
-  omrSessionsPath,
-  omrSheetPath,
-  ROUTES,
-} from '../../../routes/routes.config'
-import { getMockSession, getMockSheetsBySession } from '../lib/omr.mock'
-import type { OmrSheetItem, OmrSheetStatus } from '../types/omr.types'
+import { getApiErrorMessage } from '../../../lib/apiError'
+import { omrSessionsPath, omrSheetPath, ROUTES } from '../../../routes/routes.config'
+import { useExamSession, useOmrSheets, useUploadOmrSheet } from '../hooks/useOmr'
+import type { OmrSheetStatus } from '../types/omr.types'
 import {
   EXAM_SESSION_STATUS_BADGE,
   EXAM_SESSION_STATUS_LABEL,
@@ -39,17 +38,21 @@ export function OmrSessionWorkspacePage() {
   const sessionId = Number(sessionIdParam)
   const navigate = useNavigate()
   const fileRef = useRef<HTMLInputElement>(null)
+  const validSessionId = Number.isFinite(sessionId) && sessionId > 0 ? sessionId : undefined
 
-  const session = getMockSession(sessionId)
-  const [sheets, setSheets] = useState<OmrSheetItem[]>(() =>
-    Number.isFinite(sessionId) ? getMockSheetsBySession(sessionId) : [],
-  )
+  const sessionQuery = useExamSession(validSessionId)
+  const sheetsQuery = useOmrSheets(validSessionId, { refetchWhileProcessing: true })
+  const uploadMutation = useUploadOmrSheet(validSessionId, sessionQuery.data?.examId)
+
   const [statusFilter, setStatusFilter] = useState<OmrSheetStatus | ''>('')
   const [query, setQuery] = useState('')
   const [uploadNote, setUploadNote] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
+  const [uploading, setUploading] = useState(false)
 
-  const canUpload = session?.status === 'OPEN'
+  const session = sessionQuery.data
+  const sheets = sheetsQuery.data ?? []
+  const canUpload = session?.status === 'OPEN' && !uploading
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -65,8 +68,9 @@ export function OmrSessionWorkspacePage() {
     })
   }, [sheets, statusFilter, query])
 
-  function handleFiles(fileList: FileList | null) {
-    if (!canUpload || !fileList?.length || !session) return
+  async function handleFiles(fileList: FileList | null) {
+    if (!canUpload || !fileList?.length || !validSessionId) return
+
     const accepted: File[] = []
     const rejected: string[] = []
     Array.from(fileList).forEach((file) => {
@@ -82,33 +86,35 @@ export function OmrSessionWorkspacePage() {
       accepted.push(file)
     })
 
-    if (accepted.length) {
-      const nextSheets: OmrSheetItem[] = accepted.map((file, index) => ({
-        submissionId: Date.now() + index,
-        examSessionId: sessionId,
-        examId: session.examId,
-        status: 'PROCESSING',
-        studentId: null,
-        matchedStudentId: null,
-        studentName: null,
-        examCode: null,
-        score: null,
-        maxScore: 10,
-        warpedUrl: null,
-        originalImageUrl: URL.createObjectURL(file),
-        needReview: [],
-        answers: [],
-        gradedAt: null,
-      }))
-      setSheets((prev) => [...nextSheets, ...prev])
-      setUploadNote(`Đã thêm ${accepted.length} phiếu (mock — chờ API xử lý).`)
+    if (!accepted.length) {
+      if (rejected.length) setUploadNote(rejected.join(' · '))
+      return
     }
-    if (rejected.length) {
-      setUploadNote((prev) => [prev, ...rejected].filter(Boolean).join(' · '))
+
+    setUploading(true)
+    setUploadNote(`Đang tải ${accepted.length} phiếu...`)
+    let success = 0
+    const errors: string[] = [...rejected]
+
+    for (const file of accepted) {
+      try {
+        await uploadMutation.mutateAsync(file)
+        success += 1
+        setUploadNote(`Đã tải ${success}/${accepted.length} phiếu...`)
+      } catch (error) {
+        errors.push(`${file.name}: ${getApiErrorMessage(error, 'upload thất bại')}`)
+      }
     }
+
+    setUploading(false)
+    const parts = [
+      success > 0 ? `Đã tải thành công ${success} phiếu.` : null,
+      errors.length ? errors.join(' · ') : null,
+    ].filter(Boolean)
+    setUploadNote(parts.join(' ') || null)
   }
 
-  if (!Number.isFinite(sessionId) || !session) {
+  if (!validSessionId) {
     return (
       <div className="space-y-4">
         <Link
@@ -118,7 +124,38 @@ export function OmrSessionWorkspacePage() {
           <ArrowLeft className="h-4 w-4" strokeWidth={1.75} />
           Quay lại
         </Link>
-        <EmptyState title="Không tìm thấy phiên" description="Phiên chấm không tồn tại trong dữ liệu mock." />
+        <EmptyState title="Không tìm thấy phiên" description="Mã phiên không hợp lệ." />
+      </div>
+    )
+  }
+
+  if (sessionQuery.isLoading) {
+    return (
+      <div className="flex justify-center py-16">
+        <Spinner />
+      </div>
+    )
+  }
+
+  if (sessionQuery.isError || !session) {
+    return (
+      <div className="space-y-4">
+        <Link
+          to={ROUTES.teacher.omrUpload}
+          className="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900"
+        >
+          <ArrowLeft className="h-4 w-4" strokeWidth={1.75} />
+          Quay lại
+        </Link>
+        <ErrorState
+          title="Không tải được phiên chấm"
+          message={getApiErrorMessage(sessionQuery.error, 'Phiên chấm không tồn tại.')}
+          action={
+            <Button variant="secondary" onClick={() => void sessionQuery.refetch()}>
+              Thử lại
+            </Button>
+          }
+        />
       </div>
     )
   }
@@ -156,7 +193,7 @@ export function OmrSessionWorkspacePage() {
         onDrop={(e) => {
           e.preventDefault()
           setDragOver(false)
-          handleFiles(e.dataTransfer.files)
+          void handleFiles(e.dataTransfer.files)
         }}
       >
         <div className="flex flex-col items-center text-center">
@@ -164,9 +201,15 @@ export function OmrSessionWorkspacePage() {
             <Upload className="h-5 w-5" strokeWidth={1.75} />
           </div>
           <p className="text-sm font-medium text-slate-800">
-            {canUpload ? 'Kéo thả ảnh phiếu trả lời vào đây' : 'Phiên đã khóa — không tải thêm phiếu'}
+            {session.status === 'OPEN'
+              ? uploading
+                ? 'Đang tải và chấm phiếu...'
+                : 'Kéo thả ảnh phiếu trả lời vào đây'
+              : 'Phiên đã khóa — không tải thêm phiếu'}
           </p>
-          <p className="mt-1 text-xs text-slate-500">JPG hoặc PNG, tối đa 10MB mỗi file. Có thể chọn nhiều ảnh.</p>
+          <p className="mt-1 text-xs text-slate-500">
+            JPG hoặc PNG, tối đa 10MB mỗi file. Nhiều ảnh sẽ upload tuần tự.
+          </p>
           <input
             ref={fileRef}
             type="file"
@@ -175,7 +218,7 @@ export function OmrSessionWorkspacePage() {
             className="hidden"
             disabled={!canUpload}
             onChange={(e) => {
-              handleFiles(e.target.files)
+              void handleFiles(e.target.files)
               e.target.value = ''
             }}
           />
@@ -185,7 +228,7 @@ export function OmrSessionWorkspacePage() {
             disabled={!canUpload}
             onClick={() => fileRef.current?.click()}
           >
-            Chọn ảnh
+            {uploading ? 'Đang tải...' : 'Chọn ảnh'}
           </Button>
           {uploadNote ? <p className="mt-3 max-w-lg text-xs text-slate-600">{uploadNote}</p> : null}
         </div>
@@ -218,8 +261,22 @@ export function OmrSessionWorkspacePage() {
         </label>
       </div>
 
-      {filtered.length === 0 ? (
-        <EmptyState title="Chưa có phiếu" description="Tải ảnh phiếu trả lời để bắt đầu chấm (mock)." />
+      {sheetsQuery.isLoading ? (
+        <div className="flex justify-center py-16">
+          <Spinner />
+        </div>
+      ) : sheetsQuery.isError ? (
+        <ErrorState
+          title="Không tải được danh sách phiếu"
+          message={getApiErrorMessage(sheetsQuery.error)}
+          action={
+            <Button variant="secondary" onClick={() => void sheetsQuery.refetch()}>
+              Thử lại
+            </Button>
+          }
+        />
+      ) : filtered.length === 0 ? (
+        <EmptyState title="Chưa có phiếu" description="Tải ảnh phiếu trả lời để bắt đầu chấm." />
       ) : (
         <>
           <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:block">
@@ -289,7 +346,10 @@ export function OmrSessionWorkspacePage() {
 
           <ul className="space-y-3 lg:hidden">
             {filtered.map((sheet) => (
-              <li key={sheet.submissionId} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <li
+                key={sheet.submissionId}
+                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+              >
                 <div className="mb-2 flex items-start justify-between gap-2">
                   <div>
                     <p className="font-medium text-slate-900">
