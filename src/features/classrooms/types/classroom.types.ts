@@ -99,7 +99,9 @@ export type StudentImportResult = {
   success: number
   failed: number
   skipped: number
+  /** Lỗi validation / không import được */
   errors: StudentImportRowResult[]
+  /** OK + skipped (vd. "Đã có trong lớp") — dùng message từ BE */
   successes: StudentImportRowResult[]
 }
 

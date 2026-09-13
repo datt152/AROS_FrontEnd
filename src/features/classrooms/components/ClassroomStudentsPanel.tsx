@@ -1,4 +1,4 @@
-import { Download, FileSpreadsheet, Pencil, Search, Trash2, UserPlus, X } from 'lucide-react'
+import { Download, FileSpreadsheet, MailPlus, Pencil, Search, Trash2, UserPlus, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { Button } from '../../../components/ui/Button'
@@ -34,7 +34,7 @@ type ClassroomStudentsPanelProps = {
   createAccountsError?: string | null
   createAccountsResult?: CreateStudentAccountsResult | null
   onClose: () => void
-  /** Giữ prop để page không đổi wiring; tab Thêm thủ công dùng import xlsx 1 dòng. */
+  /** Ghi danh SV đã có tài khoản bằng email → POST .../students/enroll */
   onEnroll?: (studentEmails: string[]) => void | Promise<void>
   onRemove: (student: ClassroomStudent) => void | Promise<void>
   onUpdateStudentCode: (student: ClassroomStudent, studentCode: string) => void | Promise<void>
@@ -61,6 +61,8 @@ export function ClassroomStudentsPanel({
   isLoadingStudents = false,
   studentsError = null,
   onRetryStudents,
+  isEnrolling = false,
+  enrollError = null,
   isRemoving = false,
   isUpdatingStudentCode = false,
   updateStudentCodeError = null,
@@ -71,6 +73,7 @@ export function ClassroomStudentsPanel({
   createAccountsError = null,
   createAccountsResult = null,
   onClose,
+  onEnroll,
   onRemove,
   onUpdateStudentCode,
   onBeginEditStudentCode,
@@ -79,7 +82,6 @@ export function ClassroomStudentsPanel({
   onCreateAccounts,
   onClearCreateAccountsResult,
 }: ClassroomStudentsPanelProps) {
-  // onEnroll kept in props for API surface compatibility (page wiring unchanged).
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [tab, setTab] = useState<PanelTab>('list')
@@ -90,6 +92,11 @@ export function ClassroomStudentsPanel({
   const [showCreateResult, setShowCreateResult] = useState(false)
 
   const [isImportResultOpen, setIsImportResultOpen] = useState(false)
+
+  const [isEnrollOpen, setIsEnrollOpen] = useState(false)
+  const [enrollEmail, setEnrollEmail] = useState('')
+  const [enrollEmailError, setEnrollEmailError] = useState<string | undefined>()
+  const [enrollSuccess, setEnrollSuccess] = useState<string | null>(null)
 
   const [manualFullName, setManualFullName] = useState('')
   const [manualStudentCode, setManualStudentCode] = useState('')
@@ -146,6 +153,46 @@ export function ClassroomStudentsPanel({
     setIsCreateModalOpen(false)
     setShowCreateResult(false)
     onClearCreateAccountsResult?.()
+  }
+
+  function openEnrollModal() {
+    setEnrollEmail('')
+    setEnrollEmailError(undefined)
+    setEnrollSuccess(null)
+    setIsEnrollOpen(true)
+  }
+
+  function closeEnrollModal() {
+    if (isEnrolling) return
+    setIsEnrollOpen(false)
+    setEnrollEmail('')
+    setEnrollEmailError(undefined)
+  }
+
+  async function handleEnrollSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!onEnroll) return
+
+    const email = enrollEmail.trim().toLowerCase()
+    if (!email) {
+      setEnrollEmailError('Vui lòng nhập email')
+      return
+    }
+    if (!EMAIL_PATTERN.test(email)) {
+      setEnrollEmailError('Email không hợp lệ')
+      return
+    }
+
+    setEnrollEmailError(undefined)
+    setEnrollSuccess(null)
+    try {
+      await onEnroll([email])
+      setEnrollSuccess(`Đã thêm ${email} vào lớp`)
+      setEnrollEmail('')
+      setIsEnrollOpen(false)
+    } catch {
+      // Error via enrollError from page
+    }
   }
 
   function closeImportResultModal() {
@@ -273,11 +320,17 @@ export function ClassroomStudentsPanel({
   const importTotal = importResult?.total ?? 0
   const importFailedCount = importResult?.failed ?? 0
   const importSkippedCount = importResult?.skipped ?? 0
-  const importNotAddedCount = importFailedCount + importSkippedCount
+  const importSuccessRows = importResult?.successes ?? []
+  const importErrorRows = importResult?.errors ?? []
 
-  const importNotAddedRows = importResult?.errors ?? []
-  const importRealSuccesses = importResult?.successes ?? []
-
+  function importRowLabel(item: { fullName?: string; email?: string; row?: number }) {
+    const name = item.fullName?.trim()
+    if (name) return name
+    const email = item.email?.trim()
+    if (email) return email
+    if (item.row && item.row > 0) return `Dòng ${item.row}`
+    return 'Sinh viên'
+  }
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40">
       <button type="button" className="flex-1 cursor-default" aria-label="Đóng bảng" onClick={onClose} />
@@ -322,15 +375,32 @@ export function ClassroomStudentsPanel({
                     <span className="text-slate-400"> · {withoutAccount.length} chưa có tài khoản</span>
                   ) : null}
                 </p>
-                <Button
-                  className="h-9"
-                  disabled={withoutAccount.length === 0 || isCreatingAccounts}
-                  onClick={openCreateModal}
-                >
-                  <UserPlus className="h-3.5 w-3.5" strokeWidth={1.75} />
-                  Tạo tài khoản
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="secondary"
+                    className="h-9"
+                    disabled={!onEnroll || isEnrolling}
+                    onClick={openEnrollModal}
+                  >
+                    <MailPlus className="h-3.5 w-3.5" strokeWidth={1.75} />
+                    Thêm vào lớp
+                  </Button>
+                  <Button
+                    className="h-9"
+                    disabled={withoutAccount.length === 0 || isCreatingAccounts}
+                    onClick={openCreateModal}
+                  >
+                    <UserPlus className="h-3.5 w-3.5" strokeWidth={1.75} />
+                    Tạo tài khoản
+                  </Button>
+                </div>
               </div>
+
+              {enrollSuccess ? (
+                <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                  {enrollSuccess}
+                </p>
+              ) : null}
 
               {students.length > 0 ? (
                 <div className="relative">
@@ -673,7 +743,7 @@ export function ClassroomStudentsPanel({
 
       {/* Import / manual add result modal */}
       {isImportResultOpen ? (
-        <ModalShell title="Kết quả thêm sinh viên" onClose={closeImportResultModal} busy={isImporting}>
+        <ModalShell title="Kết quả import danh sách" onClose={closeImportResultModal} busy={isImporting}>
           <div className="space-y-3">
             {manualLocalError || importError ? (
               <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
@@ -683,58 +753,63 @@ export function ClassroomStudentsPanel({
 
             {importResult ? (
               <>
-                {importSuccessCount > 0 ? (
-                  <p className="text-sm text-slate-800">
-                    Thêm thành công{' '}
+                <div className="space-y-1 text-sm text-slate-800">
+                  <p>
+                    Thành công{' '}
                     <span className="font-semibold text-emerald-700">
-                      {importSuccessCount} / {importTotal}
-                    </span>{' '}
-                    tài khoản.
-                    {importNotAddedCount > 0 ? (
+                      {importSuccessCount}/{importTotal}
+                    </span>
+                    {importSkippedCount > 0 ? (
                       <>
-                        {' '}
-                        Không thêm được:{' '}
-                        <span className="font-semibold text-red-600">{importNotAddedCount}</span>.
+                        , bỏ qua <span className="font-semibold text-slate-700">{importSkippedCount}</span>
+                      </>
+                    ) : null}
+                    {importFailedCount > 0 ? (
+                      <>
+                        , lỗi <span className="font-semibold text-red-600">{importFailedCount}</span>
                       </>
                     ) : null}
                   </p>
-                ) : (
-                  <p className="text-sm text-red-700">
-                    Thêm không thành công{' '}
-                    <span className="font-semibold">
-                      {importSuccessCount} / {importTotal}
-                    </span>{' '}
-                    tài khoản.
-                  </p>
-                )}
+                </div>
 
-                {importNotAddedRows.length > 0 ? (
-                  <div className="max-h-48 space-y-2 overflow-y-auto">
-                    <p className="text-xs font-medium text-red-700">Lý do</p>
-                    {importNotAddedRows.map((item) => (
-                      <p key={`inot-${item.row}-${item.email}-${item.message}`} className="text-sm text-red-600">
-                        {item.fullName || item.email || `Dòng ${item.row}`}: {item.message}
-                      </p>
-                    ))}
-                  </div>
-                ) : importSuccessCount === 0 && importTotal > 0 ? (
-                  <p className="text-sm text-red-600">Không thêm được — vui lòng kiểm tra lại thông tin sinh viên.</p>
-                ) : null}
-
-                {importRealSuccesses.length > 0 && importSuccessCount > 0 ? (
-                  <details className="text-xs text-slate-600">
-                    <summary className="cursor-pointer font-medium text-slate-700">
-                      Chi tiết đã thêm ({importRealSuccesses.length})
-                    </summary>
-                    <ul className="mt-2 max-h-32 space-y-1 overflow-y-auto">
-                      {importRealSuccesses.map((item) => (
-                        <li key={`iok-${item.row}-${item.email}`} className="text-slate-600">
-                          {item.fullName || item.email || `Dòng ${item.row}`}
+                {importSuccessRows.length > 0 ? (
+                  <div className="max-h-48 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                    <p className="text-xs font-medium text-slate-700">Chi tiết</p>
+                    <ul className="space-y-1.5">
+                      {importSuccessRows.map((item) => (
+                        <li
+                          key={`iok-${item.row}-${item.email}-${item.message}`}
+                          className="text-sm text-slate-700"
+                        >
+                          <span className="font-medium text-slate-900">{importRowLabel(item)}</span>
                           {item.message ? `: ${item.message}` : ''}
                         </li>
                       ))}
                     </ul>
-                  </details>
+                  </div>
+                ) : null}
+
+                {importErrorRows.length > 0 ? (
+                  <div className="max-h-48 space-y-2 overflow-y-auto rounded-xl border border-red-200 bg-red-50 px-3 py-2">
+                    <p className="text-xs font-medium text-red-700">Lỗi</p>
+                    <ul className="space-y-1.5">
+                      {importErrorRows.map((item) => (
+                        <li
+                          key={`ierr-${item.row}-${item.email}-${item.message}`}
+                          className="text-sm text-red-600"
+                        >
+                          {importRowLabel(item)}: {item.message || 'Không xác định'}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                {importSuccessCount === 0 &&
+                importSkippedCount === 0 &&
+                importFailedCount === 0 &&
+                importTotal > 0 ? (
+                  <p className="text-sm text-slate-600">Không có dòng nào được xử lý.</p>
                 ) : null}
               </>
             ) : null}
@@ -747,6 +822,56 @@ export function ClassroomStudentsPanel({
               Đóng
             </Button>
           </div>
+        </ModalShell>
+      ) : null}
+
+      {isEnrollOpen ? (
+        <ModalShell title="Thêm sinh viên vào lớp" onClose={closeEnrollModal} busy={isEnrolling}>
+          <form className="space-y-3" onSubmit={(e) => void handleEnrollSubmit(e)} noValidate>
+            <p className="text-sm text-slate-600">
+              Nhập email tài khoản sinh viên đã có trên hệ thống để ghi danh vào{' '}
+              <span className="font-medium text-slate-900">{classroom.className}</span>.
+            </p>
+            {enrollError ? (
+              <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                {enrollError}
+              </p>
+            ) : null}
+            <div className="space-y-1.5">
+              <label htmlFor="enrollEmail" className="text-sm font-medium text-slate-700">
+                Email sinh viên
+              </label>
+              <Input
+                id="enrollEmail"
+                type="email"
+                autoFocus
+                value={enrollEmail}
+                hasError={Boolean(enrollEmailError)}
+                disabled={isEnrolling}
+                placeholder="sv@uni.edu.vn"
+                onChange={(e) => {
+                  setEnrollEmail(e.target.value)
+                  if (enrollEmailError) setEnrollEmailError(undefined)
+                }}
+              />
+              {enrollEmailError ? <p className="text-sm text-red-500">{enrollEmailError}</p> : null}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                className="flex-1"
+                disabled={isEnrolling}
+                onClick={closeEnrollModal}
+              >
+                Hủy
+              </Button>
+              <Button type="submit" className="flex-1" disabled={isEnrolling || !onEnroll}>
+                <MailPlus className="h-3.5 w-3.5" strokeWidth={1.75} />
+                {isEnrolling ? 'Đang thêm...' : 'Thêm vào lớp'}
+              </Button>
+            </div>
+          </form>
         </ModalShell>
       ) : null}
 
