@@ -81,8 +81,9 @@ export function studentHistoryDetailPath(submissionId: number) {
   return `/student/history/${submissionId}`
 }
 
-export function omrSessionsPath(examId: number) {
-  return `/teacher/omr/exams/${examId}/sessions`
+export function omrSessionsPath(examId: number, classroomId?: number) {
+  const base = `/teacher/omr/exams/${examId}/sessions`
+  return classroomId ? `${base}?classroomId=${classroomId}` : base
 }
 
 export function omrSessionPath(sessionId: number) {

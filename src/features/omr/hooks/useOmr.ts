@@ -20,17 +20,18 @@ import type {
 
 export const omrKeys = {
   all: ['omr'] as const,
-  sessions: (examId: number) => [...omrKeys.all, 'sessions', examId] as const,
+  sessions: (examId: number, classroomId?: number | null) =>
+    [...omrKeys.all, 'sessions', examId, classroomId ?? null] as const,
   session: (sessionId: number) => [...omrKeys.all, 'session', sessionId] as const,
   sheets: (sessionId: number) => [...omrKeys.all, 'sheets', sessionId] as const,
   sheet: (sheetId: number) => [...omrKeys.all, 'sheet', sheetId] as const,
 }
 
-export function useExamSessions(examId: number | undefined) {
+export function useExamSessions(examId: number | undefined, classroomId?: number | undefined) {
   return useQuery({
-    queryKey: omrKeys.sessions(examId ?? -1),
-    queryFn: () => getExamSessions(examId!),
-    enabled: examId !== undefined && examId > 0,
+    queryKey: omrKeys.sessions(examId ?? -1, classroomId),
+    queryFn: () => getExamSessions(examId!, classroomId),
+    enabled: examId !== undefined && examId > 0 && classroomId !== undefined && classroomId > 0,
     staleTime: STALE_TIME.list,
   })
 }
@@ -72,8 +73,12 @@ export function useCreateExamSession(examId: number | undefined) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (payload: CreateExamSessionPayload) => createExamSession(payload),
-    onSuccess: () => {
-      if (examId) void queryClient.invalidateQueries({ queryKey: omrKeys.sessions(examId) })
+    onSuccess: (session) => {
+      if (!examId) return
+      void queryClient.invalidateQueries({ queryKey: [...omrKeys.all, 'sessions', examId] })
+      void queryClient.invalidateQueries({
+        queryKey: omrKeys.sessions(examId, session.classroomId),
+      })
     },
   })
 }
@@ -84,7 +89,9 @@ export function useUpdateExamSessionStatus(examId: number | undefined) {
     mutationFn: ({ sessionId, status }: { sessionId: number; status: ExamSessionStatus }) =>
       updateExamSessionStatus(sessionId, status),
     onSuccess: (session) => {
-      if (examId) void queryClient.invalidateQueries({ queryKey: omrKeys.sessions(examId) })
+      if (examId) {
+        void queryClient.invalidateQueries({ queryKey: [...omrKeys.all, 'sessions', examId] })
+      }
       void queryClient.invalidateQueries({ queryKey: omrKeys.session(session.id) })
     },
   })
@@ -93,13 +100,19 @@ export function useUpdateExamSessionStatus(examId: number | undefined) {
 export function useUploadOmrSheet(sessionId: number | undefined, examId?: number) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (file: File) => uploadOmrSheet(sessionId!, file),
+    mutationFn: ({
+      file,
+      onUploadProgress,
+    }: {
+      file: File
+      onUploadProgress?: (percent: number) => void
+    }) => uploadOmrSheet(sessionId!, file, { onUploadProgress }),
     onSuccess: (sheet) => {
       if (!sessionId) return
       void queryClient.invalidateQueries({ queryKey: omrKeys.sheets(sessionId) })
       void queryClient.invalidateQueries({ queryKey: omrKeys.session(sessionId) })
       const eid = examId ?? sheet.examId
-      if (eid) void queryClient.invalidateQueries({ queryKey: omrKeys.sessions(eid) })
+      if (eid) void queryClient.invalidateQueries({ queryKey: [...omrKeys.all, 'sessions', eid] })
     },
   })
 }
@@ -112,26 +125,23 @@ export function useReviewOmrSheet(sheetId: number | undefined, sessionId?: numbe
       const key = omrKeys.sheet(sheet.submissionId)
       const previous = queryClient.getQueryData<OmrSheetItem>(key)
 
-      // PATCH review thường không trả bubble — giữ bbox cũ theo số câu để overlay không mất.
-      const bubbleByQuestion = new Map(
-        (previous?.answers ?? [])
-          .filter((answer) => answer.bubble)
-          .map((answer) => [answer.question, answer.bubble] as const),
-      )
-
-      const merged: OmrSheetItem = {
-        ...sheet,
-        warpedUrl: sheet.warpedUrl ?? previous?.warpedUrl ?? null,
-        originalImageUrl: sheet.originalImageUrl ?? previous?.originalImageUrl ?? null,
-        answers: sheet.answers.map((answer) => ({
+      // PATCH /review may omit bubble coords — keep overlay snapshot from prior GET.
+      if (previous?.answers?.length && sheet.answers?.length) {
+        const bubbleByQuestion = new Map(
+          previous.answers
+            .filter((answer) => answer.bubble)
+            .map((answer) => [answer.question, answer.bubble] as const),
+        )
+        const mergedAnswers = sheet.answers.map((answer) => ({
           ...answer,
           bubble: answer.bubble ?? bubbleByQuestion.get(answer.question) ?? null,
-        })),
+        }))
+        queryClient.setQueryData(key, { ...sheet, answers: mergedAnswers })
+      } else {
+        queryClient.setQueryData(key, sheet)
       }
 
-      void queryClient.setQueryData(key, merged)
-      const sid = sessionId ?? sheet.examSessionId
-      void queryClient.invalidateQueries({ queryKey: omrKeys.sheets(sid) })
+      if (sessionId) void queryClient.invalidateQueries({ queryKey: omrKeys.sheets(sessionId) })
     },
   })
 }

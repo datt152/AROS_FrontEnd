@@ -11,6 +11,8 @@ export type ExamSessionItem = {
   id: number
   examId: number
   examTitle: string
+  classroomId: number
+  classroomName: string
   name: string
   status: ExamSessionStatus
   createdAt: string
@@ -57,6 +59,7 @@ export type OmrExamCard = {
 
 export type CreateExamSessionPayload = {
   examId: number
+  classroomId: number
   name: string
 }
 

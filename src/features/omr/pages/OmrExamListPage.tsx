@@ -40,7 +40,7 @@ export function OmrExamListPage() {
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Chấm OMR</h1>
         <p className="text-sm text-slate-500">
-          Chọn đề thi giấy (OMR) để tạo phiên chấm và tải phiếu trả lời.
+          Chọn đề OMR → chọn lớp đã giao → tạo phiên chấm → tải phiếu trả lời.
         </p>
       </header>
 

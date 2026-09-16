@@ -13,6 +13,8 @@ type ExamSessionDto = {
   id?: number
   examId?: number
   examTitle?: string
+  classroomId?: number
+  classroomName?: string
   name?: string
   status?: string
   createdAt?: string
@@ -119,11 +121,20 @@ function normalizeAnswer(dto: OmrAnswerDto): OmrAnswerItem | null {
 }
 
 function normalizeSession(dto: ExamSessionDto): ExamSessionItem | null {
-  if (dto.id === undefined || dto.examId === undefined || !dto.name) return null
+  if (
+    dto.id === undefined ||
+    dto.examId === undefined ||
+    dto.classroomId === undefined ||
+    !dto.name
+  ) {
+    return null
+  }
   return {
     id: dto.id,
     examId: dto.examId,
     examTitle: dto.examTitle ?? '',
+    classroomId: dto.classroomId,
+    classroomName: dto.classroomName ?? '',
     name: dto.name,
     status: normalizeSessionStatus(dto.status),
     createdAt: dto.createdAt ?? '',
@@ -161,9 +172,15 @@ function normalizeSheet(dto: OmrSheetDto): OmrSheetItem | null {
   }
 }
 
-export async function getExamSessions(examId: number): Promise<ExamSessionItem[]> {
+export async function getExamSessions(
+  examId: number,
+  classroomId?: number,
+): Promise<ExamSessionItem[]> {
   const response = await apiClient.get<unknown>('/v1/exam-sessions', {
-    params: { examId },
+    params: {
+      examId,
+      ...(classroomId !== undefined ? { classroomId } : {}),
+    },
   })
   return unwrapList<ExamSessionDto>(response.data)
     .map(normalizeSession)
@@ -203,7 +220,11 @@ export async function getOmrSheets(sessionId: number): Promise<OmrSheetItem[]> {
     .filter((item): item is OmrSheetItem => item !== null)
 }
 
-export async function uploadOmrSheet(sessionId: number, file: File): Promise<OmrSheetItem> {
+export async function uploadOmrSheet(
+  sessionId: number,
+  file: File,
+  options?: { onUploadProgress?: (percent: number) => void },
+): Promise<OmrSheetItem> {
   const formData = new FormData()
   formData.append('file', file)
 
@@ -212,6 +233,14 @@ export async function uploadOmrSheet(sessionId: number, file: File): Promise<Omr
     formData,
     {
       timeout: 60_000,
+      onUploadProgress: (event) => {
+        if (!options?.onUploadProgress) return
+        if (!event.total || event.total <= 0) {
+          options.onUploadProgress(Math.min(90, Math.round((event.loaded / Math.max(file.size, 1)) * 100)))
+          return
+        }
+        options.onUploadProgress(Math.min(99, Math.round((event.loaded / event.total) * 100)))
+      },
       transformRequest: [
         (data, headers) => {
           if (data instanceof FormData) {

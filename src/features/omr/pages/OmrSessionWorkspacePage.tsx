@@ -1,5 +1,5 @@
-import { ArrowLeft, Search, Upload } from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
+import { ArrowLeft, Search } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { Button } from '../../../components/ui/Button'
@@ -19,7 +19,12 @@ import {
 } from '../../../components/ui/Table'
 import { getApiErrorMessage } from '../../../lib/apiError'
 import { omrSessionsPath, omrSheetPath, ROUTES } from '../../../routes/routes.config'
+import {
+  OmrUploadQueuePanel,
+  type OmrUploadQueueItem,
+} from '../components/OmrUploadQueuePanel'
 import { useExamSession, useOmrSheets, useUploadOmrSheet } from '../hooks/useOmr'
+import { parseOmrApiError, resolveOmrError, type ResolvedOmrError } from '../lib/omrErrors'
 import type { OmrSheetStatus } from '../types/omr.types'
 import {
   EXAM_SESSION_STATUS_BADGE,
@@ -33,11 +38,43 @@ import {
 const MAX_FILE_BYTES = 10 * 1024 * 1024
 const ACCEPT = 'image/jpeg,image/png,.jpg,.jpeg,.png'
 
+function makeUploadId() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+}
+
+function revokePreviewUrls(items: OmrUploadQueueItem[]) {
+  items.forEach((item) => {
+    URL.revokeObjectURL(item.previewUrl)
+  })
+}
+
+function validateFile(file: File): ResolvedOmrError | null {
+  const okType = /image\/(jpeg|png)/i.test(file.type) || /\.(jpe?g|png)$/i.test(file.name)
+  if (!okType) {
+    return resolveOmrError({ error_code: 'OMR_VAL_INVALID_CONTENT_TYPE' }, { fileName: file.name })
+  }
+  if (file.size === 0) {
+    return resolveOmrError({ error_code: 'OMR_VAL_EMPTY_FILE' }, { fileName: file.name })
+  }
+  if (file.size > MAX_FILE_BYTES) {
+    return {
+      code: 'OMR_VAL_FILE_TOO_LARGE',
+      kind: 'validation',
+      title: 'File quá lớn',
+      description: 'Tối đa 10MB mỗi ảnh.',
+      fileName: file.name,
+    }
+  }
+  return null
+}
+
 export function OmrSessionWorkspacePage() {
   const { sessionId: sessionIdParam } = useParams()
   const sessionId = Number(sessionIdParam)
   const navigate = useNavigate()
   const fileRef = useRef<HTMLInputElement>(null)
+  const processingRef = useRef(false)
+  const uploadQueueRef = useRef<OmrUploadQueueItem[]>([])
   const validSessionId = Number.isFinite(sessionId) && sessionId > 0 ? sessionId : undefined
 
   const sessionQuery = useExamSession(validSessionId)
@@ -46,13 +83,22 @@ export function OmrSessionWorkspacePage() {
 
   const [statusFilter, setStatusFilter] = useState<OmrSheetStatus | ''>('')
   const [query, setQuery] = useState('')
-  const [uploadNote, setUploadNote] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
-  const [uploading, setUploading] = useState(false)
+  const [uploadQueue, setUploadQueue] = useState<OmrUploadQueueItem[]>([])
+
+  uploadQueueRef.current = uploadQueue
 
   const session = sessionQuery.data
   const sheets = sheetsQuery.data ?? []
-  const canUpload = session?.status === 'OPEN' && !uploading
+  const uploading = uploadQueue.some((item) => item.status === 'uploading' || item.status === 'queued')
+  const sessionOpen = session?.status === 'OPEN'
+  const canUpload = Boolean(sessionOpen && !uploading)
+
+  useEffect(() => {
+    return () => {
+      revokePreviewUrls(uploadQueueRef.current)
+    }
+  }, [])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -68,50 +114,74 @@ export function OmrSessionWorkspacePage() {
     })
   }, [sheets, statusFilter, query])
 
-  async function handleFiles(fileList: FileList | null) {
-    if (!canUpload || !fileList?.length || !validSessionId) return
+  function openFilePicker() {
+    fileRef.current?.click()
+  }
 
-    const accepted: File[] = []
-    const rejected: string[] = []
-    Array.from(fileList).forEach((file) => {
-      const okType = /image\/(jpeg|png)/i.test(file.type) || /\.(jpe?g|png)$/i.test(file.name)
-      if (!okType) {
-        rejected.push(`${file.name}: chỉ JPG/PNG`)
-        return
+  function patchQueueItem(id: string, patch: Partial<OmrUploadQueueItem>) {
+    setUploadQueue((prev) => prev.map((item) => (item.id === id ? { ...item, ...patch } : item)))
+  }
+
+  async function processQueue(items: OmrUploadQueueItem[]) {
+    if (processingRef.current) return
+    processingRef.current = true
+
+    for (const item of items) {
+      if (item.status === 'error' || item.status === 'done') continue
+
+      patchQueueItem(item.id, { status: 'uploading', progress: 0, error: undefined })
+      try {
+        await uploadMutation.mutateAsync({
+          file: item.file,
+          onUploadProgress: (percent) => {
+            patchQueueItem(item.id, { progress: percent })
+          },
+        })
+        patchQueueItem(item.id, { status: 'done', progress: 100 })
+      } catch (error) {
+        const resolved = parseOmrApiError(error, item.file.name)
+        patchQueueItem(item.id, { status: 'error', error: resolved, progress: 0 })
       }
-      if (file.size > MAX_FILE_BYTES) {
-        rejected.push(`${file.name}: vượt 10MB`)
-        return
-      }
-      accepted.push(file)
+    }
+
+    processingRef.current = false
+  }
+
+  function enqueueFiles(fileList: FileList | null) {
+    if (!fileList?.length || session?.status !== 'OPEN' || uploading) return
+
+    const nextItems: OmrUploadQueueItem[] = Array.from(fileList).map((file) => {
+      const validationError = validateFile(file)
+      return {
+        id: makeUploadId(),
+        file,
+        previewUrl: URL.createObjectURL(file),
+        status: validationError ? 'error' : 'queued',
+        progress: 0,
+        error: validationError ?? undefined,
+      } satisfies OmrUploadQueueItem
     })
 
-    if (!accepted.length) {
-      if (rejected.length) setUploadNote(rejected.join(' · '))
-      return
+    if (!nextItems.length) return
+
+    // Mỗi lần chọn ảnh = 1 batch mới, không cộng dồn log cũ.
+    setUploadQueue((prev) => {
+      revokePreviewUrls(prev)
+      return nextItems
+    })
+
+    const toProcess = nextItems.filter((item) => item.status === 'queued')
+    if (toProcess.length) {
+      void processQueue(toProcess)
     }
+  }
 
-    setUploading(true)
-    setUploadNote(`Đang tải ${accepted.length} phiếu...`)
-    let success = 0
-    const errors: string[] = [...rejected]
-
-    for (const file of accepted) {
-      try {
-        await uploadMutation.mutateAsync(file)
-        success += 1
-        setUploadNote(`Đã tải ${success}/${accepted.length} phiếu...`)
-      } catch (error) {
-        errors.push(`${file.name}: ${getApiErrorMessage(error, 'upload thất bại')}`)
-      }
-    }
-
-    setUploading(false)
-    const parts = [
-      success > 0 ? `Đã tải thành công ${success} phiếu.` : null,
-      errors.length ? errors.join(' · ') : null,
-    ].filter(Boolean)
-    setUploadNote(parts.join(' ') || null)
+  function clearQueue() {
+    if (uploading) return
+    setUploadQueue((prev) => {
+      revokePreviewUrls(prev)
+      return []
+    })
   }
 
   if (!validSessionId) {
@@ -164,7 +234,7 @@ export function OmrSessionWorkspacePage() {
     <div className="space-y-6">
       <div className="space-y-1">
         <Link
-          to={omrSessionsPath(session.examId)}
+          to={omrSessionsPath(session.examId, session.classroomId)}
           className="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900"
         >
           <ArrowLeft className="h-4 w-4" strokeWidth={1.75} />
@@ -178,61 +248,26 @@ export function OmrSessionWorkspacePage() {
             {EXAM_SESSION_STATUS_LABEL[session.status]}
           </span>
         </div>
-        <p className="text-sm text-slate-500">{session.examTitle}</p>
+        <p className="text-sm text-slate-500">
+          {session.examTitle}
+          {session.classroomName ? ` · ${session.classroomName}` : ''}
+        </p>
       </div>
 
-      <section
-        className={`rounded-2xl border border-dashed p-6 transition ${
-          dragOver ? 'border-blue-400 bg-blue-50/60' : 'border-slate-300 bg-white'
-        } ${canUpload ? '' : 'opacity-70'}`}
-        onDragOver={(e) => {
-          e.preventDefault()
-          if (canUpload) setDragOver(true)
-        }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={(e) => {
-          e.preventDefault()
-          setDragOver(false)
-          void handleFiles(e.dataTransfer.files)
-        }}
-      >
-        <div className="flex flex-col items-center text-center">
-          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-600">
-            <Upload className="h-5 w-5" strokeWidth={1.75} />
-          </div>
-          <p className="text-sm font-medium text-slate-800">
-            {session.status === 'OPEN'
-              ? uploading
-                ? 'Đang tải và chấm phiếu...'
-                : 'Kéo thả ảnh phiếu trả lời vào đây'
-              : 'Phiên đã khóa — không tải thêm phiếu'}
-          </p>
-          <p className="mt-1 text-xs text-slate-500">
-            JPG hoặc PNG, tối đa 10MB mỗi file. Nhiều ảnh sẽ upload tuần tự.
-          </p>
-          <input
-            ref={fileRef}
-            type="file"
-            accept={ACCEPT}
-            multiple
-            className="hidden"
-            disabled={!canUpload}
-            onChange={(e) => {
-              void handleFiles(e.target.files)
-              e.target.value = ''
-            }}
-          />
-          <Button
-            className="mt-4"
-            variant={canUpload ? 'primary' : 'secondary'}
-            disabled={!canUpload}
-            onClick={() => fileRef.current?.click()}
-          >
-            {uploading ? 'Đang tải...' : 'Chọn ảnh'}
-          </Button>
-          {uploadNote ? <p className="mt-3 max-w-lg text-xs text-slate-600">{uploadNote}</p> : null}
-        </div>
-      </section>
+      <OmrUploadQueuePanel
+        canUpload={canUpload}
+        sessionOpen={Boolean(sessionOpen)}
+        uploading={uploading}
+        dragOver={dragOver}
+        items={uploadQueue}
+        fileRef={fileRef}
+        accept={ACCEPT}
+        onDragOver={setDragOver}
+        onDropFiles={enqueueFiles}
+        onPickFiles={enqueueFiles}
+        onOpenPicker={openFilePicker}
+        onClearQueue={clearQueue}
+      />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative min-w-0 flex-1 sm:max-w-xs">
@@ -376,6 +411,7 @@ export function OmrSessionWorkspacePage() {
           </ul>
         </>
       )}
+
     </div>
   )
 }
