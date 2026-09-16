@@ -7,11 +7,14 @@ import {
   EXAM_MODE_LABEL,
   EXAM_STATUS_BADGE_CLASS,
   EXAM_STATUS_LABEL,
+  formatExamDateOnly,
   formatExamSchedule,
 } from '../types/exam.types'
 
 type ExamItemProps = {
   exam: ExamItemType
+  /** OMR list: title, mode, subject, examDate, classroom count only */
+  compactOmr?: boolean
   onDetail: (exam: ExamItemType) => void
   onEdit: (exam: ExamItemType) => void
   onDelete: (exam: ExamItemType) => void
@@ -88,7 +91,7 @@ function ExamActions({
         <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
       </button>
 
-      {isOngoing ? (
+      {isOngoing && exam.examMode === 'ONLINE' ? (
         <button
           type="button"
           title="Đóng thi"
@@ -103,8 +106,40 @@ function ExamActions({
   )
 }
 
+function examDateLabel(exam: ExamItemType) {
+  return formatExamDateOnly(exam.paperSettings?.examDate)
+}
+
 export function ExamItem(props: ExamItemProps) {
-  const { exam } = props
+  const { exam, compactOmr } = props
+
+  if (compactOmr) {
+    return (
+      <article className="grid grid-cols-1 items-start gap-3 border-b border-slate-200 px-4 py-4 last:border-b-0">
+        <div className="min-w-0">
+          <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Tiêu đề</p>
+          <p className="font-medium text-slate-900">{exam.title}</p>
+        </div>
+        <div>
+          <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Hình thức</p>
+          <ModeBadge exam={exam} />
+        </div>
+        <div>
+          <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Môn học</p>
+          <p className="text-sm text-slate-700">{exam.subjectName ?? `Môn #${exam.subjectId}`}</p>
+        </div>
+        <div>
+          <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Ngày thi</p>
+          <p className="text-sm text-slate-700">{examDateLabel(exam)}</p>
+        </div>
+        <div>
+          <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Số lớp</p>
+          <p className="text-sm text-slate-700">{exam.classroomIds?.length ?? 0}</p>
+        </div>
+        <ExamActions {...props} />
+      </article>
+    )
+  }
 
   return (
     <article className="grid grid-cols-1 items-start gap-3 border-b border-slate-200 px-4 py-4 last:border-b-0">
@@ -143,7 +178,34 @@ export function ExamItem(props: ExamItemProps) {
 }
 
 export function ExamTableRow(props: ExamItemProps) {
-  const { exam } = props
+  const { exam, compactOmr } = props
+
+  if (compactOmr) {
+    return (
+      <TableRow className="border-slate-200">
+        <TableCell className="max-w-0 overflow-hidden py-3.5">
+          <p className="truncate font-medium text-slate-900" title={exam.title}>
+            {exam.title}
+          </p>
+        </TableCell>
+        <TableCell className="py-3.5" align="center">
+          <ModeBadge exam={exam} />
+        </TableCell>
+        <TableCell className="max-w-0 overflow-hidden py-3.5">
+          <p className="truncate text-sm text-slate-700">{exam.subjectName ?? `Môn #${exam.subjectId}`}</p>
+        </TableCell>
+        <TableCell className="py-3.5 text-sm text-slate-700" align="center">
+          {examDateLabel(exam)}
+        </TableCell>
+        <TableCell className="py-3.5" align="center">
+          {exam.classroomIds?.length ?? 0}
+        </TableCell>
+        <TableCell className="whitespace-nowrap py-3.5" align="center">
+          <ExamActions {...props} />
+        </TableCell>
+      </TableRow>
+    )
+  }
 
   return (
     <TableRow className="border-slate-200">

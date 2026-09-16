@@ -13,6 +13,7 @@ import {
   QUESTION_TYPE_LABEL,
   canOpenExam,
   formatExamDate,
+  formatExamDateOnly,
   formatExamSchedule,
   getOpenExamBlockReason,
 } from '../types/exam.types'
@@ -118,16 +119,20 @@ export function ExamDetailPanel({
             <span className={readiness.hasVersions ? 'font-medium text-emerald-700' : 'text-slate-500'}>
               {readiness.hasVersions ? 'Đã có mã đề ✓' : 'Chưa có mã đề'}
             </span>
-            <span className="text-slate-300">·</span>
-            <span
-              className={
-                exam.status === 'ONGOING' || exam.status === 'UPCOMING'
-                  ? 'font-medium text-emerald-700'
-                  : 'text-slate-500'
-              }
-            >
-              {exam.status === 'ONGOING' || exam.status === 'UPCOMING' ? 'Đã mở thi ✓' : 'Chưa mở thi'}
-            </span>
+            {exam.examMode === 'ONLINE' ? (
+              <>
+                <span className="text-slate-300">·</span>
+                <span
+                  className={
+                    exam.status === 'ONGOING' || exam.status === 'UPCOMING'
+                      ? 'font-medium text-emerald-700'
+                      : 'text-slate-500'
+                  }
+                >
+                  {exam.status === 'ONGOING' || exam.status === 'UPCOMING' ? 'Đã mở thi ✓' : 'Chưa mở thi'}
+                </span>
+              </>
+            ) : null}
           </div>
         </div>
 
@@ -166,23 +171,43 @@ export function ExamDetailPanel({
                 <p className="text-xs text-slate-400">Thang điểm</p>
                 <p className="mt-0.5 font-medium text-slate-900">{exam.maxScore}</p>
               </div>
-              <div className="col-span-2">
-                <p className="text-xs text-slate-400">Lịch thi</p>
-                <p className="mt-0.5 font-medium text-slate-900">{formatExamSchedule(exam.startAt, exam.endAt)}</p>
-              </div>
+              {exam.examMode === 'ONLINE' ? (
+                <div className="col-span-2">
+                  <p className="text-xs text-slate-400">Lịch thi</p>
+                  <p className="mt-0.5 font-medium text-slate-900">
+                    {formatExamSchedule(
+                      exam.onlineSettings?.startAt ?? exam.startAt,
+                      exam.onlineSettings?.endAt ?? exam.endAt,
+                    )}
+                  </p>
+                </div>
+              ) : null}
               <div className="col-span-2">
                 <p className="text-xs text-slate-400">Ngày tạo</p>
                 <p className="mt-0.5 font-medium text-slate-900">{formatExamDate(exam.createdAt)}</p>
               </div>
-              {exam.config ? (
+              {exam.examMode === 'ONLINE' && exam.onlineSettings ? (
                 <div className="col-span-2 space-y-1 border-t border-slate-200 pt-3 text-xs text-slate-600">
-                  <p>Xáo câu hỏi: {exam.config.shuffleQuestions ? 'Có' : 'Không'}</p>
-                  <p>Xáo đáp án: {exam.config.shuffleAnswers ? 'Có' : 'Không'}</p>
-                  <p>Hiện điểm sau thi: {exam.config.showScoreToStudent ? 'Có' : 'Không'}</p>
-                  <p>Số đề in: {exam.config.paperCount ?? 1}</p>
-                  <p>
-                    Học kỳ {exam.config.semester ?? '—'} · Năm học {exam.config.academicYear ?? '—'}
+                  <p className="font-medium text-slate-700">Cấu hình trực tuyến</p>
+                  <p>Hiện điểm sau thi: {exam.onlineSettings.showScoreToStudent ? 'Có' : 'Không'}</p>
+                </div>
+              ) : null}
+              {exam.paperSettings ? (
+                <div className="col-span-2 space-y-1 border-t border-slate-200 pt-3 text-xs text-slate-600">
+                  <p className="font-medium text-slate-700">
+                    {exam.examMode === 'OMR_PAPER' ? 'Cấu hình đề giấy / OMR' : 'Cấu hình đề'}
                   </p>
+                  {exam.examMode === 'OMR_PAPER' ? (
+                    <p>Ngày thi: {formatExamDateOnly(exam.paperSettings.examDate)}</p>
+                  ) : null}
+                  <p>Xáo câu hỏi: {exam.paperSettings.shuffleQuestions ? 'Có' : 'Không'}</p>
+                  <p>Xáo đáp án: {exam.paperSettings.shuffleAnswers ? 'Có' : 'Không'}</p>
+                  {exam.examMode === 'OMR_PAPER' ? (
+                    <p>
+                      Học kỳ {exam.paperSettings.semester ?? '—'} · Năm học{' '}
+                      {exam.paperSettings.academicYear ?? '—'}
+                    </p>
+                  ) : null}
                 </div>
               ) : null}
             </div>
@@ -288,13 +313,17 @@ export function ExamDetailPanel({
 
         {exam.status === 'DRAFT' ? (
           <div className="space-y-2 border-t border-slate-200 px-5 py-4">
-            <span title={openBlockReason ?? undefined} className="block">
-              <Button className="w-full" disabled={!readiness.ready} onClick={onOpenExam}>
-                <Play className="h-4 w-4" strokeWidth={1.75} />
-                Mở thi
-              </Button>
-            </span>
-            {!readiness.ready ? <p className="text-center text-xs text-slate-500">{openBlockReason}</p> : null}
+            {exam.examMode === 'ONLINE' ? (
+              <>
+                <span title={openBlockReason ?? undefined} className="block">
+                  <Button className="w-full" disabled={!readiness.ready} onClick={onOpenExam}>
+                    <Play className="h-4 w-4" strokeWidth={1.75} />
+                    Mở thi
+                  </Button>
+                </span>
+                {!readiness.ready ? <p className="text-center text-xs text-slate-500">{openBlockReason}</p> : null}
+              </>
+            ) : null}
             {exam.examMode === 'OMR_PAPER' ? (
               <Link
                 to={omrSessionsPath(exam.id)}

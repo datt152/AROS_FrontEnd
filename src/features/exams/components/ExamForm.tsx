@@ -14,6 +14,8 @@ import type {
   ExamFormErrors,
   ExamItem,
   ExamMode,
+  ExamOnlineFormValues,
+  ExamPaperFormValues,
   ExamUpdateFormValues,
   QuestionPickItem,
   SubjectOption,
@@ -25,6 +27,7 @@ type QuestionPickMode = 'manual' | 'template'
 type ExamFormProps = {
   mode: 'create' | 'edit'
   initialValues?: ExamItem
+  lockedExamMode?: ExamMode
   subjectOptions: SubjectOption[]
   questionOptions: QuestionPickItem[]
   topicOptions?: { id: number; name: string }[]
@@ -44,50 +47,80 @@ const selectClassName = (hasError: boolean) =>
       : 'border-slate-200 focus:border-blue-400 focus:ring-blue-100'
   }`
 
-function toCreateValues(item?: ExamItem): ExamCreateFormValues {
+/** Ngày thi OMR phải sau ngày tạo đề (tạo mới: sau hôm nay). */
+function getMinExamDate(createdAt?: string) {
+  const date = createdAt ? new Date(createdAt) : new Date()
+  date.setHours(0, 0, 0, 0)
+  date.setDate(date.getDate() + 1)
+  const yyyy = date.getFullYear()
+  const mm = String(date.getMonth() + 1).padStart(2, '0')
+  const dd = String(date.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+
+function defaultOnlineSettings(
+  item?: ExamItem,
+  examMode?: ExamMode | '',
+): ExamOnlineFormValues {
+  const online = item?.onlineSettings
+  const mode = examMode || item?.examMode
+  return {
+    allowEdit: online?.allowEdit ?? false,
+    showScoreToStudent: online?.showScoreToStudent ?? true,
+    maxAttempts: online?.maxAttempts ?? 1,
+    timeLimitEnabled: online?.timeLimitEnabled ?? mode !== 'OMR_PAPER',
+  }
+}
+
+function defaultPaperSettings(
+  item?: ExamItem,
+  examMode?: ExamMode | '',
+): ExamPaperFormValues {
+  const paper = item?.paperSettings
+  const mode = examMode || item?.examMode
+  return {
+    examDate: paper?.examDate ? paper.examDate.slice(0, 10) : '',
+    semester: paper?.semester ?? '1',
+    academicYear: paper?.academicYear ?? '2025-2026',
+    shuffleQuestions: paper?.shuffleQuestions ?? false,
+    shuffleAnswers: paper?.shuffleAnswers ?? false,
+    paperCount: paper?.paperCount ?? (mode === 'OMR_PAPER' ? 3 : 1),
+  }
+}
+
+function toCreateValues(item?: ExamItem, lockedExamMode?: ExamMode): ExamCreateFormValues {
+  const examMode = lockedExamMode ?? item?.examMode ?? ''
   return {
     title: item?.title ?? '',
     duration: item?.duration ?? '',
-    examMode: item?.examMode ?? '',
+    examMode,
     subjectId: item?.subjectId ?? '',
     questionIds: item?.questionIds ?? [],
     maxScore: item?.maxScore ?? 10,
     rawPoints: {},
     classroomIds: item?.classroomIds ?? [],
-    config: {
-      shuffleQuestions: item?.config?.shuffleQuestions ?? false,
-      shuffleAnswers: item?.config?.shuffleAnswers ?? false,
-      paperCount: item?.config?.paperCount ?? 1,
-      semester: item?.config?.semester ?? '1',
-      academicYear: item?.config?.academicYear ?? '2025-2026',
-      allowEdit: item?.config?.allowEdit ?? false,
-      showScoreToStudent: item?.config?.showScoreToStudent ?? true,
-    },
+    onlineSettings: defaultOnlineSettings(item, examMode),
+    paperSettings: defaultPaperSettings(item, examMode),
   }
 }
 
-function toUpdateValues(item?: ExamItem): ExamUpdateFormValues {
+function toUpdateValues(item?: ExamItem, lockedExamMode?: ExamMode): ExamUpdateFormValues {
+  const examMode = lockedExamMode ?? item?.examMode ?? ''
   return {
     title: item?.title ?? '',
     duration: item?.duration ?? '',
-    examMode: item?.examMode ?? '',
+    examMode,
     subjectId: item?.subjectId ?? '',
     maxScore: item?.maxScore ?? 10,
-    config: {
-      shuffleQuestions: item?.config?.shuffleQuestions ?? false,
-      shuffleAnswers: item?.config?.shuffleAnswers ?? false,
-      paperCount: item?.config?.paperCount ?? 1,
-      semester: item?.config?.semester ?? '1',
-      academicYear: item?.config?.academicYear ?? '2025-2026',
-      allowEdit: item?.config?.allowEdit ?? false,
-      showScoreToStudent: item?.config?.showScoreToStudent ?? true,
-    },
+    onlineSettings: defaultOnlineSettings(item, examMode),
+    paperSettings: defaultPaperSettings(item, examMode),
   }
 }
 
 export function ExamForm({
   mode,
   initialValues,
+  lockedExamMode,
   subjectOptions,
   questionOptions,
   topicOptions = [],
@@ -103,12 +136,19 @@ export function ExamForm({
   const [topicFilter, setTopicFilter] = useState<number | ''>('')
   const [questionPickMode, setQuestionPickMode] = useState<QuestionPickMode>('manual')
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null)
-  const [createValues, setCreateValues] = useState<ExamCreateFormValues>(() => toCreateValues(initialValues))
-  const [updateValues, setUpdateValues] = useState<ExamUpdateFormValues>(() => toUpdateValues(initialValues))
+  const [createValues, setCreateValues] = useState<ExamCreateFormValues>(() =>
+    toCreateValues(initialValues, lockedExamMode),
+  )
+  const [updateValues, setUpdateValues] = useState<ExamUpdateFormValues>(() =>
+    toUpdateValues(initialValues, lockedExamMode),
+  )
   const [errors, setErrors] = useState<ExamFormErrors>({})
 
   const selectedSubjectId = mode === 'create' ? createValues.subjectId : updateValues.subjectId
   const selectedMode = mode === 'create' ? createValues.examMode : updateValues.examMode
+  const isOnline = selectedMode === 'ONLINE'
+  const isOmr = selectedMode === 'OMR_PAPER'
+  const minExamDate = getMinExamDate(mode === 'edit' ? initialValues?.createdAt : undefined)
 
   const templatesQuery = useExamTemplates(
     {
@@ -154,6 +194,17 @@ export function ExamForm({
         next.questionIds = []
         next.rawPoints = {}
         if (key === 'subjectId') next.classroomIds = []
+        if (key === 'examMode') {
+          const modeValue = value as ExamMode | ''
+          next.onlineSettings = {
+            ...next.onlineSettings,
+            timeLimitEnabled: modeValue !== 'OMR_PAPER',
+          }
+          next.paperSettings = {
+            ...next.paperSettings,
+            paperCount: modeValue === 'OMR_PAPER' ? 3 : 1,
+          }
+        }
       }
       return next
     })
@@ -174,6 +225,42 @@ export function ExamForm({
       onSubjectChange?.(value)
     }
     if (key in errors) setErrors((current) => ({ ...current, [key]: undefined }))
+  }
+
+  function updateCreateOnline<K extends keyof ExamOnlineFormValues>(key: K, value: ExamOnlineFormValues[K]) {
+    setCreateValues((current) => ({
+      ...current,
+      onlineSettings: { ...current.onlineSettings, [key]: value },
+    }))
+    if (key === 'maxAttempts') setErrors((current) => ({ ...current, maxAttempts: undefined }))
+  }
+
+  function updateCreatePaper<K extends keyof ExamPaperFormValues>(key: K, value: ExamPaperFormValues[K]) {
+    setCreateValues((current) => ({
+      ...current,
+      paperSettings: { ...current.paperSettings, [key]: value },
+    }))
+    if (key === 'paperCount' || key === 'examDate') {
+      setErrors((current) => ({ ...current, [key]: undefined }))
+    }
+  }
+
+  function updateUpdateOnline<K extends keyof ExamOnlineFormValues>(key: K, value: ExamOnlineFormValues[K]) {
+    setUpdateValues((current) => ({
+      ...current,
+      onlineSettings: { ...(current.onlineSettings ?? defaultOnlineSettings()), [key]: value },
+    }))
+    if (key === 'maxAttempts') setErrors((current) => ({ ...current, maxAttempts: undefined }))
+  }
+
+  function updateUpdatePaper<K extends keyof ExamPaperFormValues>(key: K, value: ExamPaperFormValues[K]) {
+    setUpdateValues((current) => ({
+      ...current,
+      paperSettings: { ...(current.paperSettings ?? defaultPaperSettings()), [key]: value },
+    }))
+    if (key === 'paperCount' || key === 'examDate') {
+      setErrors((current) => ({ ...current, [key]: undefined }))
+    }
   }
 
   function toggleQuestion(questionId: number) {
@@ -215,6 +302,33 @@ export function ExamForm({
     return true
   }
 
+  function validateSettings(values: {
+    examMode: ExamMode | ''
+    onlineSettings?: ExamOnlineFormValues
+    paperSettings?: ExamPaperFormValues
+  }) {
+    const nextErrors: ExamFormErrors = {}
+    if (values.examMode === 'OMR_PAPER' && values.paperSettings) {
+      const examDate = values.paperSettings.examDate.trim()
+      if (!examDate) {
+        nextErrors.examDate = 'Vui lòng chọn ngày thi'
+      } else {
+        const baseline = initialValues?.createdAt ? new Date(initialValues.createdAt) : new Date()
+        baseline.setHours(0, 0, 0, 0)
+        const selected = new Date(`${examDate}T00:00:00`)
+        if (Number.isNaN(selected.getTime()) || selected.getTime() <= baseline.getTime()) {
+          nextErrors.examDate = 'Ngày thi phải sau ngày tạo đề'
+        }
+      }
+    }
+    setErrors(nextErrors)
+    if (Object.keys(nextErrors).length > 0) {
+      focusFirstFormError(nextErrors, ['examDate'])
+      return false
+    }
+    return true
+  }
+
   async function handleNext() {
     if (step === 1 && !validateMeta(createValues)) return
     if (step === 2 && !validateQuestions()) return
@@ -227,6 +341,7 @@ export function ExamForm({
       else setStep(2)
       return
     }
+    if (!validateSettings(createValues)) return
 
     await onSubmitCreate({
       ...createValues,
@@ -236,27 +351,48 @@ export function ExamForm({
       subjectId: Number(createValues.subjectId),
       maxScore: 10,
       classroomIds: [],
-      config: {
-        ...createValues.config,
-        paperCount: 1,
-        allowEdit: false,
+      onlineSettings: {
+        ...createValues.onlineSettings,
+        maxAttempts:
+          createValues.onlineSettings.maxAttempts === ''
+            ? ''
+            : Number(createValues.onlineSettings.maxAttempts),
+      },
+      paperSettings: {
+        ...createValues.paperSettings,
+        paperCount:
+          createValues.paperSettings.paperCount === ''
+            ? ''
+            : Number(createValues.paperSettings.paperCount),
       },
     })
   }
 
   async function handleUpdateSubmit() {
     if (!validateMeta(updateValues)) return
+    if (!validateSettings(updateValues)) return
     await onSubmitUpdate({
       title: updateValues.title.trim(),
       duration: Number(updateValues.duration),
       examMode: updateValues.examMode as ExamMode,
       subjectId: Number(updateValues.subjectId),
       maxScore: 10,
-      config: updateValues.config
+      onlineSettings: updateValues.onlineSettings
         ? {
-            ...updateValues.config,
-            paperCount: 1,
-            allowEdit: false,
+            ...updateValues.onlineSettings,
+            maxAttempts:
+              updateValues.onlineSettings.maxAttempts === ''
+                ? ''
+                : Number(updateValues.onlineSettings.maxAttempts),
+          }
+        : undefined,
+      paperSettings: updateValues.paperSettings
+        ? {
+            ...updateValues.paperSettings,
+            paperCount:
+              updateValues.paperSettings.paperCount === ''
+                ? ''
+                : Number(updateValues.paperSettings.paperCount),
           }
         : undefined,
     })
@@ -265,6 +401,11 @@ export function ExamForm({
   const values = mode === 'create' ? createValues : updateValues
   const stepLabels = ['Thông tin', 'Câu hỏi', 'Cấu hình']
   const totalSteps = stepLabels.length
+
+  const createOnline = createValues.onlineSettings
+  const createPaper = createValues.paperSettings
+  const updateOnline = updateValues.onlineSettings
+  const updatePaper = updateValues.paperSettings
 
   return (
     <form
@@ -306,7 +447,8 @@ export function ExamForm({
         </div>
       ) : (
         <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          Danh sách câu hỏi không thể chỉnh sau khi tạo. Trạng thái mở thi dùng nút “Mở thi”.
+          Danh sách câu hỏi không thể chỉnh sau khi tạo.
+          {isOnline ? ' Trạng thái mở thi dùng nút “Mở thi”.' : ''}
         </p>
       )}
 
@@ -364,21 +506,27 @@ export function ExamForm({
               <label htmlFor="examMode" className="text-sm font-medium text-slate-700">
                 Hình thức thi
               </label>
-              <select
-                id="examMode"
-                value={values.examMode}
-                disabled={isSubmitting}
-                onChange={(event) => {
-                  const next = event.target.value as ExamMode | ''
-                  if (mode === 'create') updateCreateField('examMode', next)
-                  else updateUpdateField('examMode', next)
-                }}
-                className={selectClassName(Boolean(errors.examMode))}
-              >
-                <option value="">Chọn hình thức</option>
-                <option value="ONLINE">{EXAM_MODE_LABEL.ONLINE}</option>
-                <option value="OMR_PAPER">{EXAM_MODE_LABEL.OMR_PAPER}</option>
-              </select>
+              {lockedExamMode ? (
+                <p className="flex h-10 items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700">
+                  {EXAM_MODE_LABEL[lockedExamMode]}
+                </p>
+              ) : (
+                <select
+                  id="examMode"
+                  value={values.examMode}
+                  disabled={isSubmitting}
+                  onChange={(event) => {
+                    const next = event.target.value as ExamMode | ''
+                    if (mode === 'create') updateCreateField('examMode', next)
+                    else updateUpdateField('examMode', next)
+                  }}
+                  className={selectClassName(Boolean(errors.examMode))}
+                >
+                  <option value="">Chọn hình thức</option>
+                  <option value="ONLINE">{EXAM_MODE_LABEL.ONLINE}</option>
+                  <option value="OMR_PAPER">{EXAM_MODE_LABEL.OMR_PAPER}</option>
+                </select>
+              )}
               {errors.examMode ? <p className="text-sm text-red-500">{errors.examMode}</p> : null}
             </div>
             <div className="space-y-1.5">
@@ -388,7 +536,7 @@ export function ExamForm({
               <select
                 id="subjectId"
                 value={values.subjectId}
-                disabled={isSubmitting}
+                disabled={isSubmitting || mode === 'edit'}
                 onChange={(event) => {
                   const next = event.target.value === '' ? '' : Number(event.target.value)
                   if (mode === 'create') updateCreateField('subjectId', next)
@@ -409,22 +557,109 @@ export function ExamForm({
         </>
       )}
 
-      {mode === 'edit' && updateValues.config ? (
-        <label className="flex items-center gap-2.5 text-sm text-slate-700">
-          <input
-            type="checkbox"
-            checked={updateValues.config.showScoreToStudent}
-            disabled={isSubmitting}
-            onChange={(event) =>
-              updateUpdateField('config', {
-                ...updateValues.config!,
-                showScoreToStudent: event.target.checked,
-              })
-            }
-            className="h-4 w-4 rounded border-slate-300 text-blue-600"
-          />
-          Hiện điểm sau khi kiểm tra
-        </label>
+      {mode === 'edit' && isOnline && updateOnline ? (
+        <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+          <p className="text-sm font-medium text-slate-800">Cấu hình trực tuyến</p>
+          <label className="flex items-center gap-2.5 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={updateOnline.showScoreToStudent}
+              disabled={isSubmitting}
+              onChange={(event) => updateUpdateOnline('showScoreToStudent', event.target.checked)}
+              className="h-4 w-4 rounded border-slate-300 text-blue-600"
+            />
+            Hiện điểm sau khi kiểm tra
+          </label>
+          {updatePaper ? (
+            <>
+              <label className="flex items-center gap-2.5 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={updatePaper.shuffleQuestions}
+                  disabled={isSubmitting}
+                  onChange={(event) => updateUpdatePaper('shuffleQuestions', event.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-blue-600"
+                />
+                Xáo trộn câu hỏi
+              </label>
+              <label className="flex items-center gap-2.5 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={updatePaper.shuffleAnswers}
+                  disabled={isSubmitting}
+                  onChange={(event) => updateUpdatePaper('shuffleAnswers', event.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-blue-600"
+                />
+                Xáo trộn đáp án
+              </label>
+            </>
+          ) : null}
+        </div>
+      ) : null}
+
+      {mode === 'edit' && isOmr && updatePaper ? (
+        <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+          <p className="text-sm font-medium text-slate-800">Cấu hình đề giấy / OMR</p>
+          <div className="space-y-1.5">
+            <label htmlFor="editExamDate" className="text-sm font-medium text-slate-700">
+              Ngày thi
+            </label>
+            <Input
+              id="editExamDate"
+              type="date"
+              min={minExamDate}
+              value={updatePaper.examDate}
+              hasError={Boolean(errors.examDate)}
+              disabled={isSubmitting}
+              onChange={(event) => updateUpdatePaper('examDate', event.target.value)}
+            />
+            {errors.examDate ? <p className="text-sm text-red-500">{errors.examDate}</p> : null}
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <label htmlFor="editSemester" className="text-sm font-medium text-slate-700">
+                Học kỳ
+              </label>
+              <Input
+                id="editSemester"
+                value={updatePaper.semester}
+                disabled={isSubmitting}
+                onChange={(event) => updateUpdatePaper('semester', event.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor="editAcademicYear" className="text-sm font-medium text-slate-700">
+                Năm học
+              </label>
+              <Input
+                id="editAcademicYear"
+                value={updatePaper.academicYear}
+                disabled={isSubmitting}
+                onChange={(event) => updateUpdatePaper('academicYear', event.target.value)}
+              />
+            </div>
+          </div>
+          <label className="flex items-center gap-2.5 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={updatePaper.shuffleQuestions}
+              disabled={isSubmitting}
+              onChange={(event) => updateUpdatePaper('shuffleQuestions', event.target.checked)}
+              className="h-4 w-4 rounded border-slate-300 text-blue-600"
+            />
+            Xáo trộn câu hỏi
+          </label>
+          <label className="flex items-center gap-2.5 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={updatePaper.shuffleAnswers}
+              disabled={isSubmitting}
+              onChange={(event) => updateUpdatePaper('shuffleAnswers', event.target.checked)}
+              className="h-4 w-4 rounded border-slate-300 text-blue-600"
+            />
+            Xáo trộn đáp án
+          </label>
+        </div>
       ) : null}
 
       {mode === 'create' && step === 2 ? (
@@ -433,6 +668,7 @@ export function ExamForm({
             <p className="text-sm font-medium text-slate-800">Chọn câu hỏi</p>
             <p className="mt-0.5 text-xs text-slate-500">
               Chọn thủ công từng câu hoặc lấy nguyên bộ từ thư viện đề.
+              {isOmr ? ' OMR chỉ hỗ trợ câu một đáp án.' : ''}
             </p>
           </div>
 
@@ -620,14 +856,64 @@ export function ExamForm({
 
       {mode === 'create' && step === 3 ? (
         <div className="space-y-4">
+          {isOnline ? (
+            <label className="flex items-center gap-2.5 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={createOnline.showScoreToStudent}
+                disabled={isSubmitting}
+                onChange={(event) => updateCreateOnline('showScoreToStudent', event.target.checked)}
+                className="h-4 w-4 rounded border-slate-300 text-blue-600"
+              />
+              Hiện điểm sau khi kiểm tra
+            </label>
+          ) : null}
+
+          {isOmr ? (
+            <>
+              <div className="space-y-1.5">
+                <label htmlFor="examDate" className="text-sm font-medium text-slate-700">
+                  Ngày thi
+                </label>
+                <Input
+                  id="examDate"
+                  type="date"
+                  min={minExamDate}
+                  value={createPaper.examDate}
+                  hasError={Boolean(errors.examDate)}
+                  disabled={isSubmitting}
+                  onChange={(event) => updateCreatePaper('examDate', event.target.value)}
+                />
+                {errors.examDate ? <p className="text-sm text-red-500">{errors.examDate}</p> : null}
+                <p className="text-xs text-slate-500">Phải sau ngày tạo đề (sau hôm nay).</p>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700">Học kỳ</label>
+                  <Input
+                    value={createPaper.semester}
+                    disabled={isSubmitting}
+                    onChange={(event) => updateCreatePaper('semester', event.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700">Năm học</label>
+                  <Input
+                    value={createPaper.academicYear}
+                    disabled={isSubmitting}
+                    onChange={(event) => updateCreatePaper('academicYear', event.target.value)}
+                  />
+                </div>
+              </div>
+            </>
+          ) : null}
+
           <label className="flex items-center gap-2.5 text-sm text-slate-700">
             <input
               type="checkbox"
-              checked={createValues.config.shuffleQuestions}
+              checked={createPaper.shuffleQuestions}
               disabled={isSubmitting}
-              onChange={(event) =>
-                updateCreateField('config', { ...createValues.config, shuffleQuestions: event.target.checked })
-              }
+              onChange={(event) => updateCreatePaper('shuffleQuestions', event.target.checked)}
               className="h-4 w-4 rounded border-slate-300 text-blue-600"
             />
             Xáo trộn câu hỏi
@@ -635,52 +921,14 @@ export function ExamForm({
           <label className="flex items-center gap-2.5 text-sm text-slate-700">
             <input
               type="checkbox"
-              checked={createValues.config.shuffleAnswers}
+              checked={createPaper.shuffleAnswers}
               disabled={isSubmitting}
-              onChange={(event) =>
-                updateCreateField('config', { ...createValues.config, shuffleAnswers: event.target.checked })
-              }
+              onChange={(event) => updateCreatePaper('shuffleAnswers', event.target.checked)}
               className="h-4 w-4 rounded border-slate-300 text-blue-600"
             />
             Xáo trộn đáp án
           </label>
-          <label className="flex items-center gap-2.5 text-sm text-slate-700">
-            <input
-              type="checkbox"
-              checked={createValues.config.showScoreToStudent}
-              disabled={isSubmitting}
-              onChange={(event) =>
-                updateCreateField('config', {
-                  ...createValues.config,
-                  showScoreToStudent: event.target.checked,
-                })
-              }
-              className="h-4 w-4 rounded border-slate-300 text-blue-600"
-            />
-            Hiện điểm sau khi kiểm tra
-          </label>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-700">Học kỳ</label>
-              <Input
-                value={createValues.config.semester}
-                disabled={isSubmitting}
-                onChange={(event) =>
-                  updateCreateField('config', { ...createValues.config, semester: event.target.value })
-                }
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-700">Năm học</label>
-              <Input
-                value={createValues.config.academicYear}
-                disabled={isSubmitting}
-                onChange={(event) =>
-                  updateCreateField('config', { ...createValues.config, academicYear: event.target.value })
-                }
-              />
-            </div>
-          </div>
+
           <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
             Giao lớp sau khi tạo — dùng “Chọn lớp” ở chi tiết đề hoặc danh sách.
           </p>
