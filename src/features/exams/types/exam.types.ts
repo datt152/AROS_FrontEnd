@@ -6,19 +6,25 @@ export type ExamPurpose = 'EXAM' | 'PRACTICE'
 
 export type QuestionType = 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE'
 
-export type ExamConfig = {
-  id?: number
+/** Cấu hình làm bài Online (và PRACTICE) */
+export type ExamOnlineSettings = {
+  status?: ExamStatus
+  startAt?: string | null
+  endAt?: string | null
+  allowEdit?: boolean
+  showScoreToStudent?: boolean
+  maxAttempts?: number | null
+  timeLimitEnabled?: boolean
+}
+
+/** Cấu hình in đề / sinh mã đề (OMR bắt buộc; Online nên gửi khi sinh mã) */
+export type ExamPaperSettings = {
+  examDate?: string | null
   semester?: string
   academicYear?: string
-  totalQuestions?: number
-  examType?: 'ONLINE' | 'OMR'
   shuffleQuestions?: boolean
   shuffleAnswers?: boolean
   paperCount?: number
-  allowEdit?: boolean
-  showScoreToStudent?: boolean
-  timeLimitEnabled?: boolean
-  maxAttempts?: number | null
 }
 
 export type ExamItem = {
@@ -27,6 +33,7 @@ export type ExamItem = {
   duration: number
   examMode: ExamMode
   purpose?: ExamPurpose
+  /** Convenience từ BE (Online); OMR thường DRAFT/null schedule */
   status: ExamStatus
   subjectId: number
   subjectName?: string
@@ -37,7 +44,8 @@ export type ExamItem = {
   totalQuestions: number
   maxScore: number
   classroomIds?: number[]
-  config?: ExamConfig
+  onlineSettings?: ExamOnlineSettings | null
+  paperSettings?: ExamPaperSettings | null
   versionCodes?: string[]
   questionIds?: number[]
   /** Có khi GET detail nhúng danh sách câu hỏi */
@@ -68,6 +76,22 @@ export type ClassroomOption = {
   subjectName?: string
 }
 
+export type ExamOnlineFormValues = {
+  allowEdit: boolean
+  showScoreToStudent: boolean
+  maxAttempts: number | ''
+  timeLimitEnabled: boolean
+}
+
+export type ExamPaperFormValues = {
+  examDate: string
+  semester: string
+  academicYear: string
+  shuffleQuestions: boolean
+  shuffleAnswers: boolean
+  paperCount: number | ''
+}
+
 export type ExamCreateFormValues = {
   title: string
   duration: number | ''
@@ -77,15 +101,8 @@ export type ExamCreateFormValues = {
   maxScore: number | ''
   rawPoints: Record<number, number>
   classroomIds: number[]
-  config: {
-    shuffleQuestions: boolean
-    shuffleAnswers: boolean
-    paperCount: number | ''
-    semester: string
-    academicYear: string
-    allowEdit: boolean
-    showScoreToStudent: boolean
-  }
+  onlineSettings: ExamOnlineFormValues
+  paperSettings: ExamPaperFormValues
 }
 
 export type ExamUpdateFormValues = {
@@ -94,10 +111,8 @@ export type ExamUpdateFormValues = {
   examMode: ExamMode | ''
   subjectId: number | ''
   maxScore: number | ''
-  status?: ExamStatus
-  startAt?: string | null
-  endAt?: string | null
-  config?: ExamCreateFormValues['config']
+  onlineSettings?: ExamOnlineFormValues
+  paperSettings?: ExamPaperFormValues
 }
 
 /** POST /api/v1/exams */
@@ -111,17 +126,8 @@ export type ExamCreatePayload = {
   maxScore: number
   rawPoints?: Record<string, number>
   classroomIds?: number[]
-  config?: {
-    semester?: string
-    academicYear?: string
-    shuffleQuestions?: boolean
-    shuffleAnswers?: boolean
-    paperCount?: number
-    allowEdit?: boolean
-    showScoreToStudent?: boolean
-    timeLimitEnabled?: boolean
-    maxAttempts?: number | null
-  }
+  onlineSettings?: ExamOnlineSettings
+  paperSettings?: ExamPaperSettings
 }
 
 /** PUT /api/v1/exams/{id} — full required meta fields */
@@ -131,20 +137,8 @@ export type ExamUpdatePayload = {
   examMode: ExamMode
   subjectId: number
   maxScore: number
-  status?: ExamStatus | null
-  startAt?: string | null
-  endAt?: string | null
-  config?: {
-    semester?: string | null
-    academicYear?: string | null
-    shuffleQuestions?: boolean | null
-    shuffleAnswers?: boolean | null
-    paperCount?: number | null
-    allowEdit?: boolean | null
-    showScoreToStudent?: boolean | null
-    timeLimitEnabled?: boolean | null
-    maxAttempts?: number | null
-  } | null
+  onlineSettings?: ExamOnlineSettings | null
+  paperSettings?: ExamPaperSettings | null
 }
 
 export type ExamVersionCreatePayload = {
@@ -169,6 +163,8 @@ export type ExamFormErrors = {
   questionIds?: string
   maxScore?: string
   paperCount?: string
+  maxAttempts?: string
+  examDate?: string
 }
 
 export type ExamVersionCreateValues = {
@@ -302,12 +298,18 @@ export const MOCK_QUESTIONS: QuestionPickItem[] = [
   { questionId: 304, subjectId: 3, content: 'JWT thường được gửi ở đâu?', type: 'SINGLE_CHOICE', difficulty: 'MEDIUM' },
 ]
 
-const defaultConfig = (partial?: Partial<ExamConfig>): ExamConfig => ({
+const defaultOnline = (partial?: Partial<ExamOnlineSettings>): ExamOnlineSettings => ({
+  allowEdit: false,
+  showScoreToStudent: true,
+  timeLimitEnabled: true,
+  maxAttempts: 1,
+  ...partial,
+})
+
+const defaultPaper = (partial?: Partial<ExamPaperSettings>): ExamPaperSettings => ({
   shuffleQuestions: false,
   shuffleAnswers: false,
   paperCount: 1,
-  allowEdit: false,
-  showScoreToStudent: true,
   semester: '1',
   academicYear: '2025-2026',
   ...partial,
@@ -332,141 +334,37 @@ export const MOCK_EXAMS: ExamItem[] = [
     versionCodes: ['A', 'B'],
     questionIds: [101, 102, 103],
     hasSubmissions: true,
-    config: defaultConfig({ shuffleQuestions: true, examType: 'ONLINE' }),
+    onlineSettings: defaultOnline({
+      status: 'ONGOING',
+      startAt: '2026-08-25T08:00:00Z',
+      endAt: '2026-08-25T10:00:00Z',
+      showScoreToStudent: true,
+    }),
+    paperSettings: defaultPaper({ shuffleQuestions: true }),
   },
   {
     id: 2,
     title: 'Cuối kỳ CSDL — OMR',
     duration: 90,
     examMode: 'OMR_PAPER',
-    status: 'UPCOMING',
+    status: 'DRAFT',
     subjectId: 2,
     subjectName: 'Cơ sở dữ liệu',
     teacherEmail: 'gv.csdl@school.edu.vn',
     createdAt: '2026-08-05T09:30:00Z',
-    startAt: '2026-09-01T07:30:00Z',
-    endAt: '2026-09-01T09:00:00Z',
+    startAt: null,
+    endAt: null,
     totalQuestions: 2,
     maxScore: 10,
     classroomIds: [21],
-    versionCodes: ['01', '02', '03'],
-    questionIds: [201, 203],
+    versionCodes: ['101'],
+    questionIds: [201, 202],
     hasSubmissions: false,
-    config: defaultConfig({ paperCount: 3, examType: 'OMR', shuffleAnswers: true }),
-  },
-  {
-    id: 3,
-    title: 'Quiz Web Development',
-    duration: 30,
-    examMode: 'ONLINE',
-    status: 'DRAFT',
-    subjectId: 3,
-    subjectName: 'Phát triển Web',
-    teacherEmail: 'gv.web@school.edu.vn',
-    createdAt: '2026-08-10T14:00:00Z',
-    startAt: null,
-    endAt: null,
-    totalQuestions: 3,
-    maxScore: 10,
-    classroomIds: [],
-    versionCodes: [],
-    questionIds: [301, 303, 304],
-    hasSubmissions: false,
-    config: defaultConfig({ examType: 'ONLINE' }),
-  },
-  {
-    id: 4,
-    title: 'Kiểm tra nhanh SOLID',
-    duration: 20,
-    examMode: 'ONLINE',
-    status: 'DRAFT',
-    subjectId: 1,
-    subjectName: 'Công nghệ phần mềm',
-    teacherEmail: 'gv.cnpm@school.edu.vn',
-    createdAt: '2026-08-12T10:15:00Z',
-    totalQuestions: 2,
-    maxScore: 5,
-    classroomIds: [11],
-    versionCodes: [],
-    questionIds: [103, 101],
-    hasSubmissions: false,
-    config: defaultConfig(),
-  },
-  {
-    id: 5,
-    title: 'OMR Index & khóa',
-    duration: 45,
-    examMode: 'OMR_PAPER',
-    status: 'DRAFT',
-    subjectId: 2,
-    subjectName: 'Cơ sở dữ liệu',
-    teacherEmail: 'gv.csdl@school.edu.vn',
-    createdAt: '2026-08-15T07:45:00Z',
-    totalQuestions: 2,
-    maxScore: 10,
-    classroomIds: [],
-    versionCodes: ['P1', 'P2'],
-    questionIds: [203, 204],
-    hasSubmissions: false,
-    config: defaultConfig({ paperCount: 2, examType: 'OMR' }),
-  },
-  {
-    id: 6,
-    title: 'Bài tập HTTP & JWT',
-    duration: 40,
-    examMode: 'ONLINE',
-    status: 'COMPLETED',
-    subjectId: 3,
-    subjectName: 'Phát triển Web',
-    teacherEmail: 'gv.web@school.edu.vn',
-    createdAt: '2026-08-18T16:20:00Z',
-    startAt: '2026-08-20T08:00:00Z',
-    endAt: '2026-08-20T09:00:00Z',
-    totalQuestions: 2,
-    maxScore: 8,
-    classroomIds: [31],
-    versionCodes: ['A'],
-    questionIds: [301, 304],
-    hasSubmissions: true,
-    config: defaultConfig(),
-  },
-  {
-    id: 7,
-    title: 'Ôn tập vòng đời phần mềm',
-    duration: 50,
-    examMode: 'ONLINE',
-    status: 'CLOSED',
-    subjectId: 1,
-    subjectName: 'Công nghệ phần mềm',
-    teacherEmail: 'gv.cnpm@school.edu.vn',
-    createdAt: '2026-08-20T11:00:00Z',
-    startAt: '2026-08-21T08:00:00Z',
-    endAt: '2026-08-21T09:00:00Z',
-    totalQuestions: 4,
-    maxScore: 10,
-    classroomIds: [11, 12],
-    versionCodes: ['V1', 'V2', 'V3'],
-    questionIds: [101, 102, 103, 104],
-    hasSubmissions: true,
-    config: defaultConfig({ shuffleQuestions: true, shuffleAnswers: true }),
-  },
-  {
-    id: 8,
-    title: 'Kiểm tra ACID — giấy',
-    duration: 35,
-    examMode: 'OMR_PAPER',
-    status: 'DRAFT',
-    subjectId: 2,
-    subjectName: 'Cơ sở dữ liệu',
-    teacherEmail: 'gv.csdl@school.edu.vn',
-    createdAt: '2026-08-22T13:40:00Z',
-    totalQuestions: 1,
-    maxScore: 10,
-    classroomIds: [21, 22],
-    versionCodes: ['A'],
-    questionIds: [201],
-    hasSubmissions: false,
-    config: defaultConfig({ examType: 'OMR', paperCount: 1 }),
+    paperSettings: defaultPaper({
+      paperCount: 3,
+      shuffleAnswers: true,
+      examDate: '2026-09-01',
+    }),
   },
 ]
 
@@ -561,6 +459,23 @@ export function formatExamDate(iso?: string | null) {
       hour: '2-digit',
       minute: '2-digit',
     }).format(new Date(iso))
+  } catch {
+    return iso
+  }
+}
+
+/** Ngày thi OMR / date-only fields — không kèm giờ. */
+export function formatExamDateOnly(iso?: string | null) {
+  if (!iso) return '—'
+  try {
+    const datePart = iso.slice(0, 10)
+    const [y, m, d] = datePart.split('-').map(Number)
+    if (!y || !m || !d) return iso
+    return new Intl.DateTimeFormat('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).format(new Date(y, m - 1, d))
   } catch {
     return iso
   }

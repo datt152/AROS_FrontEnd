@@ -1,9 +1,10 @@
 import { apiClient } from '../../../lib/axios'
 import type {
-  ExamConfig,
   ExamCreatePayload,
   ExamItem,
   ExamMode,
+  ExamOnlineSettings,
+  ExamPaperSettings,
   ExamStatus,
   ExamTakeItem,
   ExamUpdatePayload,
@@ -16,19 +17,23 @@ import type {
 } from '../types/exam.types'
 import type { StudentExamListItem, StudentExamStatus, StudentMyStatus } from '../types/studentExam.types'
 
-type ExamConfigDto = {
-  id?: number
+type ExamOnlineSettingsDto = {
+  status?: ExamStatus
+  startAt?: string | null
+  endAt?: string | null
+  allowEdit?: boolean
+  showScoreToStudent?: boolean
+  maxAttempts?: number | null
+  timeLimitEnabled?: boolean
+}
+
+type ExamPaperSettingsDto = {
+  examDate?: string | null
   semester?: string
   academicYear?: string
-  totalQuestions?: number
-  examType?: 'ONLINE' | 'OMR'
   shuffleQuestions?: boolean
   shuffleAnswers?: boolean
   paperCount?: number
-  allowEdit?: boolean
-  showScoreToStudent?: boolean
-  timeLimitEnabled?: boolean
-  maxAttempts?: number | null
 }
 
 type ExamQuestionRefDto = {
@@ -56,7 +61,8 @@ type ExamDto = {
   totalQuestions?: number
   maxScore?: number
   classroomIds?: number[]
-  config?: ExamConfigDto | null
+  onlineSettings?: ExamOnlineSettingsDto | null
+  paperSettings?: ExamPaperSettingsDto | null
   questionIds?: Array<number | string>
   questions?: Array<number | string | ExamQuestionRefDto>
   sourceTemplateId?: number | null
@@ -139,7 +145,7 @@ type MyExamDto = {
   totalScore?: number | null
   classroomId?: number | null
   classroomName?: string | null
-  config?: ExamConfigDto | null
+  onlineSettings?: ExamOnlineSettingsDto | null
 }
 
 export type ExamsPageResult = {
@@ -150,21 +156,29 @@ export type ExamsPageResult = {
   size: number
 }
 
-function normalizeConfig(dto?: ExamConfigDto | null): ExamConfig | undefined {
+function normalizeOnlineSettings(dto?: ExamOnlineSettingsDto | null): ExamOnlineSettings | undefined {
   if (!dto) return undefined
   return {
-    id: dto.id,
+    status: dto.status,
+    startAt: dto.startAt ?? null,
+    endAt: dto.endAt ?? null,
+    allowEdit: dto.allowEdit,
+    showScoreToStudent: dto.showScoreToStudent,
+    maxAttempts: dto.maxAttempts ?? null,
+    timeLimitEnabled: dto.timeLimitEnabled,
+  }
+}
+
+function normalizePaperSettings(dto?: ExamPaperSettingsDto | null): ExamPaperSettings | undefined {
+  if (!dto) return undefined
+  const examDate = dto.examDate ? dto.examDate.slice(0, 10) : null
+  return {
+    examDate,
     semester: dto.semester,
     academicYear: dto.academicYear,
-    totalQuestions: dto.totalQuestions,
-    examType: dto.examType,
     shuffleQuestions: dto.shuffleQuestions,
     shuffleAnswers: dto.shuffleAnswers,
     paperCount: dto.paperCount,
-    allowEdit: dto.allowEdit,
-    showScoreToStudent: dto.showScoreToStudent,
-    timeLimitEnabled: dto.timeLimitEnabled,
-    maxAttempts: dto.maxAttempts ?? null,
   }
 }
 
@@ -245,7 +259,8 @@ export function normalizeExam(dto: ExamDto): ExamItem | null {
     totalQuestions: dto.totalQuestions ?? questionIds?.length ?? questions?.length ?? 0,
     maxScore: dto.maxScore,
     classroomIds: dto.classroomIds ?? [],
-    config: normalizeConfig(dto.config),
+    onlineSettings: normalizeOnlineSettings(dto.onlineSettings),
+    paperSettings: normalizePaperSettings(dto.paperSettings),
     questionIds,
     questions,
     sourceTemplateId: dto.sourceTemplateId ?? null,
@@ -380,7 +395,7 @@ function normalizeMyExam(
   const showScoreToStudent =
     dto.showScoreToStudent ??
     dto.scoreVisible ??
-    dto.config?.showScoreToStudent ??
+    dto.onlineSettings?.showScoreToStudent ??
     purpose === 'PRACTICE'
 
   const rawScore = dto.myScore ?? dto.score ?? dto.totalScore
@@ -391,13 +406,12 @@ function normalizeMyExam(
   const totalQuestions =
     dto.totalQuestions ??
     dto.questionCount ??
-    dto.config?.totalQuestions ??
     (questionIdsCount > 0 ? questionIdsCount : 0)
 
   // PRACTICE mặc định không giới hạn giờ (giống form GV); EXAM mặc định có giờ.
   const timeLimitEnabled =
     dto.timeLimitEnabled ??
-    dto.config?.timeLimitEnabled ??
+    dto.onlineSettings?.timeLimitEnabled ??
     purpose !== 'PRACTICE'
 
   return {

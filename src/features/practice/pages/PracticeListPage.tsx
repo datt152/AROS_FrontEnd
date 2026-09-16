@@ -62,10 +62,10 @@ function buildUpdatePayload(exam: ExamItemType, patch: Partial<ExamUpdatePayload
     examMode: patch.examMode ?? exam.examMode,
     subjectId: patch.subjectId ?? exam.subjectId,
     maxScore: patch.maxScore ?? exam.maxScore,
-    status: patch.status === undefined ? undefined : patch.status,
-    startAt: patch.startAt === undefined ? exam.startAt ?? null : patch.startAt,
-    endAt: patch.endAt === undefined ? exam.endAt ?? null : patch.endAt,
-    config: patch.config === undefined ? exam.config ?? null : patch.config,
+    onlineSettings:
+      patch.onlineSettings === undefined ? exam.onlineSettings ?? null : patch.onlineSettings,
+    paperSettings:
+      patch.paperSettings === undefined ? exam.paperSettings ?? null : patch.paperSettings,
   }
 }
 
@@ -322,12 +322,16 @@ export function PracticeListPage() {
         questionIds: values.questionIds,
         maxScore: 10,
         classroomIds: values.classroomIds.length > 0 ? values.classroomIds : undefined,
-        config: {
+        onlineSettings: {
           showScoreToStudent: true,
           timeLimitEnabled: values.config.timeLimitEnabled,
           maxAttempts: values.config.maxAttempts === '' ? null : Number(values.config.maxAttempts),
+          allowEdit: values.config.allowEdit,
+        },
+        paperSettings: {
           shuffleQuestions: values.config.shuffleQuestions,
           shuffleAnswers: values.config.shuffleAnswers,
+          paperCount: values.config.paperCount === '' ? 1 : Number(values.config.paperCount),
           semester: values.config.semester || undefined,
           academicYear: values.config.academicYear || undefined,
         },
@@ -351,12 +355,18 @@ export function PracticeListPage() {
           examMode: 'ONLINE',
           subjectId: Number(values.subjectId) || editing.subjectId,
           maxScore: 10,
-          config: {
+          onlineSettings: {
+            ...(editingExamRaw.onlineSettings ?? {}),
             showScoreToStudent: true,
             timeLimitEnabled: values.config.timeLimitEnabled,
             maxAttempts: values.config.maxAttempts === '' ? null : Number(values.config.maxAttempts),
+            allowEdit: values.config.allowEdit,
+          },
+          paperSettings: {
+            ...(editingExamRaw.paperSettings ?? {}),
             shuffleQuestions: values.config.shuffleQuestions,
             shuffleAnswers: values.config.shuffleAnswers,
+            paperCount: values.config.paperCount === '' ? 1 : Number(values.config.paperCount),
             semester: values.config.semester,
             academicYear: values.config.academicYear,
           },
@@ -410,9 +420,12 @@ export function PracticeListPage() {
       await updateExam.mutateAsync({
         id: openExam.id,
         payload: buildUpdatePayload(openExam, {
-          status: values.status,
-          startAt: values.startAt || null,
-          endAt: values.endAt || null,
+          onlineSettings: {
+            ...(openExam.onlineSettings ?? {}),
+            status: values.status,
+            startAt: values.startAt || null,
+            endAt: values.endAt || null,
+          },
         }),
       })
       setOpenExam(null)
@@ -428,7 +441,12 @@ export function PracticeListPage() {
     try {
       await updateExam.mutateAsync({
         id: item.id,
-        payload: buildUpdatePayload(raw, { status: 'CLOSED' }),
+        payload: buildUpdatePayload(raw, {
+          onlineSettings: {
+            ...(raw.onlineSettings ?? {}),
+            status: 'CLOSED',
+          },
+        }),
       })
       setDetailId(null)
       showToast('Đã đóng bài luyện tập')
@@ -464,7 +482,22 @@ export function PracticeListPage() {
         classroomIds: item.classroomIds,
         versionCodes: item.versionCodes,
         questionIds: item.questionIds,
-        config: item.config,
+        onlineSettings: {
+          showScoreToStudent: item.config.showScoreToStudent,
+          timeLimitEnabled: item.config.timeLimitEnabled,
+          maxAttempts: item.config.maxAttempts,
+          allowEdit: item.config.allowEdit,
+          status: item.status,
+          startAt: item.startAt,
+          endAt: item.endAt,
+        },
+        paperSettings: {
+          shuffleQuestions: item.config.shuffleQuestions,
+          shuffleAnswers: item.config.shuffleAnswers,
+          paperCount: item.config.paperCount,
+          semester: item.config.semester,
+          academicYear: item.config.academicYear,
+        },
       }
     )
   }

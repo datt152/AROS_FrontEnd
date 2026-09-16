@@ -170,6 +170,8 @@ export function practiceToFormValues(item: PracticeItem): PracticeFormValues {
 }
 
 export function examToPracticeItem(exam: ExamItem): PracticeItem {
+  const online = exam.onlineSettings
+  const paper = exam.paperSettings
   return {
     id: exam.id,
     title: exam.title,
@@ -196,15 +198,15 @@ export function examToPracticeItem(exam: ExamItem): PracticeItem {
     endAt: exam.endAt,
     sourceTemplateId: exam.sourceTemplateId ?? null,
     config: {
-      showScoreToStudent: exam.config?.showScoreToStudent ?? true,
-      timeLimitEnabled: exam.config?.timeLimitEnabled ?? false,
-      maxAttempts: exam.config?.maxAttempts ?? null,
-      shuffleQuestions: exam.config?.shuffleQuestions ?? false,
-      shuffleAnswers: exam.config?.shuffleAnswers ?? false,
-      paperCount: exam.config?.paperCount ?? 1,
-      allowEdit: exam.config?.allowEdit ?? false,
-      semester: exam.config?.semester ?? '1',
-      academicYear: exam.config?.academicYear ?? '2025-2026',
+      showScoreToStudent: online?.showScoreToStudent ?? true,
+      timeLimitEnabled: online?.timeLimitEnabled ?? false,
+      maxAttempts: online?.maxAttempts ?? null,
+      allowEdit: online?.allowEdit ?? false,
+      shuffleQuestions: paper?.shuffleQuestions ?? false,
+      shuffleAnswers: paper?.shuffleAnswers ?? false,
+      paperCount: paper?.paperCount ?? 1,
+      semester: paper?.semester ?? '1',
+      academicYear: paper?.academicYear ?? '2025-2026',
     },
   }
 }
