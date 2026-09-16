@@ -64,10 +64,10 @@ export function OmrExamListPage() {
           description="Tạo đề với hình thức OMR / Giấy trong Quản lý bài thi trước."
           action={
             <Link
-              to={ROUTES.teacher.exams}
+              to={ROUTES.teacher.examsOmr}
               className="text-sm font-medium text-blue-600 hover:text-blue-700"
             >
-              Đi tới Quản lý bài thi
+              Đi tới Đề OMR
             </Link>
           }
         />

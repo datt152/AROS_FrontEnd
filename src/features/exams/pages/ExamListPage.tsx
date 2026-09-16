@@ -47,7 +47,9 @@ import type {
   ExamCreateFormValues,
   ExamItem as ExamItemType,
   ExamMode,
+  ExamOnlineSettings,
   ExamOpenValues,
+  ExamPaperSettings,
   ExamStatus,
   ExamUpdateFormValues,
   ExamUpdatePayload,
@@ -60,6 +62,36 @@ type ModalMode = 'create' | 'edit' | null
 const FETCH_SIZE = 100
 const PAGE_SIZE = 10
 
+type ExamListPageProps = {
+  examMode: ExamMode
+}
+
+function toOnlinePayload(
+  values?: ExamCreateFormValues['onlineSettings'] | ExamUpdateFormValues['onlineSettings'],
+): ExamOnlineSettings | undefined {
+  if (!values) return undefined
+  return {
+    // Kỳ thi Online: cố định — không expose trên form
+    allowEdit: false,
+    showScoreToStudent: values.showScoreToStudent,
+    timeLimitEnabled: true,
+    maxAttempts: 1,
+  }
+}
+
+function toPaperPayload(
+  values?: ExamCreateFormValues['paperSettings'] | ExamUpdateFormValues['paperSettings'],
+): ExamPaperSettings | undefined {
+  if (!values) return undefined
+  return {
+    examDate: values.examDate || null,
+    semester: values.semester || undefined,
+    academicYear: values.academicYear || undefined,
+    shuffleQuestions: values.shuffleQuestions,
+    shuffleAnswers: values.shuffleAnswers,
+  }
+}
+
 function buildUpdatePayload(
   exam: ExamItemType,
   patch: Partial<ExamUpdatePayload>,
@@ -70,24 +102,29 @@ function buildUpdatePayload(
     examMode: patch.examMode ?? exam.examMode,
     subjectId: patch.subjectId ?? exam.subjectId,
     maxScore: patch.maxScore ?? exam.maxScore,
-    status: patch.status === undefined ? undefined : patch.status,
-    startAt: patch.startAt === undefined ? exam.startAt ?? null : patch.startAt,
-    endAt: patch.endAt === undefined ? exam.endAt ?? null : patch.endAt,
-    config: patch.config === undefined ? exam.config ?? null : patch.config,
+    onlineSettings:
+      patch.onlineSettings === undefined ? exam.onlineSettings ?? null : patch.onlineSettings,
+    paperSettings:
+      patch.paperSettings === undefined ? exam.paperSettings ?? null : patch.paperSettings,
   }
 }
 
-export function ExamListPage() {
+export function ExamListPage({ examMode }: ExamListPageProps) {
+  const isOnline = examMode === 'ONLINE'
+  const pageTitle = isOnline ? 'Kỳ thi trực tuyến' : 'Đề thi OMR'
+  const pageSubtitle = isOnline
+    ? 'Tạo nháp → giao lớp → sinh mã đề → mở thi.'
+    : 'Tạo đề giấy → giao lớp → sinh mã đề → phiên chấm OMR.'
+
   const [searchParams, setSearchParams] = useSearchParams()
   const [subjectFilter, setSubjectFilter] = useState<number | ''>('')
-  const [modeFilter, setModeFilter] = useState<ExamMode | ''>('')
   const [statusFilter, setStatusFilter] = useState<ExamStatus | ''>('')
   const [page, setPage] = useState(0)
 
-  const hasClientFilters = subjectFilter !== '' || modeFilter !== '' || statusFilter !== ''
+  // Always client-filter by examMode, so fetch a larger page and paginate locally.
   const examsQuery = useExams({
-    page: hasClientFilters ? 0 : page,
-    size: hasClientFilters ? FETCH_SIZE : PAGE_SIZE,
+    page: 0,
+    size: FETCH_SIZE,
     purpose: 'EXAM',
   })
 
@@ -196,23 +233,17 @@ export function ExamListPage() {
 
   const filteredExams = useMemo(() => {
     return exams.filter((exam) => {
+      if (exam.examMode !== examMode) return false
       if (subjectFilter && exam.subjectId !== subjectFilter) return false
-      if (modeFilter && exam.examMode !== modeFilter) return false
-      if (statusFilter && exam.status !== statusFilter) return false
+      if (isOnline && statusFilter && exam.status !== statusFilter) return false
       return true
     })
-  }, [exams, subjectFilter, modeFilter, statusFilter])
+  }, [exams, examMode, subjectFilter, statusFilter, isOnline])
 
-  const totalElements = hasClientFilters
-    ? filteredExams.length
-    : (examsQuery.data?.totalElements ?? filteredExams.length)
-  const totalPages = hasClientFilters
-    ? Math.max(1, Math.ceil(filteredExams.length / PAGE_SIZE))
-    : Math.max(1, examsQuery.data?.totalPages ?? 1)
+  const totalElements = filteredExams.length
+  const totalPages = Math.max(1, Math.ceil(filteredExams.length / PAGE_SIZE))
   const currentPage = Math.min(page, totalPages - 1)
-  const pagedExams = hasClientFilters
-    ? filteredExams.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE)
-    : filteredExams
+  const pagedExams = filteredExams.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE)
 
   const draftIdsOnPage = pagedExams.filter((exam) => exam.status === 'DRAFT').map((exam) => exam.id)
   const versionQueries = useExamVersionsMany(draftIdsOnPage)
@@ -287,6 +318,10 @@ export function ExamListPage() {
     setSearchParams(next, { replace: true })
   }, [searchParams, setSearchParams])
 
+  useEffect(() => {
+    setPage(0)
+  }, [examMode])
+
   const isMutating =
     createExam.isPending ||
     updateExam.isPending ||
@@ -296,6 +331,9 @@ export function ExamListPage() {
 
   const selectClassName =
     'h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100'
+
+  const hasExtraFilters =
+    subjectFilter !== '' || (isOnline && statusFilter !== '')
 
   function openCreate() {
     setFormError(null)
@@ -322,27 +360,27 @@ export function ExamListPage() {
   async function handleCreate(values: ExamCreateFormValues) {
     setFormError(null)
     try {
+      const onlineSettings = isOnline ? toOnlinePayload(values.onlineSettings) : undefined
+      const paperSettings = toPaperPayload(values.paperSettings)
       await createExam.mutateAsync({
         title: values.title,
         duration: Number(values.duration),
-        examMode: values.examMode as ExamMode,
+        examMode,
         purpose: 'EXAM',
         subjectId: Number(values.subjectId),
         questionIds: values.questionIds,
         maxScore: 10,
         rawPoints: toRawPointsPayload(values.rawPoints),
         classroomIds: values.classroomIds.length > 0 ? values.classroomIds : undefined,
-        config: {
-          shuffleQuestions: values.config.shuffleQuestions,
-          shuffleAnswers: values.config.shuffleAnswers,
-          paperCount: 1,
-          semester: values.config.semester || undefined,
-          academicYear: values.config.academicYear || undefined,
-          showScoreToStudent: values.config.showScoreToStudent,
-        },
+        ...(onlineSettings ? { onlineSettings } : {}),
+        ...(paperSettings ? { paperSettings } : {}),
       })
       setModalMode(null)
-      setToast('Đã tạo đề thi ở trạng thái nháp — giao lớp ở chi tiết đề')
+      setToast(
+        isOnline
+          ? 'Đã tạo đề thi ở trạng thái nháp — giao lớp ở chi tiết đề'
+          : 'Đã tạo đề OMR ở trạng thái nháp — giao lớp ở chi tiết đề',
+      )
     } catch (error) {
       setFormError(getApiErrorMessage(error, 'Không thể tạo đề thi'))
     }
@@ -352,24 +390,20 @@ export function ExamListPage() {
     if (!editingExam) return
     setFormError(null)
     try {
+      const onlineSettings = isOnline
+        ? toOnlinePayload(values.onlineSettings)
+        : editingExam.onlineSettings ?? null
+      const paperSettings = toPaperPayload(values.paperSettings) ?? editingExam.paperSettings ?? null
       await updateExam.mutateAsync({
         id: editingExam.id,
         payload: buildUpdatePayload(editingExam, {
           title: values.title,
           duration: Number(values.duration),
-          examMode: values.examMode as ExamMode,
+          examMode,
           subjectId: Number(values.subjectId),
           maxScore: 10,
-          config: values.config
-            ? {
-                shuffleQuestions: values.config.shuffleQuestions,
-                shuffleAnswers: values.config.shuffleAnswers,
-                paperCount: 1,
-                semester: values.config.semester,
-                academicYear: values.config.academicYear,
-                showScoreToStudent: values.config.showScoreToStudent,
-              }
-            : undefined,
+          onlineSettings,
+          paperSettings,
         }),
       })
       setModalMode(null)
@@ -425,15 +459,18 @@ export function ExamListPage() {
   }
 
   async function handleOpenExam(values: ExamOpenValues) {
-    if (!openExam) return
+    if (!openExam || !isOnline) return
     setOpenError(null)
     try {
       await updateExam.mutateAsync({
         id: openExam.id,
         payload: buildUpdatePayload(openExam, {
-          status: values.status,
-          startAt: values.startAt || null,
-          endAt: values.endAt || null,
+          onlineSettings: {
+            ...(openExam.onlineSettings ?? {}),
+            status: values.status,
+            startAt: values.startAt || null,
+            endAt: values.endAt || null,
+          },
         }),
       })
       setOpenExam(null)
@@ -444,10 +481,16 @@ export function ExamListPage() {
   }
 
   async function handleCloseExam(exam: ExamItemType) {
+    if (!isOnline) return
     try {
       await updateExam.mutateAsync({
         id: exam.id,
-        payload: buildUpdatePayload(exam, { status: 'CLOSED' }),
+        payload: buildUpdatePayload(exam, {
+          onlineSettings: {
+            ...(exam.onlineSettings ?? {}),
+            status: 'CLOSED',
+          },
+        }),
       })
       setToast('Đã đóng đề thi')
     } catch (error) {
@@ -462,7 +505,10 @@ export function ExamListPage() {
       setDeleteError(null)
       setDeletingExam(item)
     },
-    onCloseExam: (item: ExamItemType) => void handleCloseExam(item),
+    onCloseExam: (item: ExamItemType) => {
+      if (!isOnline) return
+      void handleCloseExam(item)
+    },
   }
 
   return (
@@ -479,13 +525,13 @@ export function ExamListPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-medium uppercase tracking-wider text-blue-600">Đề thi</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">Quản lý đề thi</h1>
-          <p className="mt-1 text-sm text-slate-500">Tạo nháp → giao lớp → sinh mã đề → mở thi.</p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">{pageTitle}</h1>
+          <p className="mt-1 text-sm text-slate-500">{pageSubtitle}</p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
           <Button onClick={openCreate} className="w-full sm:w-auto">
             <Plus className="h-4 w-4" strokeWidth={2} />
-            Tạo đề thi
+            {isOnline ? 'Tạo đề thi' : 'Tạo đề OMR'}
           </Button>
         </div>
       </div>
@@ -506,33 +552,23 @@ export function ExamListPage() {
             </option>
           ))}
         </select>
-        <select
-          value={modeFilter}
-          onChange={(event) => {
-            setModeFilter(event.target.value as ExamMode | '')
-            setPage(0)
-          }}
-          className={`${selectClassName} w-full lg:w-44`}
-        >
-          <option value="">Tất cả hình thức</option>
-          <option value="ONLINE">Trực tuyến</option>
-          <option value="OMR_PAPER">OMR / Giấy</option>
-        </select>
-        <select
-          value={statusFilter}
-          onChange={(event) => {
-            setStatusFilter(event.target.value as ExamStatus | '')
-            setPage(0)
-          }}
-          className={`${selectClassName} w-full lg:w-44`}
-        >
-          <option value="">Tất cả trạng thái</option>
-          <option value="DRAFT">Nháp</option>
-          <option value="UPCOMING">Sắp diễn ra</option>
-          <option value="ONGOING">Đang mở</option>
-          <option value="COMPLETED">Hoàn thành</option>
-          <option value="CLOSED">Đã đóng</option>
-        </select>
+        {isOnline ? (
+          <select
+            value={statusFilter}
+            onChange={(event) => {
+              setStatusFilter(event.target.value as ExamStatus | '')
+              setPage(0)
+            }}
+            className={`${selectClassName} w-full lg:w-44`}
+          >
+            <option value="">Tất cả trạng thái</option>
+            <option value="DRAFT">Nháp</option>
+            <option value="UPCOMING">Sắp diễn ra</option>
+            <option value="ONGOING">Đang mở</option>
+            <option value="COMPLETED">Hoàn thành</option>
+            <option value="CLOSED">Đã đóng</option>
+          </select>
+        ) : null}
       </div>
 
       {examsQuery.isLoading ? <Spinner label="Đang tải đề thi..." /> : null}
@@ -550,19 +586,20 @@ export function ExamListPage() {
 
       {examsQuery.isSuccess && filteredExams.length === 0 ? (
         <EmptyState
-          title={subjectFilter || modeFilter || statusFilter ? 'Không có đề thi phù hợp' : 'Chưa có đề — Tạo đề đầu tiên'}
+          title={hasExtraFilters ? 'Không có đề thi phù hợp' : 'Chưa có đề — Tạo đề đầu tiên'}
           description={
-            subjectFilter || modeFilter || statusFilter
+            hasExtraFilters
               ? 'Thử đổi bộ lọc hoặc xóa bộ lọc.'
-              : 'Tạo đề nháp, giao lớp, sinh mã rồi mới mở thi.'
+              : isOnline
+                ? 'Tạo đề nháp, giao lớp, sinh mã rồi mới mở thi.'
+                : 'Tạo đề OMR, giao lớp, sinh mã rồi mở phiên chấm.'
           }
           action={
-            subjectFilter || modeFilter || statusFilter ? (
+            hasExtraFilters ? (
               <Button
                 variant="secondary"
                 onClick={() => {
                   setSubjectFilter('')
-                  setModeFilter('')
                   setStatusFilter('')
                   setPage(0)
                 }}
@@ -572,7 +609,7 @@ export function ExamListPage() {
             ) : (
               <Button onClick={openCreate}>
                 <Plus className="h-4 w-4" strokeWidth={2} />
-                Tạo đề thi
+                {isOnline ? 'Tạo đề thi' : 'Tạo đề OMR'}
               </Button>
             )
           }
@@ -584,35 +621,60 @@ export function ExamListPage() {
           <div className="flex-1">
             <div className="divide-y divide-slate-200 md:hidden">
               {examsWithVersions.map((exam) => (
-                <ExamItem key={exam.id} exam={exam} {...actionProps} />
+                <ExamItem key={exam.id} exam={exam} compactOmr={!isOnline} {...actionProps} />
               ))}
             </div>
 
             <div className="hidden md:block">
               <Table>
-                <TableColGroup>
-                  <TableCol />
-                  <TableCol width="7rem" />
-                  <TableCol width="12%" />
-                  <TableCol width="7rem" />
-                  <TableCol width="14%" />
-                  <TableCol width="4.5rem" />
-                  <TableCol width="8.5rem" />
-                </TableColGroup>
-                <TableHeader>
-                  <TableRow className="border-b-0 hover:bg-transparent">
-                    <TableHead>Tiêu đề</TableHead>
-                    <TableHead>Trạng thái</TableHead>
-                    <TableHead>Môn học</TableHead>
-                    <TableHead>Hình thức</TableHead>
-                    <TableHead>Lịch</TableHead>
-                    <TableHead>Số lớp</TableHead>
-                    <TableHead>Thao tác</TableHead>
-                  </TableRow>
-                </TableHeader>
+                {isOnline ? (
+                  <>
+                    <TableColGroup>
+                      <TableCol />
+                      <TableCol width="7rem" />
+                      <TableCol/>
+                      <TableCol width="7rem" />
+                      <TableCol width="14rem" />
+                      <TableCol width="4.5rem" />
+                      <TableCol width="8.5rem" />
+                    </TableColGroup>
+                    <TableHeader>
+                      <TableRow className="border-b-0 hover:bg-transparent">
+                        <TableHead>Tiêu đề</TableHead>
+                        <TableHead>Trạng thái</TableHead>
+                        <TableHead>Môn học</TableHead>
+                        <TableHead>Hình thức</TableHead>
+                        <TableHead>Lịch</TableHead>
+                        <TableHead>Số lớp</TableHead>
+                        <TableHead>Thao tác</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                  </>
+                ) : (
+                  <>
+                    <TableColGroup>
+                      <TableCol />
+                      <TableCol width="7rem" />
+                      <TableCol/>
+                      <TableCol width="9rem" />
+                      <TableCol width="4.5rem" />
+                      <TableCol width="8.5rem" />
+                    </TableColGroup>
+                    <TableHeader>
+                      <TableRow className="border-b-0 hover:bg-transparent">
+                        <TableHead>Tiêu đề</TableHead>
+                        <TableHead>Hình thức</TableHead>
+                        <TableHead>Môn học</TableHead>
+                        <TableHead>Ngày thi</TableHead>
+                        <TableHead>Số lớp</TableHead>
+                        <TableHead>Thao tác</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                  </>
+                )}
                 <TableBody>
                   {examsWithVersions.map((exam) => (
-                    <ExamTableRow key={exam.id} exam={exam} {...actionProps} />
+                    <ExamTableRow key={exam.id} exam={exam} compactOmr={!isOnline} {...actionProps} />
                   ))}
                 </TableBody>
               </Table>
@@ -655,7 +717,11 @@ export function ExamListPage() {
                   {modalMode === 'create' ? 'Tạo' : 'Sửa'}
                 </p>
                 <h2 className="mt-1 text-lg font-semibold text-slate-900">
-                  {modalMode === 'create' ? 'Tạo đề thi (nháp)' : 'Sửa đề thi'}
+                  {modalMode === 'create'
+                    ? isOnline
+                      ? 'Tạo đề thi (nháp)'
+                      : 'Tạo đề OMR (nháp)'
+                    : 'Sửa đề thi'}
                 </h2>
               </div>
               <button
@@ -672,6 +738,7 @@ export function ExamListPage() {
               <ExamForm
                 mode={modalMode}
                 initialValues={editingExam ?? undefined}
+                lockedExamMode={examMode}
                 subjectOptions={subjectOptions}
                 questionOptions={questionOptions}
                 topicOptions={topicOptions}
@@ -742,6 +809,7 @@ export function ExamListPage() {
             setVersionExam(detailExam)
           }}
           onOpenExam={() => {
+            if (!isOnline) return
             setOpenError(null)
             setOpenExam(detailExam)
           }}
@@ -788,7 +856,7 @@ export function ExamListPage() {
         />
       ) : null}
 
-      {openExam ? (
+      {isOnline && openExam ? (
         <ExamOpenModal
           exam={{
             ...openExam,

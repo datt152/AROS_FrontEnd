@@ -5,8 +5,9 @@ import { LoginPage } from '../features/auth/pages/LoginPage'
 import { RegisterPage } from '../features/auth/pages/RegisterPage'
 import { ClassroomListPage } from '../features/classrooms/pages/ClassroomListPage'
 import { ExamTemplateListPage } from '../features/exam-templates/pages/ExamTemplateListPage'
-import { ExamListPage } from '../features/exams/pages/ExamListPage'
 import { ExamTakePage } from '../features/exams/pages/ExamTakePage'
+import { OmrExamManagePage } from '../features/exams/pages/OmrExamManagePage'
+import { OnlineExamListPage } from '../features/exams/pages/OnlineExamListPage'
 import { StudentExamListPage } from '../features/exams/pages/StudentExamListPage'
 import { QuestionListPage } from '../features/questions/pages/QuestionListPage'
 import { SubjectListPage } from '../features/subjects/pages/SubjectListPage'
@@ -38,7 +39,8 @@ function teacherPageForPath(path: string) {
   if (path === ROUTES.teacher.subjects) return <SubjectListPage />
   if (path === ROUTES.teacher.classrooms) return <ClassroomListPage />
   if (path === ROUTES.teacher.questionBank) return <QuestionListPage />
-  if (path === ROUTES.teacher.exams) return <ExamListPage />
+  if (path === ROUTES.teacher.exams) return <OnlineExamListPage />
+  if (path === ROUTES.teacher.examsOmr) return <OmrExamManagePage />
   if (path === ROUTES.teacher.examTemplates) return <ExamTemplateListPage />
   if (path === ROUTES.teacher.grading) return <GradingPage />
   if (path === ROUTES.teacher.examStats) return <ExamStatsPage />

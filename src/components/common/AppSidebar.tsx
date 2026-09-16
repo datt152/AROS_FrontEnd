@@ -18,7 +18,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 
 import { AccountProfileModal } from '../../features/auth/components/AccountProfileModal'
 import { useLogout } from '../../features/auth/hooks/useLogout'
-import { MENU_BY_ROLE, type Role } from '../../routes/routes.config'
+import { MENU_BY_ROLE, ROUTES, type Role } from '../../routes/routes.config'
 
 type AppSidebarProps = {
   role: Role
@@ -39,7 +39,10 @@ const iconByLabel: Record<string, ComponentType<{ className?: string; strokeWidt
   'Ngân hàng câu hỏi': HelpCircle,
   'Thư viện đề': Library,
   'Tạo bài thi': FileText,
+  'Kỳ thi trực tuyến': FileText,
+  'Đề OMR': FileScan,
   'Tải lên OMR': FileScan,
+  'Chấm OMR': FileScan,
   'Bài luyện tập': BookOpen,
   'Tạo bài luyện tập': BookOpen,
   'Thống kê bài thi': ClipboardCheck,
@@ -62,12 +65,15 @@ function NavItems({ role, onNavigate }: { role: Role; onNavigate?: () => void })
           <NavLink
             key={item.path}
             to={item.path}
+            end={item.path === ROUTES.teacher.exams}
             onClick={onNavigate}
             className={({ isActive }) => {
-              const omrActive =
-                item.label === 'Tải lên OMR' &&
+              const gradeOmrActive =
+                item.label === 'Chấm OMR' &&
                 (pathname.startsWith('/teacher/omr/') || pathname === '/teacher/omr-upload')
-              const active = isActive || omrActive
+              const manageOmrActive =
+                item.label === 'Đề OMR' && pathname.startsWith('/teacher/exams/omr')
+              const active = isActive || gradeOmrActive || manageOmrActive
               return `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${
                 active
                   ? 'bg-linear-to-r from-blue-600 to-emerald-600 text-white shadow-md shadow-blue-600/20'
