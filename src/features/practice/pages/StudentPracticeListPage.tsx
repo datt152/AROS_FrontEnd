@@ -192,7 +192,12 @@ export function StudentPracticeListPage() {
               <>
                 <div className="space-y-3">
                   {pagedExams.map((exam) => (
-                    <StudentExamCard key={exam.id} exam={exam} mode="PRACTICE" />
+                    <StudentExamCard
+                      key={exam.id}
+                      exam={exam}
+                      classroomId={selected.id}
+                      mode="PRACTICE"
+                    />
                   ))}
                 </div>
                 <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">

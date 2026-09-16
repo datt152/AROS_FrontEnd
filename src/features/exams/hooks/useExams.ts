@@ -36,7 +36,7 @@ export const examKeys = {
   versions: (id: number) => [...examKeys.all, 'versions', id] as const,
   versionDetail: (id: number, code: string) => [...examKeys.all, 'version-detail', id, code] as const,
   classrooms: (id: number) => [...examKeys.all, 'classrooms', id] as const,
-  take: (id: number) => [...examKeys.all, 'take', id] as const,
+  take: (id: number, classroomId: number) => [...examKeys.all, 'take', id, classroomId] as const,
 }
 
 export function useExams(params: GetExamsParams, options?: { enabled?: boolean }) {
@@ -104,11 +104,11 @@ export function useExamVersionDetail(examId: number | undefined, versionCode: st
   })
 }
 
-export function useTakeExam(id: number | undefined, enabled = true) {
+export function useTakeExam(id: number | undefined, classroomId: number | undefined, enabled = true) {
   return useQuery({
-    queryKey: examKeys.take(id ?? -1),
-    queryFn: () => takeExam(id!),
-    enabled: enabled && id !== undefined && id > 0,
+    queryKey: examKeys.take(id ?? -1, classroomId ?? -1),
+    queryFn: () => takeExam(id!, classroomId!),
+    enabled: enabled && id !== undefined && id > 0 && classroomId !== undefined && classroomId > 0,
     retry: false,
     staleTime: STALE_TIME.realtime,
   })

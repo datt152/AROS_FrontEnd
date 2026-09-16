@@ -18,13 +18,17 @@ export type StudentExamListItem = {
   timeLimitEnabled: boolean
   /** Cấu hình đề / response cho phép SV xem điểm */
   showScoreToStudent: boolean
-  /** Điểm SV (chỉ có khi đã nộp; null nếu chưa có hoặc không trả) */
+  /** Điểm SV theo lớp đang xem (chỉ có khi đã nộp; null nếu chưa có hoặc không trả) */
   myScore: number | null
+  classroomId?: number | null
+  classroomName?: string | null
 }
 
 /** Truyền qua router state — không gắn examId lên URL */
 export type TakeExamLocationState = {
   examId: number
+  /** Bắt buộc để take/submit đúng điểm theo lớp */
+  classroomId: number
 }
 
 export const STUDENT_EXAM_STATUS_LABEL: Record<StudentExamStatus, string> = {

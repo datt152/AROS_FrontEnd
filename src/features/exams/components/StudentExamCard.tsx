@@ -19,18 +19,20 @@ import {
 
 type StudentExamCardProps = {
   exam: StudentExamListItem
+  /** Lớp đang xem — bắt buộc khi vào làm bài để điểm đúng theo lớp */
+  classroomId: number
   /** EXAM → take-exam; PRACTICE → practice/take */
   mode?: 'EXAM' | 'PRACTICE'
 }
 
-export function StudentExamCard({ exam, mode = 'EXAM' }: StudentExamCardProps) {
+export function StudentExamCard({ exam, classroomId, mode = 'EXAM' }: StudentExamCardProps) {
   const navigate = useNavigate()
   const blockReason = getStudentTakeBlockReason(exam)
   const showScore = canShowStudentScoreOnCard(exam)
   const isPractice = mode === 'PRACTICE'
 
   function handleTake() {
-    const state: TakeExamLocationState = { examId: exam.id }
+    const state: TakeExamLocationState = { examId: exam.id, classroomId }
     void navigate(isPractice ? ROUTES.student.takePractice : ROUTES.student.takeExam, { state })
   }
 

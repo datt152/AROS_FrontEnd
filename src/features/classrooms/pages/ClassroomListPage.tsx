@@ -36,6 +36,8 @@ import { IncludeInactiveToggle } from '../../../components/common/IncludeInactiv
 
 import { useSubjects } from '../../subjects/hooks/useSubjects'
 
+import { useExams } from '../../exams/hooks/useExams'
+
 import { ClassroomForm } from '../components/ClassroomForm'
 
 import { ClassroomItem, ClassroomTableRow } from '../components/ClassroomItem'
@@ -135,6 +137,21 @@ export function ClassroomListPage() {
 
 
   const studentsQuery = useClassroomStudents(managingClassroom?.id)
+
+  const managingClassExamsQuery = useExams(
+    {
+      classroomId: managingClassroom?.id,
+      purpose: 'EXAM',
+      page: 0,
+      size: 100,
+    },
+    { enabled: managingClassroom != null },
+  )
+
+  const requiresStudentCodeForAdd = useMemo(
+    () => (managingClassExamsQuery.data?.items ?? []).some((exam) => exam.examMode === 'OMR_PAPER'),
+    [managingClassExamsQuery.data?.items],
+  )
 
   const editingClassroomQuery = useClassroom(
     modalMode === 'edit' && editingClassroom ? editingClassroom.id : undefined,
@@ -845,6 +862,8 @@ export function ClassroomListPage() {
           createAccountsError={createAccountsError}
 
           createAccountsResult={createAccountsResult}
+
+          requiresStudentCodeForAdd={requiresStudentCodeForAdd}
 
           onClose={() => setManagingClassroom(null)}
 

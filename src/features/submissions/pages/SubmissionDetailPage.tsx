@@ -36,8 +36,8 @@ export function SubmissionDetailPage() {
   const isPractice = purpose === 'PRACTICE'
 
   function handleResume() {
-    if (!detail) return
-    const state = { examId: detail.examId }
+    if (!detail?.classroomId) return
+    const state = { examId: detail.examId, classroomId: detail.classroomId }
     const path = isPractice ? ROUTES.student.takePractice : ROUTES.student.takeExam
     void navigate(path, { state })
   }
@@ -141,6 +141,7 @@ export function SubmissionDetailPage() {
         <p className="mt-1 text-sm text-slate-500">
           Lần {detail.attemptNo}
           {!isPractice && detail.versionCode ? ` · Mã đề ${detail.versionCode}` : ''}
+          {detail.classroomName ? ` · ${detail.classroomName}` : ''}
         </p>
         <p className="mt-1 text-sm text-slate-500">
           {detail.submitTime
@@ -189,7 +190,7 @@ export function SubmissionDetailPage() {
 
       <div className="sticky bottom-4 flex flex-col gap-2 sm:flex-row">
         {canResume ? (
-          <Button className="w-full" onClick={handleResume}>
+          <Button className="w-full" onClick={handleResume} disabled={!detail.classroomId}>
             <Play className="h-4 w-4" strokeWidth={1.75} />
             {isPractice ? 'Tiếp tục luyện tập' : 'Tiếp tục làm bài'}
           </Button>

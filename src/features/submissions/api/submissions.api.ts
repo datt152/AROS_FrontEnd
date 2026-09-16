@@ -11,6 +11,8 @@ type StudentSubmissionItemDto = {
   submissionId?: number
   examId?: number
   examTitle?: string
+  classroomId?: number | null
+  classroomName?: string | null
   purpose?: string
   examPurpose?: string
   versionCode?: string | null
@@ -37,6 +39,8 @@ type StudentSubmissionDetailDto = {
   submissionId?: number
   examId?: number
   examTitle?: string
+  classroomId?: number | null
+  classroomName?: string | null
   purpose?: string
   examPurpose?: string
   versionCode?: string | null
@@ -90,6 +94,8 @@ function normalizeListItem(dto: StudentSubmissionItemDto): StudentSubmissionItem
     submissionId: dto.submissionId,
     examId: dto.examId,
     examTitle: dto.examTitle ?? '',
+    classroomId: dto.classroomId ?? null,
+    classroomName: dto.classroomName ?? null,
     purpose: normalizePurpose(dto),
     versionCode: dto.versionCode ?? null,
     attemptNo: dto.attemptNo ?? 1,
@@ -125,6 +131,8 @@ function normalizeDetail(dto: StudentSubmissionDetailDto): StudentSubmissionDeta
     submissionId: dto.submissionId,
     examId: dto.examId,
     examTitle: dto.examTitle ?? '',
+    classroomId: dto.classroomId ?? null,
+    classroomName: dto.classroomName ?? null,
     purpose: normalizePurpose(dto),
     versionCode: dto.versionCode ?? null,
     attemptNo: dto.attemptNo ?? 1,

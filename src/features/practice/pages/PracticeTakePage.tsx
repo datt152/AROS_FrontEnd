@@ -19,16 +19,23 @@ import { ROUTES } from '../../../routes/routes.config'
 import { PracticeAttemptBadge } from '../components/PracticeAttemptBadge'
 import { canRetryPractice } from '../types/practice.types'
 
-function readExamIdFromState(state: unknown): number | undefined {
+function readTakeState(state: unknown): TakeExamLocationState | undefined {
   if (!state || typeof state !== 'object') return undefined
   const examId = (state as TakeExamLocationState).examId
-  return typeof examId === 'number' && Number.isFinite(examId) && examId > 0 ? examId : undefined
+  const classroomId = (state as TakeExamLocationState).classroomId
+  if (typeof examId !== 'number' || !Number.isFinite(examId) || examId <= 0) return undefined
+  if (typeof classroomId !== 'number' || !Number.isFinite(classroomId) || classroomId <= 0) {
+    return undefined
+  }
+  return { examId, classroomId }
 }
 
 export function PracticeTakePage() {
   const location = useLocation()
   const navigate = useNavigate()
-  const examId = readExamIdFromState(location.state)
+  const takeState = readTakeState(location.state)
+  const examId = takeState?.examId
+  const classroomId = takeState?.classroomId
 
   const [result, setResult] = useState<SubmissionResultItem | null>(null)
   const [submittedExam, setSubmittedExam] = useState<ExamTakeItem | null>(null)
@@ -38,7 +45,7 @@ export function PracticeTakePage() {
   const [takeKey, setTakeKey] = useState(0)
   const autoSubmittedRef = useRef(false)
 
-  const takeQuery = useTakeExam(examId, !result)
+  const takeQuery = useTakeExam(examId, classroomId, !result)
   const submitExam = useSubmitExam()
 
   const exam = submittedExam ?? takeQuery.data
@@ -62,11 +69,12 @@ export function PracticeTakePage() {
   const timeWarning = useExamTimeWarning(timeLimitedActive ? secondsLeft : null, timeLimitedActive)
 
   async function handleSubmit(options?: { timedOut?: boolean }) {
-    if (!exam || submitExam.isPending) return
+    if (!exam || !classroomId || submitExam.isPending) return
     setSubmitError(null)
     try {
       const data = await submitExam.mutateAsync({
         examId: exam.examId,
+        classroomId,
         versionCode: exam.versionCode,
         answers: answersToSubmitPayload(answers),
       })
@@ -87,7 +95,7 @@ export function PracticeTakePage() {
   }, [timeLimited, exam, result, secondsLeft, submitExam.isPending])
 
   async function handleRetry() {
-    if (!examId && !submittedExam) return
+    if ((!examId && !submittedExam) || !classroomId) return
     const retryId = examId ?? submittedExam?.examId
     setResult(null)
     setSubmittedExam(null)
@@ -99,7 +107,7 @@ export function PracticeTakePage() {
     if (retryId) {
       void navigate(ROUTES.student.takePractice, {
         replace: true,
-        state: { examId: retryId } satisfies TakeExamLocationState,
+        state: { examId: retryId, classroomId } satisfies TakeExamLocationState,
       })
     }
     await takeQuery.refetch()
@@ -155,12 +163,12 @@ export function PracticeTakePage() {
     )
   }
 
-  if (examId === undefined) {
+  if (examId === undefined || classroomId === undefined) {
     return (
       <section className="mx-auto max-w-lg py-10">
         <EmptyState
           title="Chưa chọn bài luyện tập"
-          description="Vào làm từ danh sách luyện tập. Không mở trang này trực tiếp bằng URL."
+          description="Vào làm từ danh sách luyện tập theo lớp. Không mở trang này trực tiếp bằng URL."
           action={
             <Link to={ROUTES.student.practice}>
               <Button variant="secondary">Về danh sách luyện tập</Button>

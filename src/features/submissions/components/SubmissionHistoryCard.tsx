@@ -33,7 +33,8 @@ export function SubmissionHistoryCard({ item }: SubmissionHistoryCardProps) {
 
   function handleResume(event: React.MouseEvent) {
     event.stopPropagation()
-    const state = { examId: item.examId }
+    if (!item.classroomId) return
+    const state = { examId: item.examId, classroomId: item.classroomId }
     const path = item.purpose === 'PRACTICE' ? ROUTES.student.takePractice : ROUTES.student.takeExam
     void navigate(path, { state })
   }
@@ -65,6 +66,7 @@ export function SubmissionHistoryCard({ item }: SubmissionHistoryCardProps) {
           <p className="mt-1 text-sm text-slate-500">
             Lần {item.attemptNo}
             {item.versionCode ? ` · Mã đề ${item.versionCode}` : ''}
+            {item.classroomName ? ` · ${item.classroomName}` : ''}
           </p>
 
           <p className="mt-1 text-sm text-slate-500">
@@ -100,6 +102,8 @@ export function SubmissionHistoryCard({ item }: SubmissionHistoryCardProps) {
           <Button
             className="w-full sm:w-auto"
             onClick={handleResume}
+            disabled={!item.classroomId}
+            title={!item.classroomId ? 'Thiếu thông tin lớp — mở từ danh sách đề theo lớp' : undefined}
           >
             <Play className="h-4 w-4" strokeWidth={1.75} />
             Tiếp tục

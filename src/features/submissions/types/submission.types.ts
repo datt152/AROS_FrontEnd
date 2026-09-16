@@ -8,6 +8,8 @@ export type StudentSubmissionItem = {
   submissionId: number
   examId: number
   examTitle: string
+  classroomId?: number | null
+  classroomName?: string | null
   purpose: ExamPurpose
   versionCode: string | null
   attemptNo: number
@@ -33,6 +35,8 @@ export type StudentSubmissionDetail = {
   submissionId: number
   examId: number
   examTitle: string
+  classroomId?: number | null
+  classroomName?: string | null
   purpose: ExamPurpose
   versionCode: string | null
   attemptNo: number

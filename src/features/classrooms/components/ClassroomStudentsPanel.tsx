@@ -33,6 +33,8 @@ type ClassroomStudentsPanelProps = {
   isCreatingAccounts?: boolean
   createAccountsError?: string | null
   createAccountsResult?: CreateStudentAccountsResult | null
+  /** Lớp đã giao ≥1 đề OMR → thêm SV phải có MSSV 8 số */
+  requiresStudentCodeForAdd?: boolean
   onClose: () => void
   /** Ghi danh SV đã có tài khoản bằng email → POST .../students/enroll */
   onEnroll?: (studentEmails: string[]) => void | Promise<void>
@@ -72,6 +74,7 @@ export function ClassroomStudentsPanel({
   isCreatingAccounts = false,
   createAccountsError = null,
   createAccountsResult = null,
+  requiresStudentCodeForAdd = false,
   onClose,
   onEnroll,
   onRemove,
@@ -156,6 +159,11 @@ export function ClassroomStudentsPanel({
   }
 
   function openEnrollModal() {
+    if (requiresStudentCodeForAdd) {
+      setTab('add')
+      setAddMethod('manual')
+      return
+    }
     setEnrollEmail('')
     setEnrollEmailError(undefined)
     setEnrollSuccess(null)
@@ -544,6 +552,11 @@ export function ClassroomStudentsPanel({
 
               {addMethod === 'manual' ? (
                 <form className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4" onSubmit={(e) => void handleManualSubmit(e)} noValidate>
+                  {requiresStudentCodeForAdd ? (
+                    <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                      Lớp đã có đề thi OMR — mỗi sinh viên phải có MSSV đủ 8 chữ số trước khi thêm vào lớp.
+                    </p>
+                  ) : null}
                   <p className="text-xs text-slate-500">Họ tên, MSSV (8 số) và Email đều bắt buộc.</p>
 
                   <div className="space-y-1.5">
@@ -614,6 +627,9 @@ export function ClassroomStudentsPanel({
                 <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
                   <p className="text-sm text-slate-600">
                     File <span className="font-medium">.xlsx</span> — cột A email, B họ tên, C MSSV. Tối đa 500 dòng.
+                    {requiresStudentCodeForAdd
+                      ? ' Lớp có đề OMR: MSSV bắt buộc đúng 8 chữ số.'
+                      : ''}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     <a
@@ -832,6 +848,12 @@ export function ClassroomStudentsPanel({
               Nhập email tài khoản sinh viên đã có trên hệ thống để ghi danh vào{' '}
               <span className="font-medium text-slate-900">{classroom.className}</span>.
             </p>
+            {requiresStudentCodeForAdd ? (
+              <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                Lớp đã có đề OMR — tài khoản phải có MSSV 8 số. Nếu thiếu, dùng tab Thêm sinh viên (thủ công /
+                Excel).
+              </p>
+            ) : null}
             {enrollError ? (
               <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
                 {enrollError}

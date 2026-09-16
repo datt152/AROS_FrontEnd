@@ -156,6 +156,7 @@ export type ExamVersionCreatePayload = {
 
 export type SubmissionPayload = {
   examId: number
+  classroomId: number
   versionCode: string
   answers: Record<string, string>
 }
@@ -210,6 +211,8 @@ export type ExamVersionDetailItem = {
 
 export type ExamTakeItem = {
   examId: number
+  classroomId?: number | null
+  classroomName?: string | null
   title: string
   duration: number
   versionCode: string
@@ -229,6 +232,7 @@ export type ExamTakeItem = {
 
 export type SubmissionResultItem = {
   submissionId: number
+  classroomId?: number | null
   attemptNo?: number
   scoreVisible?: boolean
   totalScore?: number | null

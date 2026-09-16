@@ -85,6 +85,8 @@ type ExamVersionDetailDto = {
 
 type ExamTakeDto = {
   examId?: number
+  classroomId?: number | null
+  classroomName?: string | null
   title?: string
   duration?: number
   versionCode?: string
@@ -105,6 +107,7 @@ type ExamTakeDto = {
 type SubmissionResultDto = {
   submissionId?: number
   id?: number
+  classroomId?: number | null
   attemptNo?: number
   scoreVisible?: boolean
   totalScore?: number | null
@@ -134,6 +137,8 @@ type MyExamDto = {
   myScore?: number | null
   score?: number | null
   totalScore?: number | null
+  classroomId?: number | null
+  classroomName?: string | null
   config?: ExamConfigDto | null
 }
 
@@ -409,6 +414,8 @@ function normalizeMyExam(
     timeLimitEnabled: Boolean(timeLimitEnabled),
     showScoreToStudent: Boolean(showScoreToStudent),
     myScore,
+    classroomId: dto.classroomId ?? null,
+    classroomName: dto.classroomName ?? null,
   }
 }
 
@@ -545,8 +552,10 @@ export async function getExamVersionDetail(examId: number, versionCode: string):
   }
 }
 
-export async function takeExam(id: number): Promise<ExamTakeItem> {
-  const response = await apiClient.get<ExamTakeDto>(`/v1/exams/${id}/take`)
+export async function takeExam(id: number, classroomId: number): Promise<ExamTakeItem> {
+  const response = await apiClient.get<ExamTakeDto>(`/v1/exams/${id}/take`, {
+    params: { classroomId },
+  })
   const data = response.data
   if (data.examId === undefined || !data.versionCode || !data.startTime) {
     throw new Error('Không thể tải bài thi')
@@ -554,6 +563,8 @@ export async function takeExam(id: number): Promise<ExamTakeItem> {
 
   return {
     examId: data.examId,
+    classroomId: data.classroomId ?? classroomId,
+    classroomName: data.classroomName ?? null,
     title: data.title ?? '',
     duration: data.duration ?? 0,
     versionCode: data.versionCode,
@@ -590,6 +601,7 @@ export async function submitExam(payload: SubmissionPayload): Promise<Submission
 
   return {
     submissionId,
+    classroomId: data.classroomId ?? payload.classroomId,
     attemptNo: data.attemptNo,
     scoreVisible,
     totalScore: data.totalScore ?? null,
