@@ -69,7 +69,7 @@ export function ExamTemplateListPage() {
   )
   const topicsQuery = useTopics(
     questionsSubjectId && questionsSubjectId > 0
-      ? { subjectId: questionsSubjectId, page: 0, size: 50 }
+      ? { subjectId: questionsSubjectId, page: 0, size: 100 }
       : undefined,
   )
 
@@ -91,7 +91,12 @@ export function ExamTemplateListPage() {
     [questionsQuery.data?.items],
   )
   const topicOptions = useMemo(
-    () => (topicsQuery.data?.items ?? []).map((item) => ({ id: item.id, name: item.name })),
+    () =>
+      (topicsQuery.data?.items ?? []).map((item) => ({
+        id: item.id,
+        name: item.name,
+        questionCount: item.questionCount ?? 0,
+      })),
     [topicsQuery.data?.items],
   )
 
@@ -144,7 +149,11 @@ export function ExamTemplateListPage() {
     try {
       if (modalMode === 'create') {
         await createTemplate.mutateAsync(payload)
-        setToast('Đã tạo template')
+        setToast(
+          values.selectionMode === 'BY_TOPIC'
+            ? `Đã tạo template (${values.questionIds.length} câu theo chủ đề)`
+            : 'Đã tạo template',
+        )
       } else if (editingId) {
         await updateTemplate.mutateAsync({ id: editingId, payload })
         setToast('Đã lưu template')
@@ -346,7 +355,7 @@ export function ExamTemplateListPage() {
                 <Spinner label="Đang tải template..." />
               ) : (
                 <ExamTemplateForm
-                  key={`${modalMode}-${editingId ?? 'new'}-${detailQuery.dataUpdatedAt}`}
+                  key={`${modalMode}-${editingId ?? 'new'}`}
                   mode={modalMode}
                   initialValues={editingInitial}
                   subjectOptions={subjectOptions}

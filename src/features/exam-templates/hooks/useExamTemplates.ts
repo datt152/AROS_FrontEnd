@@ -6,10 +6,14 @@ import {
   deleteExamTemplate,
   getExamTemplate,
   getExamTemplates,
+  previewExamTemplate,
   updateExamTemplate,
 } from '../api/examTemplates.api'
 import type { GetExamTemplatesParams } from '../api/examTemplates.api'
-import type { ExamTemplatePayload } from '../types/examTemplate.types'
+import type {
+  ExamTemplatePayload,
+  ExamTemplatePreviewPayload,
+} from '../types/examTemplate.types'
 
 export const examTemplateKeys = {
   all: ['exam-templates'] as const,
@@ -72,5 +76,11 @@ export function useDeleteExamTemplate() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: examTemplateKeys.all })
     },
+  })
+}
+
+export function usePreviewExamTemplate() {
+  return useMutation({
+    mutationFn: (payload: ExamTemplatePreviewPayload) => previewExamTemplate(payload),
   })
 }

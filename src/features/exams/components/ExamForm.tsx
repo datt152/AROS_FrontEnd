@@ -277,6 +277,31 @@ export function ExamForm({
     setErrors((current) => ({ ...current, questionIds: undefined }))
   }
 
+  function selectAllVisibleQuestions() {
+    const visibleIds = availableQuestions.map((q) => q.questionId)
+    if (visibleIds.length === 0) return
+    setCreateValues((current) => {
+      const questionIds = Array.from(new Set([...current.questionIds, ...visibleIds]))
+      const rawPoints = { ...current.rawPoints }
+      for (const id of visibleIds) {
+        if (rawPoints[id] === undefined) rawPoints[id] = 1
+      }
+      return { ...current, questionIds, rawPoints }
+    })
+    setErrors((current) => ({ ...current, questionIds: undefined }))
+  }
+
+  function clearVisibleQuestions() {
+    const visibleIds = new Set(availableQuestions.map((q) => q.questionId))
+    setCreateValues((current) => {
+      const questionIds = current.questionIds.filter((id) => !visibleIds.has(id))
+      const rawPoints = { ...current.rawPoints }
+      for (const id of visibleIds) delete rawPoints[id]
+      return { ...current, questionIds, rawPoints }
+    })
+    setErrors((current) => ({ ...current, questionIds: undefined }))
+  }
+
   function validateMeta(values: { title: string; duration: number | ''; examMode: ExamMode | ''; subjectId: number | '' }) {
     const nextErrors: ExamFormErrors = {}
     if (!values.title.trim()) nextErrors.title = 'Vui lòng nhập tiêu đề'
@@ -768,26 +793,50 @@ export function ExamForm({
             </div>
           ) : (
             <>
-              <div className="space-y-1.5">
-                <label htmlFor="topicFilter" className="text-sm font-medium text-slate-700">
-                  Lọc theo chủ đề
-                </label>
-                <select
-                  id="topicFilter"
-                  value={topicFilter}
-                  disabled={isSubmitting || !selectedSubjectId}
-                  onChange={(event) =>
-                    setTopicFilter(event.target.value === '' ? '' : Number(event.target.value))
-                  }
-                  className={selectClassName(false)}
-                >
-                  <option value="">Tất cả chủ đề</option>
-                  {topicOptions.map((topic) => (
-                    <option key={topic.id} value={topic.id}>
-                      {topic.name}
-                    </option>
-                  ))}
-                </select>
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <label htmlFor="topicFilter" className="text-sm font-medium text-slate-700">
+                    Lọc theo chủ đề
+                  </label>
+                  <select
+                    id="topicFilter"
+                    value={topicFilter}
+                    disabled={isSubmitting || !selectedSubjectId}
+                    onChange={(event) =>
+                      setTopicFilter(event.target.value === '' ? '' : Number(event.target.value))
+                    }
+                    className={selectClassName(false)}
+                  >
+                    <option value="">Tất cả chủ đề</option>
+                    {topicOptions.map((topic) => (
+                      <option key={topic.id} value={topic.id}>
+                        {topic.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {availableQuestions.length > 0 ? (
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      disabled={isSubmitting}
+                      className="h-8 px-3 text-xs"
+                      onClick={selectAllVisibleQuestions}
+                    >
+                      Chọn tất cả
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      disabled={isSubmitting || createValues.questionIds.length === 0}
+                      className="h-8 px-3 text-xs"
+                      onClick={clearVisibleQuestions}
+                    >
+                      Bỏ chọn tất cả
+                    </Button>
+                  </div>
+                ) : null}
               </div>
               {errors.questionIds ? (
                 <p className="text-sm text-red-500" data-form-field="questionIds">
@@ -819,6 +868,7 @@ export function ExamForm({
                   ))}
                 </ul>
               )}
+              <p className="text-xs text-slate-500">Đã chọn {createValues.questionIds.length} câu</p>
               <button
                 type="button"
                 className="text-sm font-medium text-blue-600 hover:text-blue-700"
