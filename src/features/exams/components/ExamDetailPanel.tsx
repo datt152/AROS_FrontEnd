@@ -1,4 +1,4 @@
-import { BookmarkPlus, FileCode2, FileScan, Play, Users, X } from 'lucide-react'
+import { BookmarkPlus, FileCode2, FileScan, Play, Printer, Users, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -17,6 +17,7 @@ import {
   formatExamSchedule,
   getOpenExamBlockReason,
 } from '../types/exam.types'
+import { ExamPrintVersionsDialog } from './ExamPrintVersionsDialog'
 
 type DetailTab = 'info' | 'questions' | 'classrooms' | 'versions'
 
@@ -50,9 +51,12 @@ export function ExamDetailPanel({
   onSaveAsTemplate,
 }: ExamDetailPanelProps) {
   const [tab, setTab] = useState<DetailTab>('info')
+  const [showPrintDialog, setShowPrintDialog] = useState(false)
   const readiness = canOpenExam(exam)
   const openBlockReason = getOpenExamBlockReason(exam)
   const versionCodes = exam.versionCodes ?? []
+  const isOmr = exam.examMode === 'OMR_PAPER'
+  const canPrint = isOmr && versionCodes.length > 0
 
   const assignedClassrooms = useMemo(
     () => classroomOptions.filter((classroom) => (exam.classroomIds ?? []).includes(classroom.id)),
@@ -82,6 +86,40 @@ export function ExamDetailPanel({
     { id: 'classrooms', label: 'Lớp giao' },
     { id: 'versions', label: 'Mã đề' },
   ]
+
+  function OmPrintBlock({ primaryOmrLink = false }: { primaryOmrLink?: boolean }) {
+    return (
+      <div className="space-y-2">
+        <Button
+          type="button"
+          variant="secondary"
+          className="w-full"
+          disabled={!canPrint}
+          title={canPrint ? undefined : 'Cần sinh mã đề trước khi in'}
+          onClick={() => setShowPrintDialog(true)}
+        >
+          <Printer className="h-4 w-4" strokeWidth={1.75} />
+          In đề
+        </Button>
+
+        {!canPrint ? (
+          <p className="text-center text-xs text-slate-500">Sinh mã đề trước để in PDF.</p>
+        ) : null}
+
+        <Link
+          to={omrSessionsPath(exam.id)}
+          className={
+            primaryOmrLink
+              ? 'inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-linear-to-r from-blue-600 to-emerald-600 px-4 text-sm font-medium text-white shadow-md shadow-blue-600/20 transition hover:from-blue-700 hover:to-emerald-700'
+              : 'inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900'
+          }
+        >
+          <FileScan className="h-4 w-4" strokeWidth={1.75} />
+          Phiên chấm OMR
+        </Link>
+      </div>
+    )
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40">
@@ -324,15 +362,7 @@ export function ExamDetailPanel({
                 {!readiness.ready ? <p className="text-center text-xs text-slate-500">{openBlockReason}</p> : null}
               </>
             ) : null}
-            {exam.examMode === 'OMR_PAPER' ? (
-              <Link
-                to={omrSessionsPath(exam.id)}
-                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
-              >
-                <FileScan className="h-4 w-4" strokeWidth={1.75} />
-                Phiên chấm OMR
-              </Link>
-            ) : null}
+            {exam.examMode === 'OMR_PAPER' ? <OmPrintBlock /> : null}
             <Button
               variant="secondary"
               className="w-full"
@@ -348,15 +378,7 @@ export function ExamDetailPanel({
           </div>
         ) : (
           <div className="space-y-2 border-t border-slate-200 px-5 py-4">
-            {exam.examMode === 'OMR_PAPER' ? (
-              <Link
-                to={omrSessionsPath(exam.id)}
-                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-linear-to-r from-blue-600 to-emerald-600 px-4 text-sm font-medium text-white shadow-md shadow-blue-600/20 transition hover:from-blue-700 hover:to-emerald-700"
-              >
-                <FileScan className="h-4 w-4" strokeWidth={1.75} />
-                Phiên chấm OMR
-              </Link>
-            ) : null}
+            {exam.examMode === 'OMR_PAPER' ? <OmPrintBlock primaryOmrLink /> : null}
             <Button
               variant="secondary"
               className="w-full"
@@ -378,6 +400,15 @@ export function ExamDetailPanel({
           </div>
         )}
       </aside>
+
+      {showPrintDialog ? (
+        <ExamPrintVersionsDialog
+          examId={exam.id}
+          examTitle={exam.title}
+          versionCodes={versionCodes}
+          onClose={() => setShowPrintDialog(false)}
+        />
+      ) : null}
     </div>
   )
 }

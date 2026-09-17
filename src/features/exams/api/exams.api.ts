@@ -566,6 +566,49 @@ export async function getExamVersionDetail(examId: number, versionCode: string):
   }
 }
 
+/** Tải PDF mã đề: GET /v1/exams/{id}/versions/{code}/pdf */
+export async function getExamVersionPdf(examId: number, versionCode: string): Promise<Blob> {
+  const response = await apiClient.get<Blob>(
+    `/v1/exams/${examId}/versions/${encodeURIComponent(versionCode)}/pdf`,
+    {
+      responseType: 'blob',
+      timeout: 60_000,
+      headers: {
+        Accept: 'application/pdf',
+      },
+    },
+  )
+
+  const blob = response.data
+  const rawType = response.headers['content-type']
+  const contentType = `${typeof rawType === 'string' ? rawType : ''}|${blob.type}`
+  if (contentType.includes('application/json') || contentType.includes('text/')) {
+    const text = await blob.text()
+    let message = 'Không thể tải PDF mã đề'
+    try {
+      const parsed = JSON.parse(text) as { message?: string; detail?: string; error?: string }
+      message = parsed.message ?? parsed.detail ?? parsed.error ?? message
+    } catch {
+      if (text.trim()) message = text.trim()
+    }
+    throw new Error(message)
+  }
+
+  return blob.type ? blob : new Blob([blob], { type: 'application/pdf' })
+}
+
+export function openExamVersionPdf(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = fileName
+  anchor.rel = 'noopener'
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+}
+
 export async function takeExam(id: number, classroomId: number): Promise<ExamTakeItem> {
   const response = await apiClient.get<ExamTakeDto>(`/v1/exams/${id}/take`, {
     params: { classroomId },

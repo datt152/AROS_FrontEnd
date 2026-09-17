@@ -1,4 +1,5 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
+import axios from 'axios'
 
 import { STALE_TIME } from '../../../lib/queryStaleTime'
 import {
@@ -9,8 +10,10 @@ import {
   getExamClassrooms,
   getExams,
   getExamVersionDetail,
+  getExamVersionPdf,
   getExamVersions,
   getMyExams,
+  openExamVersionPdf,
   saveExamAsTemplate,
   submitExam,
   takeExam,
@@ -181,6 +184,63 @@ export function useCreateExamVersions() {
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({ queryKey: examKeys.versions(variables.examId) })
       void queryClient.invalidateQueries({ queryKey: examKeys.detail(variables.examId) })
+    },
+  })
+}
+
+async function downloadExamVersionPdfOrThrow(
+  examId: number,
+  versionCode: string,
+  fileName?: string,
+) {
+  try {
+    const blob = await getExamVersionPdf(examId, versionCode)
+    openExamVersionPdf(blob, fileName ?? `de-${examId}-ma-${versionCode}.pdf`)
+    return blob
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data instanceof Blob) {
+      const text = await error.response.data.text()
+      try {
+        const parsed = JSON.parse(text) as { message?: string; detail?: string; error?: string }
+        throw new Error(parsed.message ?? parsed.detail ?? parsed.error ?? 'Không thể tải PDF mã đề')
+      } catch (inner) {
+        if (
+          inner instanceof Error &&
+          inner.message !== 'Không thể tải PDF mã đề' &&
+          !inner.message.startsWith('Unexpected')
+        ) {
+          throw inner
+        }
+        throw new Error(text.trim() || 'Không thể tải PDF mã đề')
+      }
+    }
+    throw error
+  }
+}
+
+export function useDownloadExamVersionPdf() {
+  return useMutation({
+    mutationFn: async ({
+      examId,
+      versionCodes,
+      fileNamePrefix,
+    }: {
+      examId: number
+      versionCodes: string[]
+      fileNamePrefix?: string
+    }) => {
+      const codes = versionCodes.map((code) => code.trim()).filter(Boolean)
+      if (codes.length === 0) throw new Error('Vui lòng chọn mã đề')
+
+      const prefix = (fileNamePrefix ?? `de-${examId}`).replace(/[\\/:*?"<>|]+/g, '_')
+      for (const versionCode of codes) {
+        await downloadExamVersionPdfOrThrow(
+          examId,
+          versionCode,
+          `${prefix}-ma-${versionCode}.pdf`,
+        )
+      }
+      return codes
     },
   })
 }
