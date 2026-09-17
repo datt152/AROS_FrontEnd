@@ -63,7 +63,7 @@ export const MENU_BY_ROLE: Record<Role, NavItem[]> = {
     { path: ROUTES.teacher.classrooms, label: 'Lớp học' },
     { path: ROUTES.teacher.questionBank, label: 'Ngân hàng câu hỏi' },
     { path: ROUTES.teacher.examTemplates, label: 'Thư viện đề' },
-    { path: ROUTES.teacher.exams, label: 'Kỳ thi trực tuyến' },
+    { path: ROUTES.teacher.exams, label: 'Kỳ thi online' },
     { path: ROUTES.teacher.examsOmr, label: 'Đề OMR' },
     { path: ROUTES.teacher.practice, label: 'Bài luyện tập' },
     { path: ROUTES.teacher.grading, label: 'Chấm điểm' },

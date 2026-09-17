@@ -4,6 +4,7 @@ import { AuthSessionBridge } from '../features/auth/components/AuthSessionBridge
 import { LoginPage } from '../features/auth/pages/LoginPage'
 import { RegisterPage } from '../features/auth/pages/RegisterPage'
 import { ClassroomListPage } from '../features/classrooms/pages/ClassroomListPage'
+import { TeacherDashboardPage } from '../features/dashboard/pages/TeacherDashboardPage'
 import { ExamTemplateListPage } from '../features/exam-templates/pages/ExamTemplateListPage'
 import { ExamTakePage } from '../features/exams/pages/ExamTakePage'
 import { OmrExamManagePage } from '../features/exams/pages/OmrExamManagePage'
@@ -36,6 +37,7 @@ import { StudentProfileGate } from './StudentProfileGate'
 import { ROUTES, STUDENT_PATHS, TEACHER_PATHS } from './routes.config'
 
 function teacherPageForPath(path: string) {
+  if (path === ROUTES.teacher.dashboard) return <TeacherDashboardPage />
   if (path === ROUTES.teacher.subjects) return <SubjectListPage />
   if (path === ROUTES.teacher.classrooms) return <ClassroomListPage />
   if (path === ROUTES.teacher.questionBank) return <QuestionListPage />
