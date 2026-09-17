@@ -96,7 +96,7 @@ export function StudentExamCard({ exam, classroomId, mode = 'EXAM' }: StudentExa
         ) : (
           <p className="text-sm text-emerald-700">
             {exam.myStatus === 'IN_PROGRESS'
-              ? 'Bạn đang làm dở — tiếp tục vào bài.'
+              ? 'Bài làm chưa hoàn thành - tiếp tục vào làm bài.'
               : exam.myStatus === 'SUBMITTED' && exam.canTake
                 ? 'Bạn còn lượt làm lại.'
                 : isPractice

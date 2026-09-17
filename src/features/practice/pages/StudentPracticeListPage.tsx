@@ -1,28 +1,39 @@
 import { useMemo, useState } from 'react'
-import { Search } from 'lucide-react'
 
 import { Button } from '../../../components/ui/Button'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { ErrorState } from '../../../components/ui/ErrorState'
-import { Input } from '../../../components/ui/Input'
 import { Spinner } from '../../../components/ui/Spinner'
 import { getApiErrorMessage } from '../../../lib/apiError'
 import { StudentClassroomSubjectCard } from '../../exams/components/StudentClassroomSubjectCard'
 import { StudentExamCard } from '../../exams/components/StudentExamCard'
+import { StudentExamListToolbar } from '../../exams/components/StudentExamListToolbar'
 import { useMyExams } from '../../exams/hooks/useExams'
+import {
+  filterAndSortStudentExams,
+  mergeStudentExamsWithSubmissions,
+  type StudentExamSortMode,
+  type StudentExamStatus,
+  type StudentMyStatus,
+} from '../../exams/types/studentExam.types'
 import { useMyClasses } from '../../classrooms/hooks/useClassrooms'
 import type { ClassroomItem } from '../../classrooms/types/classroom.types'
+import { useMySubmissions } from '../../submissions/hooks/useSubmissions'
 
-const PAGE_SIZE = 10
-const SEARCH_FETCH_SIZE = 100
+const PAGE_SIZE = 5
+const FILTER_FETCH_SIZE = 100
 
 export function StudentPracticeListPage() {
   const [selected, setSelected] = useState<ClassroomItem | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
+  const [search, setSearch] = useState('')
+  const [examStatus, setExamStatus] = useState<StudentExamStatus | ''>('')
+  const [myStatus, setMyStatus] = useState<StudentMyStatus | ''>('')
+  const [sortMode, setSortMode] = useState<StudentExamSortMode>('priority')
   const [page, setPage] = useState(0)
   const [classesPage, setClassesPage] = useState(0)
 
-  const hasSearch = searchQuery.trim() !== ''
+  const needsClientFilter =
+    search.trim() !== '' || examStatus !== '' || myStatus !== '' || sortMode !== 'priority'
 
   const classesQuery = useMyClasses({ page: classesPage, size: PAGE_SIZE })
   const examsQuery = useMyExams(
@@ -30,34 +41,59 @@ export function StudentPracticeListPage() {
       ? {
           classroomId: selected.id,
           purpose: 'PRACTICE',
-          page: hasSearch ? 0 : page,
-          size: hasSearch ? SEARCH_FETCH_SIZE : PAGE_SIZE,
+          page: needsClientFilter ? 0 : page,
+          size: needsClientFilter ? FILTER_FETCH_SIZE : PAGE_SIZE,
         }
       : undefined,
   )
+  const submissionsQuery = useMySubmissions()
 
   const classrooms = classesQuery.data?.items ?? []
-  const exams = examsQuery.data?.items ?? []
+  const exams = useMemo(
+    () =>
+      mergeStudentExamsWithSubmissions(
+        examsQuery.data?.items ?? [],
+        submissionsQuery.data ?? [],
+        'PRACTICE',
+      ).map((exam) =>
+        selected && !exam.classroomId ? { ...exam, classroomId: selected.id } : exam,
+      ),
+    [examsQuery.data?.items, submissionsQuery.data, selected],
+  )
 
-  const filteredExams = useMemo(() => {
-    const keyword = searchQuery.trim().toLowerCase()
-    if (!keyword) return exams
-    return exams.filter((exam) => exam.title.toLowerCase().includes(keyword))
-  }, [exams, searchQuery])
+  const filteredExams = useMemo(
+    () =>
+      filterAndSortStudentExams(exams, {
+        search,
+        examStatus,
+        myStatus,
+        sortMode,
+      }),
+    [exams, search, examStatus, myStatus, sortMode],
+  )
 
   const classesTotalPages = Math.max(1, classesQuery.data?.totalPages ?? 1)
   const classesTotal = classesQuery.data?.totalElements ?? classrooms.length
 
-  const totalElements = hasSearch
+  const totalElements = needsClientFilter
     ? filteredExams.length
     : (examsQuery.data?.totalElements ?? filteredExams.length)
-  const totalPages = hasSearch
+  const totalPages = needsClientFilter
     ? Math.max(1, Math.ceil(filteredExams.length / PAGE_SIZE))
     : Math.max(1, examsQuery.data?.totalPages ?? 1)
   const currentPage = Math.min(page, totalPages - 1)
-  const pagedExams = hasSearch
+  const pagedExams = needsClientFilter
     ? filteredExams.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE)
     : filteredExams
+
+  function resetFiltersOnSelect(classroom: ClassroomItem) {
+    setSelected(classroom)
+    setSearch('')
+    setExamStatus('')
+    setMyStatus('')
+    setSortMode('priority')
+    setPage(0)
+  }
 
   return (
     <section className="space-y-5">
@@ -98,11 +134,7 @@ export function StudentPracticeListPage() {
                 key={item.id}
                 item={item}
                 selected={selected?.id === item.id}
-                onSelect={(classroom) => {
-                  setSelected(classroom)
-                  setSearchQuery('')
-                  setPage(0)
-                }}
+                onSelect={resetFiltersOnSelect}
               />
             ))}
             {classesTotalPages > 1 ? (
@@ -140,18 +172,29 @@ export function StudentPracticeListPage() {
             </p>
 
             {selected ? (
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <Input
-                  value={searchQuery}
-                  placeholder="Tìm theo tên bài luyện tập..."
-                  className="pl-9"
-                  onChange={(event) => {
-                    setSearchQuery(event.target.value)
-                    setPage(0)
-                  }}
-                />
-              </div>
+              <StudentExamListToolbar
+                search={search}
+                examStatus={examStatus}
+                myStatus={myStatus}
+                sortMode={sortMode}
+                searchPlaceholder="Tìm theo tên bài luyện tập..."
+                onSearchChange={(value) => {
+                  setSearch(value)
+                  setPage(0)
+                }}
+                onExamStatusChange={(value) => {
+                  setExamStatus(value)
+                  setPage(0)
+                }}
+                onMyStatusChange={(value) => {
+                  setMyStatus(value)
+                  setPage(0)
+                }}
+                onSortModeChange={(value) => {
+                  setSortMode(value)
+                  setPage(0)
+                }}
+              />
             ) : null}
 
             {!selected ? (
@@ -184,7 +227,7 @@ export function StudentPracticeListPage() {
             {selected && examsQuery.isSuccess && exams.length > 0 && filteredExams.length === 0 ? (
               <EmptyState
                 title="Không tìm thấy bài luyện tập"
-                description="Thử đổi từ khóa tìm kiếm."
+                description="Thử đổi từ khóa, bộ lọc hoặc cách sắp xếp."
               />
             ) : null}
 

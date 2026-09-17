@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import { Button } from '../../../components/ui/Button'
 import { EmptyState } from '../../../components/ui/EmptyState'
@@ -9,27 +9,91 @@ import type { ClassroomItem } from '../../classrooms/types/classroom.types'
 import { useMyClasses } from '../../classrooms/hooks/useClassrooms'
 import { StudentClassroomSubjectCard } from '../components/StudentClassroomSubjectCard'
 import { StudentExamCard } from '../components/StudentExamCard'
+import { StudentExamListToolbar } from '../components/StudentExamListToolbar'
 import { useMyExams } from '../hooks/useExams'
+import {
+  filterAndSortStudentExams,
+  mergeStudentExamsWithSubmissions,
+  type StudentExamSortMode,
+  type StudentExamStatus,
+  type StudentMyStatus,
+} from '../types/studentExam.types'
+import { useMySubmissions } from '../../submissions/hooks/useSubmissions'
 
-const PAGE_SIZE = 10
+const PAGE_SIZE = 5
+const FILTER_FETCH_SIZE = 100
 
 export function StudentExamListPage() {
   const [selected, setSelected] = useState<ClassroomItem | null>(null)
   const [page, setPage] = useState(0)
   const [classesPage, setClassesPage] = useState(0)
+  const [search, setSearch] = useState('')
+  const [examStatus, setExamStatus] = useState<StudentExamStatus | ''>('')
+  const [myStatus, setMyStatus] = useState<StudentMyStatus | ''>('')
+  const [sortMode, setSortMode] = useState<StudentExamSortMode>('priority')
+
+  const needsClientFilter =
+    search.trim() !== '' || examStatus !== '' || myStatus !== '' || sortMode !== 'priority'
 
   const classesQuery = useMyClasses({ page: classesPage, size: PAGE_SIZE })
   const examsQuery = useMyExams(
-    selected ? { classroomId: selected.id, purpose: 'EXAM', page, size: PAGE_SIZE } : undefined,
+    selected
+      ? {
+          classroomId: selected.id,
+          purpose: 'EXAM',
+          page: needsClientFilter ? 0 : page,
+          size: needsClientFilter ? FILTER_FETCH_SIZE : PAGE_SIZE,
+        }
+      : undefined,
   )
+  const submissionsQuery = useMySubmissions()
 
   const classrooms = classesQuery.data?.items ?? []
-  const exams = examsQuery.data?.items ?? []
+  const exams = useMemo(
+    () =>
+      mergeStudentExamsWithSubmissions(
+        examsQuery.data?.items ?? [],
+        submissionsQuery.data ?? [],
+        'EXAM',
+      ).map((exam) =>
+        selected && !exam.classroomId ? { ...exam, classroomId: selected.id } : exam,
+      ),
+    [examsQuery.data?.items, submissionsQuery.data, selected],
+  )
+
+  const filteredExams = useMemo(
+    () =>
+      filterAndSortStudentExams(exams, {
+        search,
+        examStatus,
+        myStatus,
+        sortMode,
+      }),
+    [exams, search, examStatus, myStatus, sortMode],
+  )
 
   const classesTotalPages = Math.max(1, classesQuery.data?.totalPages ?? 1)
-  const examsTotalPages = Math.max(1, examsQuery.data?.totalPages ?? 1)
-  const examsTotal = examsQuery.data?.totalElements ?? exams.length
   const classesTotal = classesQuery.data?.totalElements ?? classrooms.length
+
+  const totalElements = needsClientFilter
+    ? filteredExams.length
+    : (examsQuery.data?.totalElements ?? filteredExams.length)
+  const totalPages = needsClientFilter
+    ? Math.max(1, Math.ceil(filteredExams.length / PAGE_SIZE))
+    : Math.max(1, examsQuery.data?.totalPages ?? 1)
+  const currentPage = Math.min(page, totalPages - 1)
+  const pagedExams = needsClientFilter
+    ? filteredExams.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE)
+    : filteredExams
+
+  function resetFiltersOnSelect(classroom: ClassroomItem) {
+    setSelected(classroom)
+    setSearch('')
+    setExamStatus('')
+    setMyStatus('')
+    setSortMode('priority')
+    setPage(0)
+  }
 
   return (
     <section className="space-y-5">
@@ -70,10 +134,7 @@ export function StudentExamListPage() {
                 key={item.id}
                 item={item}
                 selected={selected?.id === item.id}
-                onSelect={(classroom) => {
-                  setSelected(classroom)
-                  setPage(0)
-                }}
+                onSelect={resetFiltersOnSelect}
               />
             ))}
             {classesTotalPages > 1 ? (
@@ -110,6 +171,32 @@ export function StudentExamListPage() {
                 : 'Danh sách đề thi'}
             </p>
 
+            {selected ? (
+              <StudentExamListToolbar
+                search={search}
+                examStatus={examStatus}
+                myStatus={myStatus}
+                sortMode={sortMode}
+                searchPlaceholder="Tìm theo tên bài thi..."
+                onSearchChange={(value) => {
+                  setSearch(value)
+                  setPage(0)
+                }}
+                onExamStatusChange={(value) => {
+                  setExamStatus(value)
+                  setPage(0)
+                }}
+                onMyStatusChange={(value) => {
+                  setMyStatus(value)
+                  setPage(0)
+                }}
+                onSortModeChange={(value) => {
+                  setSortMode(value)
+                  setPage(0)
+                }}
+              />
+            ) : null}
+
             {!selected ? (
               <EmptyState
                 title="Chưa chọn lớp — môn"
@@ -137,22 +224,29 @@ export function StudentExamListPage() {
               />
             ) : null}
 
-            {selected && examsQuery.isSuccess && exams.length > 0 ? (
+            {selected && examsQuery.isSuccess && exams.length > 0 && filteredExams.length === 0 ? (
+              <EmptyState
+                title="Không tìm thấy bài thi"
+                description="Thử đổi từ khóa, bộ lọc hoặc cách sắp xếp."
+              />
+            ) : null}
+
+            {selected && examsQuery.isSuccess && filteredExams.length > 0 ? (
               <>
                 <div className="space-y-3">
-                  {exams.map((exam) => (
+                  {pagedExams.map((exam) => (
                     <StudentExamCard key={exam.id} exam={exam} classroomId={selected.id} />
                   ))}
                 </div>
                 <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
                   <p>
-                    Trang {page + 1} / {examsTotalPages} · {examsTotal} đề thi
+                    Trang {currentPage + 1} / {totalPages} · {totalElements} đề thi
                   </p>
                   <div className="flex gap-2">
                     <Button
                       variant="secondary"
                       className="h-9"
-                      disabled={page === 0}
+                      disabled={currentPage === 0}
                       onClick={() => setPage((value) => Math.max(0, value - 1))}
                     >
                       Trước
@@ -160,7 +254,7 @@ export function StudentExamListPage() {
                     <Button
                       variant="secondary"
                       className="h-9"
-                      disabled={page >= examsTotalPages - 1}
+                      disabled={currentPage >= totalPages - 1}
                       onClick={() => setPage((value) => value + 1)}
                     >
                       Sau

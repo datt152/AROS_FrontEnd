@@ -134,8 +134,11 @@ type MyExamDto = {
   startAt?: string | null
   endAt?: string | null
   examStatus?: StudentExamStatus | ExamStatus
-  status?: ExamStatus
-  myStatus?: StudentMyStatus
+  status?: ExamStatus | string
+  myStatus?: StudentMyStatus | string
+  submissionStatus?: string
+  mySubmissionStatus?: string
+  studentStatus?: string
   canTake?: boolean
   timeLimitEnabled?: boolean
   showScoreToStudent?: boolean
@@ -371,10 +374,19 @@ function toStudentExamStatus(value: unknown): StudentExamStatus {
 }
 
 function toStudentMyStatus(value: unknown): StudentMyStatus {
-  if (typeof value === 'string' && STUDENT_MY_STATUSES.includes(value as StudentMyStatus)) {
-    return value as StudentMyStatus
+  if (typeof value !== 'string' || !value.trim()) return 'NOT_STARTED'
+  const upper = value.trim().toUpperCase().replace(/-/g, '_')
+  if (STUDENT_MY_STATUSES.includes(upper as StudentMyStatus)) {
+    return upper as StudentMyStatus
   }
+  if (upper === 'STARTED' || upper === 'DOING' || upper === 'INPROGRESS') return 'IN_PROGRESS'
   return 'NOT_STARTED'
+}
+
+function resolveMyStatusFromDto(dto: MyExamDto): StudentMyStatus {
+  return toStudentMyStatus(
+    dto.myStatus ?? dto.submissionStatus ?? dto.mySubmissionStatus ?? dto.studentStatus,
+  )
 }
 
 function normalizeMyExam(
@@ -385,7 +397,7 @@ function normalizeMyExam(
   if (id === undefined || !dto.title) return null
 
   const examStatus = toStudentExamStatus(dto.examStatus ?? dto.status)
-  const myStatus = toStudentMyStatus(dto.myStatus)
+  const myStatus = resolveMyStatusFromDto(dto)
   const rawCanTake = dto.canTake
   const canTake =
     typeof rawCanTake === 'boolean'

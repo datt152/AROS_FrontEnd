@@ -188,9 +188,6 @@ export function formatClockFromIso(iso?: string | null) {
 }
 
 export function mapStatsToCards(stats: DashboardStats): DashboardStatCard[] {
-  const questionHint =
-    stats.questionAddedLast7Days > 0 ? `+${stats.questionAddedLast7Days} tuần này` : undefined
-
   return [
     {
       id: 'classrooms',

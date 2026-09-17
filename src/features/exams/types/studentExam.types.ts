@@ -47,7 +47,7 @@ export const STUDENT_EXAM_STATUS_BADGE: Record<StudentExamStatus, string> = {
 
 export const STUDENT_MY_STATUS_LABEL: Record<StudentMyStatus, string> = {
   NOT_STARTED: 'Chưa làm',
-  IN_PROGRESS: 'Đang làm',
+  IN_PROGRESS: 'Đang làm bài',
   EXPIRED: 'Hết hạn',
   SUBMITTED: 'Đã nộp',
 }
@@ -105,4 +105,116 @@ export function canShowStudentScoreOnCard(exam: StudentExamListItem): boolean {
 
 export function formatStudentScore(score: number, maxScore: number) {
   return `${score.toFixed(2)}/${maxScore.toFixed(2)}`
+}
+
+/**
+ * Đồng bộ myStatus từ lịch sử nộp bài khi /exams/my chưa trả đúng IN_PROGRESS.
+ * Ưu tiên: IN_PROGRESS > EXPIRED > SUBMITTED > NOT_STARTED (theo submission mới nhất cùng exam+lớp).
+ */
+export function mergeStudentExamsWithSubmissions(
+  exams: StudentExamListItem[],
+  submissions: Array<{
+    examId: number
+    classroomId?: number | null
+    purpose: 'EXAM' | 'PRACTICE'
+    status: StudentMyStatus
+  }>,
+  purpose: 'EXAM' | 'PRACTICE',
+): StudentExamListItem[] {
+  const statusRank: Record<StudentMyStatus, number> = {
+    NOT_STARTED: 0,
+    SUBMITTED: 1,
+    EXPIRED: 2,
+    IN_PROGRESS: 3,
+  }
+
+  const bestByKey = new Map<string, StudentMyStatus>()
+  for (const item of submissions) {
+    if (item.purpose !== purpose) continue
+    if (item.status === 'NOT_STARTED') continue
+    const key = `${item.examId}:${item.classroomId ?? ''}`
+    const current = bestByKey.get(key)
+    if (!current || statusRank[item.status] >= statusRank[current]) {
+      bestByKey.set(key, item.status)
+    }
+  }
+
+  return exams.map((exam) => {
+    const key = `${exam.id}:${exam.classroomId ?? ''}`
+    const keyNoClass = `${exam.id}:`
+    const fromSub = bestByKey.get(key) ?? bestByKey.get(keyNoClass)
+    if (!fromSub) return exam
+    // Chỉ nâng trạng thái (không hạ SUBMITTED → NOT_STARTED)
+    if (statusRank[fromSub] <= statusRank[exam.myStatus]) return exam
+    const nextCanTake =
+      fromSub === 'IN_PROGRESS'
+        ? exam.examStatus === 'ONGOING' || exam.canTake
+        : exam.canTake
+    return {
+      ...exam,
+      myStatus: fromSub,
+      canTake: fromSub === 'IN_PROGRESS' ? Boolean(nextCanTake) : exam.canTake,
+    }
+  })
+}
+
+export type StudentExamSortMode = 'priority' | 'date_desc' | 'date_asc'
+
+const EXAM_STATUS_PRIORITY: Record<StudentExamStatus, number> = {
+  ONGOING: 0,
+  UPCOMING: 1,
+  COMPLETED: 2,
+  CLOSED: 3,
+}
+
+const MY_STATUS_PRIORITY: Record<StudentMyStatus, number> = {
+  IN_PROGRESS: 0,
+  NOT_STARTED: 1,
+  SUBMITTED: 2,
+  EXPIRED: 3,
+}
+
+function startTimeMs(exam: StudentExamListItem) {
+  if (!exam.startAt) return 0
+  const value = new Date(exam.startAt).getTime()
+  return Number.isFinite(value) ? value : 0
+}
+
+/** Ưu tiên bài đang diễn ra / đang làm, rồi theo ngày. */
+export function compareStudentExams(
+  a: StudentExamListItem,
+  b: StudentExamListItem,
+  sortMode: StudentExamSortMode = 'priority',
+) {
+  if (sortMode === 'date_desc') return startTimeMs(b) - startTimeMs(a)
+  if (sortMode === 'date_asc') return startTimeMs(a) - startTimeMs(b)
+
+  const byExam = EXAM_STATUS_PRIORITY[a.examStatus] - EXAM_STATUS_PRIORITY[b.examStatus]
+  if (byExam !== 0) return byExam
+  const byMine = MY_STATUS_PRIORITY[a.myStatus] - MY_STATUS_PRIORITY[b.myStatus]
+  if (byMine !== 0) return byMine
+  if (a.examStatus === 'UPCOMING' || a.examStatus === 'ONGOING') {
+    return startTimeMs(a) - startTimeMs(b)
+  }
+  return startTimeMs(b) - startTimeMs(a)
+}
+
+export function filterAndSortStudentExams(
+  exams: StudentExamListItem[],
+  options: {
+    search?: string
+    examStatus?: StudentExamStatus | ''
+    myStatus?: StudentMyStatus | ''
+    sortMode?: StudentExamSortMode
+  },
+) {
+  const keyword = options.search?.trim().toLowerCase() ?? ''
+  const filtered = exams.filter((exam) => {
+    if (keyword && !exam.title.toLowerCase().includes(keyword)) return false
+    if (options.examStatus && exam.examStatus !== options.examStatus) return false
+    if (options.myStatus && exam.myStatus !== options.myStatus) return false
+    return true
+  })
+  const sortMode = options.sortMode ?? 'priority'
+  return filtered.slice().sort((a, b) => compareStudentExams(a, b, sortMode))
 }

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Maximize2 } from 'lucide-react'
 
 import { Button } from '../../../components/ui/Button'
 import { ExamTimeWarningDialog } from '../../../components/common/ExamTimeWarningDialog'
@@ -7,17 +8,31 @@ import { useExamTimeWarning } from '../../../hooks/useExamTimeWarning'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { Spinner } from '../../../components/ui/Spinner'
 import { getApiErrorMessage } from '../../../lib/apiError'
+import { ROUTES } from '../../../routes/routes.config'
+import { useAuthSession } from '../../auth/hooks/useAuthSession'
+import { ExamTakePreview } from '../../exams/components/ExamTakePreview'
+import { ExamTakeQuestionNav } from '../../exams/components/ExamTakeQuestionNav'
+import { ExamTakeQuestionPanel } from '../../exams/components/ExamTakeQuestionPanel'
+import { ExamTakeSubmitDialog } from '../../exams/components/ExamTakeSubmitDialog'
+import { useFullscreen } from '../../exams/hooks/useFullscreen'
 import { useSubmitExam, useTakeExam } from '../../exams/hooks/useExams'
+import {
+  clearExamTakeDraft,
+  loadActiveExamTake,
+  loadExamTakeDraft,
+  saveExamTakeDraft,
+} from '../../exams/lib/examTakeDraft'
+import type { TakeExamLocationState } from '../../exams/types/studentExam.types'
 import {
   answersToSubmitPayload,
   mapExamTakeError,
   type ExamTakeItem,
   type SubmissionResultItem,
 } from '../../exams/types/exam.types'
-import type { TakeExamLocationState } from '../../exams/types/studentExam.types'
-import { ROUTES } from '../../../routes/routes.config'
 import { PracticeAttemptBadge } from '../components/PracticeAttemptBadge'
 import { canRetryPractice } from '../types/practice.types'
+
+type Phase = 'answering' | 'preview'
 
 function readTakeState(state: unknown): TakeExamLocationState | undefined {
   if (!state || typeof state !== 'object') return undefined
@@ -30,16 +45,38 @@ function readTakeState(state: unknown): TakeExamLocationState | undefined {
   return { examId, classroomId }
 }
 
+function hasAnswer(value: string | string[] | undefined) {
+  if (value === undefined) return false
+  if (Array.isArray(value)) return value.length > 0
+  return value.length > 0
+}
+
 export function PracticeTakePage() {
   const location = useLocation()
   const navigate = useNavigate()
-  const takeState = readTakeState(location.state)
-  const examId = takeState?.examId
-  const classroomId = takeState?.classroomId
+  const { session } = useAuthSession()
+  const userEmail = session?.email
+
+  const locationTake = readTakeState(location.state)
+  const activeTake = useMemo(
+    () => (locationTake ? null : loadActiveExamTake(userEmail, 'practice')),
+    [locationTake, userEmail],
+  )
+  const examId = locationTake?.examId ?? activeTake?.examId
+  const classroomId = locationTake?.classroomId ?? activeTake?.classroomId
+
+  const shellRef = useRef<HTMLElement | null>(null)
+  const fullscreen = useFullscreen(shellRef)
+  const draftRestoredRef = useRef(false)
+  const [draftReady, setDraftReady] = useState(false)
 
   const [result, setResult] = useState<SubmissionResultItem | null>(null)
   const [submittedExam, setSubmittedExam] = useState<ExamTakeItem | null>(null)
   const [answers, setAnswers] = useState<Record<number, string | string[]>>({})
+  const [flagged, setFlagged] = useState<Set<number>>(() => new Set())
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [phase, setPhase] = useState<Phase>('answering')
+  const [submitDialogOpen, setSubmitDialogOpen] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [now, setNow] = useState(() => Date.now())
   const [takeKey, setTakeKey] = useState(0)
@@ -47,11 +84,48 @@ export function PracticeTakePage() {
 
   const takeQuery = useTakeExam(examId, classroomId, !result)
   const submitExam = useSubmitExam()
-
   const exam = submittedExam ?? takeQuery.data
+
   const timeLimited = exam?.timeLimitEnabled === true
   const attemptNo = exam?.attemptNo ?? 1
   const maxAttempts = exam?.maxAttempts ?? null
+
+  useEffect(() => {
+    if (!exam || !classroomId || draftRestoredRef.current) return
+    draftRestoredRef.current = true
+    const draft = userEmail ? loadExamTakeDraft(userEmail, exam.examId, classroomId, 'practice') : null
+    if (draft) {
+      if (draft.versionCode && draft.versionCode !== exam.versionCode) {
+        clearExamTakeDraft(userEmail, exam.examId, classroomId, 'practice')
+      } else {
+        setAnswers(draft.answers ?? {})
+        setFlagged(new Set(draft.flagged ?? []))
+        setCurrentIndex(
+          Math.min(Math.max(draft.currentIndex ?? 0, 0), Math.max(exam.questions.length - 1, 0)),
+        )
+        setPhase(draft.phase === 'preview' ? 'preview' : 'answering')
+      }
+    }
+    setDraftReady(true)
+  }, [exam, userEmail, classroomId, takeKey])
+
+  useEffect(() => {
+    if (!draftReady || !exam || !userEmail || !classroomId || result) return
+    saveExamTakeDraft(
+      userEmail,
+      {
+        examId: exam.examId,
+        classroomId,
+        versionCode: exam.versionCode,
+        answers,
+        flagged: Array.from(flagged),
+        currentIndex,
+        phase,
+        updatedAt: Date.now(),
+      },
+      'practice',
+    )
+  }, [draftReady, exam, userEmail, classroomId, answers, flagged, currentIndex, phase, result])
 
   const deadline = useMemo(() => {
     if (!exam || !timeLimited) return 0
@@ -64,9 +138,53 @@ export function PracticeTakePage() {
     return () => window.clearInterval(timer)
   }, [result, exam, timeLimited, takeKey])
 
-  const secondsLeft = timeLimited && deadline ? Math.max(0, Math.floor((deadline - now) / 1000)) : null
+  useEffect(() => {
+    if (result) void fullscreen.exit()
+  }, [result, fullscreen])
+
+  const secondsLeft =
+    timeLimited && deadline ? Math.max(0, Math.floor((deadline - now) / 1000)) : null
+  const minutes = secondsLeft !== null ? Math.floor(secondsLeft / 60) : 0
+  const seconds = secondsLeft !== null ? secondsLeft % 60 : 0
   const timeLimitedActive = Boolean(timeLimited && exam && !result)
   const timeWarning = useExamTimeWarning(timeLimitedActive ? secondsLeft : null, timeLimitedActive)
+
+  const questionIds = useMemo(() => exam?.questions.map((q) => q.questionId) ?? [], [exam])
+  const unansweredCount = useMemo(() => {
+    if (!exam) return 0
+    return exam.questions.filter((q) => !hasAnswer(answers[q.questionId])).length
+  }, [exam, answers])
+
+  function setSingleAnswer(questionId: number, label: string) {
+    setAnswers((current) => ({ ...current, [questionId]: label }))
+  }
+
+  function toggleMultiAnswer(questionId: number, label: string) {
+    setAnswers((current) => {
+      const existing = Array.isArray(current[questionId]) ? (current[questionId] as string[]) : []
+      const next = existing.includes(label)
+        ? existing.filter((item) => item !== label)
+        : [...existing, label]
+      return { ...current, [questionId]: next }
+    })
+  }
+
+  function clearAnswer(questionId: number) {
+    setAnswers((current) => {
+      const next = { ...current }
+      delete next[questionId]
+      return next
+    })
+  }
+
+  function toggleFlag(questionId: number) {
+    setFlagged((current) => {
+      const next = new Set(current)
+      if (next.has(questionId)) next.delete(questionId)
+      else next.add(questionId)
+      return next
+    })
+  }
 
   async function handleSubmit(options?: { timedOut?: boolean }) {
     if (!exam || !classroomId || submitExam.isPending) return
@@ -78,8 +196,10 @@ export function PracticeTakePage() {
         versionCode: exam.versionCode,
         answers: answersToSubmitPayload(answers),
       })
+      clearExamTakeDraft(userEmail, exam.examId, classroomId, 'practice')
       setSubmittedExam(exam)
       setResult(data)
+      setSubmitDialogOpen(false)
       void navigate(ROUTES.student.takePractice, { replace: true, state: null })
     } catch (error) {
       setSubmitError(mapExamTakeError(getApiErrorMessage(error, 'Không thể nộp bài')))
@@ -88,7 +208,9 @@ export function PracticeTakePage() {
   }
 
   useEffect(() => {
-    if (!timeLimited || !exam || result || secondsLeft === null || secondsLeft > 0 || submitExam.isPending) return
+    if (!timeLimited || !exam || result || secondsLeft === null || secondsLeft > 0 || submitExam.isPending) {
+      return
+    }
     if (autoSubmittedRef.current) return
     autoSubmittedRef.current = true
     void handleSubmit({ timedOut: true })
@@ -97,10 +219,16 @@ export function PracticeTakePage() {
   async function handleRetry() {
     if ((!examId && !submittedExam) || !classroomId) return
     const retryId = examId ?? submittedExam?.examId
+    if (retryId) clearExamTakeDraft(userEmail, retryId, classroomId, 'practice')
     setResult(null)
     setSubmittedExam(null)
     setAnswers({})
+    setFlagged(new Set())
+    setCurrentIndex(0)
+    setPhase('answering')
     setSubmitError(null)
+    draftRestoredRef.current = false
+    setDraftReady(false)
     autoSubmittedRef.current = false
     timeWarning.resetWarning()
     setTakeKey((value) => value + 1)
@@ -213,104 +341,133 @@ export function PracticeTakePage() {
     )
   }
 
+  const canSubmit = !submitExam.isPending && (!timeLimited || (secondsLeft !== null && secondsLeft > 0))
+  const currentQuestion = exam.questions[currentIndex]
+
   return (
-    <section className="mx-auto max-w-3xl space-y-5 py-6">
+    <section ref={shellRef} className="fixed inset-0 z-[70] flex flex-col bg-white text-slate-900">
       <ExamTimeWarningDialog
         open={timeWarning.open}
         secondsLeft={timeWarning.secondsLeft}
         onDismiss={timeWarning.dismiss}
       />
-      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wider text-blue-600">Luyện tập</p>
-          <h1 className="mt-1 text-xl font-semibold text-slate-900">{exam.title}</h1>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <PracticeAttemptBadge attemptNo={attemptNo} maxAttempts={maxAttempts} />
-            {!timeLimited ? (
-              <span className="rounded-lg bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-800">
-                Không giới hạn giờ
-              </span>
-            ) : null}
-          </div>
-        </div>
-        {timeLimited && secondsLeft !== null ? (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-center">
-            <p className="text-[11px] font-medium uppercase tracking-wider text-amber-700">Còn lại</p>
-            <p className="text-lg font-semibold tabular-nums text-amber-900">
-              {String(Math.floor(secondsLeft / 60)).padStart(2, '0')}:
-              {String(secondsLeft % 60).padStart(2, '0')}
+
+      {!fullscreen.isFullscreen ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-slate-950 px-6 text-center text-white">
+          <Maximize2 className="h-10 w-10 text-blue-300" strokeWidth={1.5} />
+          <div className="max-w-md space-y-2">
+            <h1 className="text-xl font-semibold">Bắt buộc toàn màn hình</h1>
+            <p className="text-sm text-slate-300">
+              Để làm bài <span className="font-medium text-white">{exam.title}</span>, bạn cần bật chế độ
+              toàn màn hình.
             </p>
+            {fullscreen.error ? <p className="text-sm text-red-300">{fullscreen.error}</p> : null}
           </div>
-        ) : null}
-      </div>
-
-      {submitError ? (
-        <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">{submitError}</p>
-      ) : null}
-
-      <div className="space-y-4">
-        {exam.questions.map((question, index) => {
-          const isMulti = question.type === 'MULTIPLE_CHOICE'
-          return (
-            <div key={question.questionId} className="rounded-2xl border border-slate-200 bg-white p-4">
-              <p className="text-sm font-medium text-slate-900">
-                Câu {index + 1}. {question.content}
-              </p>
-              <div className="mt-3 space-y-2">
-                {question.options.map((option) => {
-                  const selected = answers[question.questionId]
-                  const isChecked = isMulti
-                    ? Array.isArray(selected) && selected.includes(option.label)
-                    : selected === option.label
-
-                  return (
-                    <label
-                      key={option.label}
-                      className={`flex cursor-pointer items-start gap-2 rounded-xl border px-3 py-2 text-sm ${
-                        isChecked ? 'border-blue-300 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'
-                      }`}
-                    >
-                      <input
-                        type={isMulti ? 'checkbox' : 'radio'}
-                        name={`q-${question.questionId}`}
-                        checked={isChecked}
-                        onChange={() => {
-                          if (isMulti) {
-                            setAnswers((current) => {
-                              const existing = Array.isArray(current[question.questionId])
-                                ? (current[question.questionId] as string[])
-                                : []
-                              const next = existing.includes(option.label)
-                                ? existing.filter((item) => item !== option.label)
-                                : [...existing, option.label]
-                              return { ...current, [question.questionId]: next }
-                            })
-                          } else {
-                            setAnswers((current) => ({ ...current, [question.questionId]: option.label }))
-                          }
-                        }}
-                        className="mt-0.5"
-                      />
-                      <span>
-                        <span className="font-medium text-slate-700">{option.label}.</span> {option.content}
-                      </span>
-                    </label>
-                  )
-                })}
+          <Button type="button" className="h-11 min-w-48 px-6" onClick={() => void fullscreen.enter()}>
+            Vào toàn màn hình để làm bài
+          </Button>
+        </div>
+      ) : (
+        <>
+          <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3 sm:px-6">
+            <div className="min-w-0">
+              <p className="text-xs font-medium uppercase tracking-wider text-blue-600">Luyện tập</p>
+              <h1 className="truncate text-base font-semibold text-slate-900 sm:text-lg">{exam.title}</h1>
+              <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                <PracticeAttemptBadge attemptNo={attemptNo} maxAttempts={maxAttempts} />
+                <span className="text-xs text-slate-500">Mã đề {exam.versionCode}</span>
               </div>
             </div>
-          )
-        })}
-      </div>
+            {timeLimited && secondsLeft !== null ? (
+              <div
+                className={`rounded-xl border px-4 py-2 text-center ${
+                  secondsLeft <= 30
+                    ? 'border-red-200 bg-red-50 text-red-700'
+                    : 'border-slate-200 bg-slate-50 text-slate-800'
+                }`}
+              >
+                <p
+                  className={`text-[11px] uppercase tracking-wider ${
+                    secondsLeft <= 30 ? 'text-red-500' : 'text-slate-500'
+                  }`}
+                >
+                  Thời gian còn
+                </p>
+                <p className="text-lg font-semibold tabular-nums">
+                  {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+                </p>
+              </div>
+            ) : (
+              <span className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800">
+                Không giới hạn giờ
+              </span>
+            )}
+          </header>
 
-      <div className="flex justify-end">
-        <Button
-          disabled={submitExam.isPending || (timeLimited && secondsLeft === 0)}
-          onClick={() => void handleSubmit()}
-        >
-          {submitExam.isPending ? 'Đang nộp...' : 'Nộp bài'}
-        </Button>
-      </div>
+          {submitError ? (
+            <p className="shrink-0 border-b border-red-200 bg-red-50 px-4 py-2 text-sm text-red-600 sm:px-6">
+              {submitError}
+            </p>
+          ) : null}
+
+          <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+            <div className="max-h-40 shrink-0 overflow-hidden border-b border-slate-200 lg:max-h-none lg:h-full lg:border-b-0">
+              <ExamTakeQuestionNav
+                total={exam.questions.length}
+                currentIndex={currentIndex}
+                answers={answers}
+                flagged={flagged}
+                questionIds={questionIds}
+                onSelect={(index) => {
+                  setCurrentIndex(index)
+                  setPhase('answering')
+                }}
+              />
+            </div>
+
+            {phase === 'answering' && currentQuestion ? (
+              <ExamTakeQuestionPanel
+                index={currentIndex}
+                total={exam.questions.length}
+                question={currentQuestion}
+                answer={answers[currentQuestion.questionId]}
+                flagged={flagged.has(currentQuestion.questionId)}
+                onSingleAnswer={(label) => setSingleAnswer(currentQuestion.questionId, label)}
+                onToggleMulti={(label) => toggleMultiAnswer(currentQuestion.questionId, label)}
+                onClear={() => clearAnswer(currentQuestion.questionId)}
+                onToggleFlag={() => toggleFlag(currentQuestion.questionId)}
+                onPrev={() => setCurrentIndex((value) => Math.max(0, value - 1))}
+                onNext={() =>
+                  setCurrentIndex((value) => Math.min(exam.questions.length - 1, value + 1))
+                }
+                onFinish={() => setPhase('preview')}
+              />
+            ) : (
+              <ExamTakePreview
+                questions={exam.questions}
+                answers={answers}
+                flagged={flagged}
+                onEdit={(index) => {
+                  setCurrentIndex(index)
+                  setPhase('answering')
+                }}
+                onSubmitClick={() => setSubmitDialogOpen(true)}
+                canSubmit={canSubmit}
+                isSubmitting={submitExam.isPending}
+                submitLabel={timeLimited && secondsLeft === 0 ? 'Hết giờ' : 'Nộp bài'}
+              />
+            )}
+          </div>
+
+          <ExamTakeSubmitDialog
+            open={submitDialogOpen}
+            unansweredCount={unansweredCount}
+            isSubmitting={submitExam.isPending}
+            onClose={() => setSubmitDialogOpen(false)}
+            onConfirm={() => void handleSubmit()}
+          />
+        </>
+      )}
     </section>
   )
 }

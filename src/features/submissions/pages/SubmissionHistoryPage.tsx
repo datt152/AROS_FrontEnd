@@ -135,7 +135,7 @@ export function SubmissionHistoryPage() {
         <div className="space-y-6">
           {inProgressItems.length > 0 ? (
             <div className="space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-wider text-amber-600">Đang làm dở</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-amber-600">Đang làm bài</p>
               {inProgressItems.map((item) => (
                 <SubmissionHistoryCard key={item.submissionId} item={item} />
               ))}

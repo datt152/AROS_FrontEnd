@@ -53,7 +53,7 @@ export type StudentSubmissionDetail = {
 
 export const SUBMISSION_STATUS_LABEL: Record<SubmissionStatus, string> = {
   NOT_STARTED: 'Chưa làm',
-  IN_PROGRESS: 'Đang làm dở',
+  IN_PROGRESS: 'Đang làm bài',
   EXPIRED: 'Hết giờ (chưa nộp)',
   SUBMITTED: 'Đã nộp',
 }

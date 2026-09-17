@@ -11,7 +11,6 @@ import {
   DASHBOARD_PHASE_CLASS,
   DASHBOARD_PHASE_LABEL,
   addDays,
-  formatClockFromIso,
   formatDayLabel,
   formatMonthLabel,
   startOfMonth,
@@ -289,8 +288,6 @@ export function DashboardCalendar({
         ) : (
           <ul className="mt-2 min-h-0 flex-1 space-y-2 overflow-y-auto">
             {selectedEvents.map((event) => {
-              const start = formatClockFromIso(event.startAt)
-              const end = formatClockFromIso(event.endAt)
               return (
                 <li key={event.id}>
                   <Link
@@ -300,7 +297,7 @@ export function DashboardCalendar({
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-slate-900">{event.title}</p>
                       <p className="mt-0.5 text-xs text-slate-500">
-                        {DASHBOARD_KIND_LABEL[event.kind]} · {event.subjectName} 
+                        {DASHBOARD_KIND_LABEL[event.kind]} · {event.subjectName}
                       </p>
                     </div>
                     <span
