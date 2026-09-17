@@ -82,7 +82,7 @@ export function PracticeTakePage() {
   const [takeKey, setTakeKey] = useState(0)
   const autoSubmittedRef = useRef(false)
 
-  const takeQuery = useTakeExam(examId, classroomId, !result)
+  const takeQuery = useTakeExam(examId, classroomId, !result, takeKey)
   const submitExam = useSubmitExam()
   const exam = submittedExam ?? takeQuery.data
 
@@ -93,6 +93,18 @@ export function PracticeTakePage() {
   useEffect(() => {
     if (!exam || !classroomId || draftRestoredRef.current) return
     draftRestoredRef.current = true
+
+    const attemptExpired =
+      exam.timeLimitEnabled === true &&
+      Date.now() >= new Date(exam.startTime).getTime() + exam.duration * 60 * 1000
+
+    // Lượt đã hết giờ: bỏ draft cũ, để auto-submit rồi làm lại (không restore bài dở)
+    if (attemptExpired) {
+      clearExamTakeDraft(userEmail, exam.examId, classroomId, 'practice')
+      setDraftReady(true)
+      return
+    }
+
     const draft = userEmail ? loadExamTakeDraft(userEmail, exam.examId, classroomId, 'practice') : null
     if (draft) {
       if (draft.versionCode && draft.versionCode !== exam.versionCode) {
@@ -324,11 +336,28 @@ export function PracticeTakePage() {
           title={exhausted ? 'Đã hết lượt làm bài' : 'Không thể vào làm bài'}
           description={message}
         />
-        <Link to={ROUTES.student.practice} className="block">
-          <Button variant="secondary" className="w-full">
-            Quay lại danh sách
-          </Button>
-        </Link>
+        <div className="flex flex-col gap-2">
+          {!exhausted ? (
+            <Button
+              onClick={() => {
+                if (examId && classroomId) {
+                  clearExamTakeDraft(userEmail, examId, classroomId, 'practice')
+                }
+                draftRestoredRef.current = false
+                setDraftReady(false)
+                autoSubmittedRef.current = false
+                setTakeKey((value) => value + 1)
+              }}
+            >
+              Thử bắt đầu lượt mới
+            </Button>
+          ) : null}
+          <Link to={ROUTES.student.practice} className="block">
+            <Button variant="secondary" className="w-full">
+              Quay lại danh sách
+            </Button>
+          </Link>
+        </div>
       </section>
     )
   }
@@ -343,6 +372,33 @@ export function PracticeTakePage() {
 
   const canSubmit = !submitExam.isPending && (!timeLimited || (secondsLeft !== null && secondsLeft > 0))
   const currentQuestion = exam.questions[currentIndex]
+  const attemptAlreadyExpired =
+    timeLimited && secondsLeft !== null && secondsLeft <= 0 && !result
+
+  // Hết giờ khi vừa vào lại (đã thoát trước đó): hiện CTA làm lại nếu auto-submit lỗi
+  if (attemptAlreadyExpired && submitError) {
+    return (
+      <section className="mx-auto max-w-lg space-y-4 py-10">
+        <EmptyState
+          title="Lượt làm đã hết giờ"
+          description={
+            submitError ||
+            'Lượt trước đã hết thời gian. Bạn có thể bắt đầu lượt mới nếu còn lượt luyện tập.'
+          }
+        />
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+          <Button onClick={() => void handleRetry()} disabled={takeQuery.isFetching}>
+            {takeQuery.isFetching ? 'Đang tải...' : 'Bắt đầu lượt mới'}
+          </Button>
+          <Link to={ROUTES.student.practice}>
+            <Button variant="secondary" className="w-full sm:w-auto">
+              Về danh sách luyện tập
+            </Button>
+          </Link>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section ref={shellRef} className="fixed inset-0 z-[70] flex flex-col bg-white text-slate-900">

@@ -173,6 +173,7 @@ export function StudentExamListPage() {
 
             {selected ? (
               <StudentExamListToolbar
+                mode="EXAM"
                 search={search}
                 examStatus={examStatus}
                 myStatus={myStatus}

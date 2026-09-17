@@ -16,6 +16,7 @@ import type {
   SubmissionResultItem,
 } from '../types/exam.types'
 import type { StudentExamListItem, StudentExamStatus, StudentMyStatus } from '../types/studentExam.types'
+import { canRetryPracticeAttempt } from '../types/studentExam.types'
 
 type ExamOnlineSettingsDto = {
   status?: ExamStatus
@@ -149,6 +150,9 @@ type MyExamDto = {
   classroomId?: number | null
   classroomName?: string | null
   onlineSettings?: ExamOnlineSettingsDto | null
+  attemptNo?: number
+  maxAttempts?: number | null
+  remainingAttempts?: number | null
 }
 
 export type ExamsPageResult = {
@@ -398,11 +402,51 @@ function normalizeMyExam(
 
   const examStatus = toStudentExamStatus(dto.examStatus ?? dto.status)
   const myStatus = resolveMyStatusFromDto(dto)
+  const attemptNo =
+    typeof dto.attemptNo === 'number' && Number.isFinite(dto.attemptNo) ? dto.attemptNo : null
+  const maxAttempts =
+    dto.maxAttempts ?? dto.onlineSettings?.maxAttempts ?? null
+  const remainingAttempts =
+    typeof dto.remainingAttempts === 'number' && Number.isFinite(dto.remainingAttempts)
+      ? dto.remainingAttempts
+      : null
+
   const rawCanTake = dto.canTake
-  const canTake =
+  let canTake =
     typeof rawCanTake === 'boolean'
       ? rawCanTake
       : examStatus === 'ONGOING' && (myStatus === 'NOT_STARTED' || myStatus === 'IN_PROGRESS')
+
+  // PRACTICE: hết giờ / đã nộp nhưng còn lượt → vẫn cho vào làm lại
+  // (BE đôi khi trả canTake=false dù remainingAttempts > 0)
+  if (
+    purpose === 'PRACTICE' &&
+    !canTake &&
+    canRetryPracticeAttempt({
+      purpose,
+      examStatus,
+      myStatus,
+      attemptNo,
+      maxAttempts,
+      remainingAttempts,
+    })
+  ) {
+    canTake = true
+  } else if (
+    purpose === 'PRACTICE' &&
+    typeof rawCanTake !== 'boolean' &&
+    examStatus === 'ONGOING' &&
+    (myStatus === 'EXPIRED' || myStatus === 'SUBMITTED')
+  ) {
+    canTake = canRetryPracticeAttempt({
+      purpose,
+      examStatus,
+      myStatus,
+      attemptNo,
+      maxAttempts,
+      remainingAttempts,
+    })
+  }
 
   const showScoreToStudent =
     dto.showScoreToStudent ??
@@ -442,6 +486,9 @@ function normalizeMyExam(
     myScore,
     classroomId: dto.classroomId ?? null,
     classroomName: dto.classroomName ?? null,
+    attemptNo,
+    maxAttempts,
+    remainingAttempts,
   }
 }
 

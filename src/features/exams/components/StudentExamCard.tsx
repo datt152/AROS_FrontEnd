@@ -27,22 +27,25 @@ type StudentExamCardProps = {
 
 export function StudentExamCard({ exam, classroomId, mode = 'EXAM' }: StudentExamCardProps) {
   const navigate = useNavigate()
-  const blockReason = getStudentTakeBlockReason(exam)
+  const blockReason = getStudentTakeBlockReason(exam, mode)
   const showScore = canShowStudentScoreOnCard(exam)
   const isPractice = mode === 'PRACTICE'
+  const isRetry =
+    exam.canTake && (exam.myStatus === 'SUBMITTED' || exam.myStatus === 'EXPIRED')
 
   function handleTake() {
     const state: TakeExamLocationState = { examId: exam.id, classroomId }
     void navigate(isPractice ? ROUTES.student.takePractice : ROUTES.student.takeExam, { state })
   }
 
-  const takeLabel = exam.myStatus === 'IN_PROGRESS'
-    ? 'Tiếp tục làm'
-    : exam.myStatus === 'SUBMITTED' && exam.canTake
-      ? 'Làm lại'
-      : isPractice
-        ? 'Vào luyện tập'
-        : 'Vào làm bài'
+  const takeLabel =
+    exam.myStatus === 'IN_PROGRESS'
+      ? 'Tiếp tục làm'
+      : isRetry
+        ? 'Làm lại'
+        : isPractice
+          ? 'Vào luyện tập'
+          : 'Vào làm bài'
 
   return (
     <article className={`rounded-2xl border border-slate-200 bg-white p-4 shadow-sm ${INTERACTIVE_CARD_HOVER_CLASS}`}>
@@ -97,11 +100,13 @@ export function StudentExamCard({ exam, classroomId, mode = 'EXAM' }: StudentExa
           <p className="text-sm text-emerald-700">
             {exam.myStatus === 'IN_PROGRESS'
               ? 'Bài làm chưa hoàn thành - tiếp tục vào làm bài.'
-              : exam.myStatus === 'SUBMITTED' && exam.canTake
-                ? 'Bạn còn lượt làm lại.'
-                : isPractice
-                  ? 'Có thể vào luyện tập.'
-                  : 'Có thể vào làm bài.'}
+              : exam.myStatus === 'EXPIRED' && exam.canTake
+                ? 'Lượt trước đã hết giờ — bạn vẫn còn lượt làm lại.'
+                : exam.myStatus === 'SUBMITTED' && exam.canTake
+                  ? 'Bạn còn lượt làm lại.'
+                  : isPractice
+                    ? 'Có thể vào luyện tập.'
+                    : 'Có thể vào làm bài.'}
           </p>
         )}
 

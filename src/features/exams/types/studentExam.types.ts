@@ -22,6 +22,10 @@ export type StudentExamListItem = {
   myScore: number | null
   classroomId?: number | null
   classroomName?: string | null
+  /** Lượt hiện tại / đã dùng (nếu API trả) */
+  attemptNo?: number | null
+  maxAttempts?: number | null
+  remainingAttempts?: number | null
 }
 
 /** Truyền qua router state — không gắn examId lên URL */
@@ -83,10 +87,19 @@ export function formatStudentExamSchedule(startAt: string | null, endAt: string 
   return `Đến ${dateFmt.format(end)} · ${timeFmt.format(end)}`
 }
 
-export function getStudentTakeBlockReason(exam: StudentExamListItem): string | null {
+export function getStudentTakeBlockReason(
+  exam: StudentExamListItem,
+  mode: 'EXAM' | 'PRACTICE' = 'EXAM',
+): string | null {
   if (exam.canTake) return null
-  if (exam.myStatus === 'SUBMITTED') return 'Bạn đã nộp bài'
-  if (exam.myStatus === 'EXPIRED') return 'Đã hết thời gian làm bài'
+  if (exam.myStatus === 'SUBMITTED') {
+    return mode === 'PRACTICE' ? 'Bạn đã hết lượt làm lại' : 'Bạn đã nộp bài'
+  }
+  if (exam.myStatus === 'EXPIRED') {
+    return mode === 'PRACTICE'
+      ? 'Lượt trước đã hết giờ và không còn lượt làm lại'
+      : 'Đã hết thời gian làm bài'
+  }
   if (exam.examStatus === 'UPCOMING') return 'Chưa đến giờ mở đề'
   if (exam.examStatus === 'CLOSED') return 'Đề đã đóng'
   if (exam.examStatus === 'COMPLETED') return 'Kỳ thi đã kết thúc'
@@ -108,8 +121,35 @@ export function formatStudentScore(score: number, maxScore: number) {
 }
 
 /**
+ * Luyện tập còn được làm lại khi đề đang mở và lượt trước đã nộp / hết giờ.
+ * EXAM (thi chính thức) không retry qua helper này.
+ */
+export function canRetryPracticeAttempt(options: {
+  purpose: 'EXAM' | 'PRACTICE'
+  examStatus: StudentExamStatus
+  myStatus: StudentMyStatus
+  attemptNo?: number | null
+  maxAttempts?: number | null
+  remainingAttempts?: number | null
+}): boolean {
+  if (options.purpose !== 'PRACTICE') return false
+  if (options.examStatus !== 'ONGOING') return false
+  if (options.myStatus !== 'EXPIRED' && options.myStatus !== 'SUBMITTED') return false
+  if (
+    typeof options.remainingAttempts === 'number' &&
+    Number.isFinite(options.remainingAttempts)
+  ) {
+    return options.remainingAttempts > 0
+  }
+  if (options.maxAttempts === null || options.maxAttempts === undefined) return true
+  const used = options.attemptNo ?? 1
+  return used < options.maxAttempts
+}
+
+/**
  * Đồng bộ myStatus từ lịch sử nộp bài khi /exams/my chưa trả đúng IN_PROGRESS.
  * Ưu tiên: IN_PROGRESS > EXPIRED > SUBMITTED > NOT_STARTED (theo submission mới nhất cùng exam+lớp).
+ * PRACTICE: EXPIRED/SUBMITTED vẫn mở canTake nếu đề đang ONGOING (còn lượt làm lại).
  */
 export function mergeStudentExamsWithSubmissions(
   exams: StudentExamListItem[],
@@ -146,14 +186,29 @@ export function mergeStudentExamsWithSubmissions(
     if (!fromSub) return exam
     // Chỉ nâng trạng thái (không hạ SUBMITTED → NOT_STARTED)
     if (statusRank[fromSub] <= statusRank[exam.myStatus]) return exam
-    const nextCanTake =
-      fromSub === 'IN_PROGRESS'
-        ? exam.examStatus === 'ONGOING' || exam.canTake
-        : exam.canTake
+
+    const nextStatus = fromSub
+    let nextCanTake = exam.canTake
+    if (fromSub === 'IN_PROGRESS') {
+      nextCanTake = exam.examStatus === 'ONGOING' || exam.canTake
+    } else if (
+      purpose === 'PRACTICE' &&
+      (fromSub === 'EXPIRED' || fromSub === 'SUBMITTED')
+    ) {
+      nextCanTake = canRetryPracticeAttempt({
+        purpose,
+        examStatus: exam.examStatus,
+        myStatus: fromSub,
+        attemptNo: exam.attemptNo,
+        maxAttempts: exam.maxAttempts,
+        remainingAttempts: exam.remainingAttempts,
+      })
+    }
+
     return {
       ...exam,
-      myStatus: fromSub,
-      canTake: fromSub === 'IN_PROGRESS' ? Boolean(nextCanTake) : exam.canTake,
+      myStatus: nextStatus,
+      canTake: Boolean(nextCanTake),
     }
   })
 }

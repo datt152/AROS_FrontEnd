@@ -173,6 +173,7 @@ export function StudentPracticeListPage() {
 
             {selected ? (
               <StudentExamListToolbar
+                mode="PRACTICE"
                 search={search}
                 examStatus={examStatus}
                 myStatus={myStatus}

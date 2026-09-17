@@ -17,6 +17,8 @@ type StudentExamListToolbarProps = {
   examStatus: StudentExamStatus | ''
   myStatus: StudentMyStatus | ''
   sortMode: StudentExamSortMode
+  /** EXAM → "Trạng thái bài thi"; PRACTICE → "Trạng thái bài luyện tập" */
+  mode?: 'EXAM' | 'PRACTICE'
   searchPlaceholder?: string
   onSearchChange: (value: string) => void
   onExamStatusChange: (value: StudentExamStatus | '') => void
@@ -29,12 +31,18 @@ export function StudentExamListToolbar({
   examStatus,
   myStatus,
   sortMode,
+  mode = 'EXAM',
   searchPlaceholder = 'Tìm theo tên bài...',
   onSearchChange,
   onExamStatusChange,
   onMyStatusChange,
   onSortModeChange,
 }: StudentExamListToolbarProps) {
+  const scheduleStatusLabel =
+    mode === 'PRACTICE' ? 'Trạng thái bài luyện tập' : 'Trạng thái bài thi'
+  const scheduleStatusAllLabel =
+    mode === 'PRACTICE' ? 'Tất cả trạng thái luyện tập' : 'Tất cả trạng thái bài thi'
+
   return (
     <div className="space-y-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
       <div className="relative">
@@ -48,13 +56,13 @@ export function StudentExamListToolbar({
       </div>
       <div className="grid gap-2 sm:grid-cols-3">
         <label className="space-y-1">
-          <span className="text-[11px] font-medium text-slate-500">Trạng thái đề</span>
+          <span className="text-[11px] font-medium text-slate-500">{scheduleStatusLabel}</span>
           <select
             className={`w-full ${selectClass}`}
             value={examStatus}
             onChange={(event) => onExamStatusChange(event.target.value as StudentExamStatus | '')}
           >
-            <option value="">Tất cả trạng thái đề</option>
+            <option value="">{scheduleStatusAllLabel}</option>
             {(Object.keys(STUDENT_EXAM_STATUS_LABEL) as StudentExamStatus[]).map((key) => (
               <option key={key} value={key}>
                 {STUDENT_EXAM_STATUS_LABEL[key]}

@@ -107,9 +107,14 @@ export function useExamVersionDetail(examId: number | undefined, versionCode: st
   })
 }
 
-export function useTakeExam(id: number | undefined, classroomId: number | undefined, enabled = true) {
+export function useTakeExam(
+  id: number | undefined,
+  classroomId: number | undefined,
+  enabled = true,
+  sessionKey = 0,
+) {
   return useQuery({
-    queryKey: examKeys.take(id ?? -1, classroomId ?? -1),
+    queryKey: [...examKeys.take(id ?? -1, classroomId ?? -1), sessionKey],
     queryFn: () => takeExam(id!, classroomId!),
     enabled: enabled && id !== undefined && id > 0 && classroomId !== undefined && classroomId > 0,
     retry: false,
