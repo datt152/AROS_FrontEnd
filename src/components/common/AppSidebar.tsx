@@ -151,8 +151,8 @@ export function AppSidebar({
           </button>
         </div>
       ) : (
-        <aside className="hidden min-h-screen w-64 shrink-0 border-r border-slate-200 bg-white/90 backdrop-blur-xl lg:flex lg:flex-col">
-          <div className="flex h-14 items-center justify-between border-b border-slate-200 px-4">
+        <aside className="hidden h-svh w-64 shrink-0 border-r border-slate-200 bg-white/90 backdrop-blur-xl lg:flex lg:flex-col">
+          <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200 px-4">
             <div>
               <p className="text-sm font-semibold tracking-tight text-slate-900">AROS</p>
               <p className="text-xs text-slate-500">{workspaceLabel[role]}</p>
@@ -169,7 +169,9 @@ export function AppSidebar({
           <div className="min-h-0 flex-1 overflow-y-auto py-2">
             <NavItems role={role} />
           </div>
-          <AccountActions onOpenAccount={() => setIsAccountOpen(true)} />
+          <div className="shrink-0">
+            <AccountActions onOpenAccount={() => setIsAccountOpen(true)} />
+          </div>
         </aside>
       )}
 
