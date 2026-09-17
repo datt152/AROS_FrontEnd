@@ -4,6 +4,7 @@ import { AuthSessionBridge } from '../features/auth/components/AuthSessionBridge
 import { LoginPage } from '../features/auth/pages/LoginPage'
 import { RegisterPage } from '../features/auth/pages/RegisterPage'
 import { ClassroomListPage } from '../features/classrooms/pages/ClassroomListPage'
+import { StudentDashboardPage } from '../features/dashboard/pages/StudentDashboardPage'
 import { TeacherDashboardPage } from '../features/dashboard/pages/TeacherDashboardPage'
 import { ExamTemplateListPage } from '../features/exam-templates/pages/ExamTemplateListPage'
 import { ExamTakePage } from '../features/exams/pages/ExamTakePage'
@@ -56,6 +57,7 @@ function teacherPageForPath(path: string) {
 }
 
 function studentPageForPath(path: string) {
+  if (path === ROUTES.student.dashboard) return <StudentDashboardPage />
   if (path === ROUTES.student.exams) return <StudentExamListPage />
   if (path === ROUTES.student.takeExam) return <ExamTakePage />
   if (path === ROUTES.student.practice) return <StudentPracticeListPage />

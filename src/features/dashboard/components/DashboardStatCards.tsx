@@ -1,10 +1,12 @@
 import {
   AlertCircle,
   BookOpen,
+  CheckCircle2,
   ClipboardList,
   FileScan,
   FileText,
   Library,
+  PlayCircle,
   Users,
 } from 'lucide-react'
 import type { ComponentType } from 'react'
@@ -27,6 +29,10 @@ const iconById: Record<string, ComponentType<{ className?: string; strokeWidth?:
   practice: BookOpen,
   templates: Library,
   pending: AlertCircle,
+  inProgress: PlayCircle,
+  upcoming: ClipboardList,
+  openPractice: BookOpen,
+  recentSubmitted: CheckCircle2,
 }
 
 type DashboardStatCardsProps = {
@@ -35,7 +41,11 @@ type DashboardStatCardsProps = {
 
 export function DashboardStatCards({ items }: DashboardStatCardsProps) {
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
+    <div
+      className={`grid grid-cols-2 gap-3 md:grid-cols-4 ${
+        items.length > 4 ? 'xl:grid-cols-7' : 'xl:grid-cols-4'
+      }`}
+    >
       {items.map((item) => {
         const Icon = iconById[item.id] ?? ClipboardList
         return (
