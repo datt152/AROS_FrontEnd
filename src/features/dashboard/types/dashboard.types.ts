@@ -1,4 +1,5 @@
 import type { ExamStatus } from '../../exams/types/exam.types'
+import type { StudentMyStatus } from '../../exams/types/studentExam.types'
 
 export type DashboardExamKind = 'ONLINE' | 'OMR' | 'PRACTICE'
 export type DashboardExamPhase = 'UPCOMING' | 'ONGOING' | 'ENDING_SOON' | 'CLOSED'
@@ -36,8 +37,12 @@ export type DashboardCalendarEvent = {
   endAt?: string | null
   subjectId?: number | null
   subjectName: string
+  /** Student dashboard — lớp gắn đề (để deep-link take). */
+  classroomId?: number | null
   classroomCount: number
   status: ExamStatus
+  /** Student dashboard — trạng thái làm bài của SV. */
+  myStatus?: StudentMyStatus | null
 }
 
 export type DashboardTodoItem = {
@@ -138,14 +143,6 @@ export function endOfMonth(date: Date) {
   return new Date(date.getFullYear(), date.getMonth() + 1, 0, 12)
 }
 
-export function formatDayLabel(date: Date) {
-  return new Intl.DateTimeFormat('vi-VN', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'numeric',
-  }).format(date)
-}
-
 export function formatMonthLabel(date: Date) {
   return new Intl.DateTimeFormat('vi-VN', { month: 'long', year: 'numeric' }).format(date)
 }
@@ -161,13 +158,8 @@ export function toDateKeyFromDate(date: Date) {
   return toDateKey(date)
 }
 
-/** Khoảng from/to gửi API khi đổi tuần/tháng trên lịch. */
-export function getDashboardRangeForAnchor(anchor: Date, view: 'week' | 'month') {
-  if (view === 'week') {
-    const from = startOfWeek(anchor)
-    const to = addDays(from, 6)
-    return { from: toDateKey(from), to: toDateKey(to) }
-  }
+/** Khoảng from/to gửi API khi đổi tháng trên lịch. */
+export function getDashboardRangeForAnchor(anchor: Date) {
   const monthStart = startOfMonth(anchor)
   const gridFrom = startOfWeek(monthStart)
   const gridTo = addDays(gridFrom, 41)

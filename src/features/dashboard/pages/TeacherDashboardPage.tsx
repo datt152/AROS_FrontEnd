@@ -5,10 +5,7 @@ import { ErrorState } from '../../../components/ui/ErrorState'
 import { Spinner } from '../../../components/ui/Spinner'
 import { getApiErrorMessage } from '../../../lib/apiError'
 import { DashboardAgendaPanel } from '../components/DashboardAgendaPanel'
-import {
-  DashboardCalendar,
-  type CalendarView,
-} from '../components/DashboardCalendar'
+import { DashboardCalendar } from '../components/DashboardCalendar'
 import { DashboardStatCards } from '../components/DashboardStatCards'
 import { useTeacherDashboard } from '../hooks/useTeacherDashboard'
 import {
@@ -18,11 +15,10 @@ import {
 } from '../types/dashboard.types'
 
 export function TeacherDashboardPage() {
-  const [view, setView] = useState<CalendarView>('week')
   const [anchor, setAnchor] = useState(() => new Date())
   const todayKey = useMemo(() => toDateKey(new Date()), [])
 
-  const range = useMemo(() => getDashboardRangeForAnchor(anchor, view), [anchor, view])
+  const range = useMemo(() => getDashboardRangeForAnchor(anchor), [anchor])
   const dashboardQuery = useTeacherDashboard(range)
 
   const statsCards = useMemo(
@@ -63,9 +59,7 @@ export function TeacherDashboardPage() {
             <DashboardCalendar
               events={dashboardQuery.data.calendarEvents}
               todayKey={todayKey}
-              view={view}
               anchor={anchor}
-              onViewChange={setView}
               onAnchorChange={setAnchor}
               isFetching={dashboardQuery.isFetching && !dashboardQuery.isLoading}
             />
