@@ -21,6 +21,13 @@ export type StudentSubmissionItem = {
   submitTime: string | null
 }
 
+export type StudentSubmissionDetailOption = {
+  label: string
+  content: string
+  selected: boolean
+  correct: boolean | null
+}
+
 export type StudentSubmissionDetailItem = {
   questionId: number
   order: number
@@ -29,6 +36,7 @@ export type StudentSubmissionDetailItem = {
   selectedAnswer: string | null
   correctAnswer: string | null
   isCorrect: boolean | null
+  options: StudentSubmissionDetailOption[]
 }
 
 export type StudentSubmissionDetail = {

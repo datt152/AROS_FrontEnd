@@ -24,8 +24,10 @@ export function SubmissionHistoryCard({ item }: SubmissionHistoryCardProps) {
   const navigate = useNavigate()
   const scoreDisplay = getSubmissionListScoreDisplay(item)
   const canResume = canResumeSubmission(item)
+  const canOpenDetail = item.purpose === 'PRACTICE' && item.status !== 'IN_PROGRESS'
 
   function handleOpenDetail() {
+    if (!canOpenDetail) return
     void navigate(studentHistoryDetailPath(item.submissionId), {
       state: { purpose: item.purpose } satisfies SubmissionDetailLocationState,
     })
@@ -41,16 +43,22 @@ export function SubmissionHistoryCard({ item }: SubmissionHistoryCardProps) {
 
   return (
     <article
-      role="button"
-      tabIndex={0}
-      onClick={handleOpenDetail}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault()
-          handleOpenDetail()
-        }
-      }}
-      className={`cursor-pointer rounded-2xl border border-slate-200 bg-white p-4 shadow-sm ${INTERACTIVE_CARD_HOVER_CLASS}`}
+      role={canOpenDetail ? 'button' : undefined}
+      tabIndex={canOpenDetail ? 0 : undefined}
+      onClick={canOpenDetail ? handleOpenDetail : undefined}
+      onKeyDown={
+        canOpenDetail
+          ? (event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                handleOpenDetail()
+              }
+            }
+          : undefined
+      }
+      className={`rounded-2xl border border-slate-200 bg-white p-4 shadow-sm ${
+        canOpenDetail ? `cursor-pointer ${INTERACTIVE_CARD_HOVER_CLASS}` : ''
+      }`}
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
@@ -109,7 +117,9 @@ export function SubmissionHistoryCard({ item }: SubmissionHistoryCardProps) {
             Tiếp tục
           </Button>
         ) : (
-          <span className="text-xs text-slate-400">Nhấn để xem chi tiết</span>
+          <span className="text-xs text-slate-400">
+            {item.purpose === 'PRACTICE' ? 'Nhấn để xem chi tiết' : 'Bài thi không xem lại chi tiết'}
+          </span>
         )}
       </div>
     </article>

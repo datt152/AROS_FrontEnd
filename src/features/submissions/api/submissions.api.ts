@@ -33,6 +33,12 @@ type StudentSubmissionDetailItemDto = {
   selectedAnswer?: string | null
   correctAnswer?: string | null
   isCorrect?: boolean | null
+  options?: Array<{
+    label?: string
+    content?: string
+    selected?: boolean
+    correct?: boolean | null
+  }>
 }
 
 type StudentSubmissionDetailDto = {
@@ -110,7 +116,7 @@ function normalizeListItem(dto: StudentSubmissionItemDto): StudentSubmissionItem
 
 function normalizeDetailItem(
   dto: StudentSubmissionDetailItemDto,
-  scoreVisible: boolean,
+  revealAnswers: boolean,
 ): StudentSubmissionDetailItem | null {
   if (dto.questionId === undefined || !dto.content) return null
   return {
@@ -119,21 +125,29 @@ function normalizeDetailItem(
     content: dto.content,
     type: dto.type === 'MULTIPLE_CHOICE' ? 'MULTIPLE_CHOICE' : 'SINGLE_CHOICE',
     selectedAnswer: dto.selectedAnswer ?? null,
-    correctAnswer: scoreVisible ? dto.correctAnswer ?? null : null,
-    isCorrect: scoreVisible && dto.isCorrect !== undefined && dto.isCorrect !== null ? Boolean(dto.isCorrect) : null,
+    correctAnswer: revealAnswers ? dto.correctAnswer ?? null : null,
+    isCorrect: revealAnswers && dto.isCorrect !== undefined && dto.isCorrect !== null ? Boolean(dto.isCorrect) : null,
+    options: (dto.options ?? []).map((option) => ({
+      label: option.label ?? '',
+      content: option.content ?? '',
+      selected: Boolean(option.selected),
+      correct: revealAnswers ? (option.correct ?? null) : null,
+    })).filter((option) => option.label),
   }
 }
 
 function normalizeDetail(dto: StudentSubmissionDetailDto): StudentSubmissionDetail | null {
   if (dto.submissionId === undefined || dto.examId === undefined) return null
-  const scoreVisible = dto.scoreVisible !== false
+  const purpose = normalizePurpose(dto)
+  const scoreVisible = purpose === 'PRACTICE' ? true : dto.scoreVisible !== false
+  const revealAnswers = purpose === 'PRACTICE'
   return {
     submissionId: dto.submissionId,
     examId: dto.examId,
     examTitle: dto.examTitle ?? '',
     classroomId: dto.classroomId ?? null,
     classroomName: dto.classroomName ?? null,
-    purpose: normalizePurpose(dto),
+    purpose,
     versionCode: dto.versionCode ?? null,
     attemptNo: dto.attemptNo ?? 1,
     status: normalizeStatus(dto.status),
@@ -145,7 +159,7 @@ function normalizeDetail(dto: StudentSubmissionDetailDto): StudentSubmissionDeta
     startTime: dto.startTime ?? '',
     submitTime: dto.submitTime ?? null,
     details: (dto.details ?? [])
-      .map((item) => normalizeDetailItem(item, scoreVisible))
+      .map((item) => normalizeDetailItem(item, revealAnswers))
       .filter((item): item is StudentSubmissionDetailItem => item !== null),
   }
 }

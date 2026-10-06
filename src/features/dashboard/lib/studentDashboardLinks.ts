@@ -118,7 +118,7 @@ export function resolveStudentActionNavigation(
   }
 
   if (action.type === 'VIEW_RESULT') {
-    return { to: studentHistoryDetailPath(action.entityId) }
+    return { to: ROUTES.student.history }
   }
 
   if (action.actionPath) {

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ArrowLeft, Play } from 'lucide-react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 
 import { Button } from '../../../components/ui/Button'
 import { EmptyState } from '../../../components/ui/EmptyState'
@@ -108,6 +108,10 @@ export function SubmissionDetailPage() {
     void navigate(path, { state })
   }
 
+  if (detail && !isPractice) {
+    return <Navigate to={ROUTES.student.history} replace />
+  }
+
   if (submissionId === undefined) {
     return (
       <section className="mx-auto max-w-2xl py-8">
@@ -173,7 +177,7 @@ export function SubmissionDetailPage() {
   const showScoreBlock = detail.status === 'SUBMITTED'
   const showQuestionDetails =
     sortedDetails.length > 0 && (detail.scoreVisible || detail.status !== 'SUBMITTED')
-  const showCorrectInQuestions = detail.scoreVisible && detail.status === 'SUBMITTED'
+  const showCorrectInQuestions = isPractice && detail.status !== 'IN_PROGRESS'
 
   return (
     <section className="flex min-h-[36rem] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
