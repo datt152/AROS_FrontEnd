@@ -16,6 +16,7 @@ import {
   TableRow,
 } from '../../../components/ui/Table'
 import { getApiErrorMessage } from '../../../lib/apiError'
+import { sortByNewest } from '../../../lib/sortByNewest'
 import { ROUTES } from '../../../routes/routes.config'
 import { useClassrooms } from '../../classrooms/hooks/useClassrooms'
 import { useQuestions } from '../../questions/hooks/useQuestions'
@@ -232,12 +233,14 @@ export function ExamListPage({ examMode }: ExamListPageProps) {
   const exams = examsQuery.data?.items ?? []
 
   const filteredExams = useMemo(() => {
-    return exams.filter((exam) => {
-      if (exam.examMode !== examMode) return false
-      if (subjectFilter && exam.subjectId !== subjectFilter) return false
-      if (isOnline && statusFilter && exam.status !== statusFilter) return false
-      return true
-    })
+    return sortByNewest(
+      exams.filter((exam) => {
+        if (exam.examMode !== examMode) return false
+        if (subjectFilter && exam.subjectId !== subjectFilter) return false
+        if (isOnline && statusFilter && exam.status !== statusFilter) return false
+        return true
+      }),
+    )
   }, [exams, examMode, subjectFilter, statusFilter, isOnline])
 
   const totalElements = filteredExams.length

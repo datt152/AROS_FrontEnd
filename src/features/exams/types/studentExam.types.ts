@@ -1,3 +1,5 @@
+import { compareNewestFirst } from '../../../lib/sortByNewest'
+
 export type StudentExamStatus = 'UPCOMING' | 'ONGOING' | 'COMPLETED' | 'CLOSED'
 
 export type StudentMyStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'EXPIRED' | 'SUBMITTED'
@@ -213,7 +215,9 @@ export function mergeStudentExamsWithSubmissions(
   })
 }
 
-export type StudentExamSortMode = 'priority' | 'date_desc' | 'date_asc'
+export type StudentExamSortMode = 'newest' | 'priority' | 'date_desc' | 'date_asc'
+
+export const DEFAULT_STUDENT_EXAM_SORT: StudentExamSortMode = 'newest'
 
 const EXAM_STATUS_PRIORITY: Record<StudentExamStatus, number> = {
   ONGOING: 0,
@@ -239,8 +243,9 @@ function startTimeMs(exam: StudentExamListItem) {
 export function compareStudentExams(
   a: StudentExamListItem,
   b: StudentExamListItem,
-  sortMode: StudentExamSortMode = 'priority',
+  sortMode: StudentExamSortMode = DEFAULT_STUDENT_EXAM_SORT,
 ) {
+  if (sortMode === 'newest') return compareNewestFirst(a, b)
   if (sortMode === 'date_desc') return startTimeMs(b) - startTimeMs(a)
   if (sortMode === 'date_asc') return startTimeMs(a) - startTimeMs(b)
 
@@ -270,6 +275,6 @@ export function filterAndSortStudentExams(
     if (options.myStatus && exam.myStatus !== options.myStatus) return false
     return true
   })
-  const sortMode = options.sortMode ?? 'priority'
+  const sortMode = options.sortMode ?? DEFAULT_STUDENT_EXAM_SORT
   return filtered.slice().sort((a, b) => compareStudentExams(a, b, sortMode))
 }

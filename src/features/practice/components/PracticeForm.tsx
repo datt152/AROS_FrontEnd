@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
 import { Spinner } from '../../../components/ui/Spinner'
+import { sortByNewest } from '../../../lib/sortByNewest'
 import { focusFirstFormError } from '../../../utils/focusFormError'
 import {
   useExamTemplate,
@@ -88,7 +89,7 @@ export function PracticeForm({
     return classrooms.filter((classroom) => classroom.subjectId === values.subjectId)
   }, [classrooms, values.subjectId])
 
-  const subjectTemplates = templatesQuery.data?.items ?? []
+  const subjectTemplates = sortByNewest(templatesQuery.data?.items ?? [])
   const formScrollRef = useRef<HTMLDivElement>(null)
 
   const practiceFieldIds = {

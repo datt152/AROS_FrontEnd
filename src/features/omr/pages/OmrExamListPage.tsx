@@ -7,6 +7,7 @@ import { EmptyState } from '../../../components/ui/EmptyState'
 import { ErrorState } from '../../../components/ui/ErrorState'
 import { Spinner } from '../../../components/ui/Spinner'
 import { getApiErrorMessage } from '../../../lib/apiError'
+import { sortByNewest } from '../../../lib/sortByNewest'
 import { omrSessionsPath, ROUTES } from '../../../routes/routes.config'
 import { useExamVersionsMany, useExams } from '../../exams/hooks/useExams'
 import type { OmrExamCard } from '../types/omr.types'
@@ -16,7 +17,7 @@ const FETCH_SIZE = 100
 export function OmrExamListPage() {
   const examsQuery = useExams({ page: 0, size: FETCH_SIZE, purpose: 'EXAM' })
   const omrExams = useMemo(
-    () => (examsQuery.data?.items ?? []).filter((exam) => exam.examMode === 'OMR_PAPER'),
+    () => sortByNewest((examsQuery.data?.items ?? []).filter((exam) => exam.examMode === 'OMR_PAPER')),
     [examsQuery.data?.items],
   )
   const versionQueries = useExamVersionsMany(omrExams.map((exam) => exam.id))

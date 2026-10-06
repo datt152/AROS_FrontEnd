@@ -10,6 +10,7 @@ import { StudentExamCard } from '../../exams/components/StudentExamCard'
 import { StudentExamListToolbar } from '../../exams/components/StudentExamListToolbar'
 import { useMyExams } from '../../exams/hooks/useExams'
 import {
+  DEFAULT_STUDENT_EXAM_SORT,
   filterAndSortStudentExams,
   mergeStudentExamsWithSubmissions,
   type StudentExamSortMode,
@@ -21,28 +22,26 @@ import type { ClassroomItem } from '../../classrooms/types/classroom.types'
 import { useMySubmissions } from '../../submissions/hooks/useSubmissions'
 
 const PAGE_SIZE = 5
-const FILTER_FETCH_SIZE = 100
+const FETCH_SIZE = 100
 
 export function StudentPracticeListPage() {
   const [selected, setSelected] = useState<ClassroomItem | null>(null)
   const [search, setSearch] = useState('')
   const [examStatus, setExamStatus] = useState<StudentExamStatus | ''>('')
   const [myStatus, setMyStatus] = useState<StudentMyStatus | ''>('')
-  const [sortMode, setSortMode] = useState<StudentExamSortMode>('priority')
+  const [sortMode, setSortMode] = useState<StudentExamSortMode>(DEFAULT_STUDENT_EXAM_SORT)
   const [page, setPage] = useState(0)
   const [classesPage, setClassesPage] = useState(0)
 
-  const needsClientFilter =
-    search.trim() !== '' || examStatus !== '' || myStatus !== '' || sortMode !== 'priority'
-
   const classesQuery = useMyClasses({ page: classesPage, size: PAGE_SIZE })
+  // BE chưa sort theo ngày tạo → lấy cả lô, sort rồi phân trang ở client.
   const examsQuery = useMyExams(
     selected
       ? {
           classroomId: selected.id,
           purpose: 'PRACTICE',
-          page: needsClientFilter ? 0 : page,
-          size: needsClientFilter ? FILTER_FETCH_SIZE : PAGE_SIZE,
+          page: 0,
+          size: FETCH_SIZE,
         }
       : undefined,
   )
@@ -75,23 +74,17 @@ export function StudentPracticeListPage() {
   const classesTotalPages = Math.max(1, classesQuery.data?.totalPages ?? 1)
   const classesTotal = classesQuery.data?.totalElements ?? classrooms.length
 
-  const totalElements = needsClientFilter
-    ? filteredExams.length
-    : (examsQuery.data?.totalElements ?? filteredExams.length)
-  const totalPages = needsClientFilter
-    ? Math.max(1, Math.ceil(filteredExams.length / PAGE_SIZE))
-    : Math.max(1, examsQuery.data?.totalPages ?? 1)
+  const totalElements = filteredExams.length
+  const totalPages = Math.max(1, Math.ceil(filteredExams.length / PAGE_SIZE))
   const currentPage = Math.min(page, totalPages - 1)
-  const pagedExams = needsClientFilter
-    ? filteredExams.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE)
-    : filteredExams
+  const pagedExams = filteredExams.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE)
 
   function resetFiltersOnSelect(classroom: ClassroomItem) {
     setSelected(classroom)
     setSearch('')
     setExamStatus('')
     setMyStatus('')
-    setSortMode('priority')
+    setSortMode(DEFAULT_STUDENT_EXAM_SORT)
     setPage(0)
   }
 

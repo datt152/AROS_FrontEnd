@@ -92,6 +92,7 @@ export function StudentExamListToolbar({
             value={sortMode}
             onChange={(event) => onSortModeChange(event.target.value as StudentExamSortMode)}
           >
+            <option value="newest">Mới nhất</option>
             <option value="priority">Ưu tiên đang diễn ra</option>
             <option value="date_desc">Ngày bắt đầu mới → cũ</option>
             <option value="date_asc">Ngày bắt đầu cũ → mới</option>

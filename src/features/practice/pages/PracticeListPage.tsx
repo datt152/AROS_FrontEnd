@@ -16,6 +16,7 @@ import {
   TableRow,
 } from '../../../components/ui/Table'
 import { getApiErrorMessage } from '../../../lib/apiError'
+import { sortByNewest } from '../../../lib/sortByNewest'
 import { useClassrooms } from '../../classrooms/hooks/useClassrooms'
 import { ExamAssignClassroomsModal } from '../../exams/components/ExamAssignClassroomsModal'
 import { ExamOpenModal } from '../../exams/components/ExamOpenModal'
@@ -89,9 +90,10 @@ export function PracticeListPage() {
   const [drawerMode, setDrawerMode] = useState<DrawerMode>(null)
 
   const hasClientFilters = searchQuery.trim() !== '' || subjectId !== '' || status !== ''
+  // BE chưa sort theo ngày tạo → lấy cả lô, sort mới nhất rồi phân trang ở client.
   const examsQuery = useExams({
-    page: hasClientFilters ? 0 : page,
-    size: hasClientFilters ? FETCH_SIZE : PAGE_SIZE,
+    page: 0,
+    size: FETCH_SIZE,
     purpose: 'PRACTICE',
     classroomId: classroomId === '' ? undefined : classroomId,
   })
@@ -215,25 +217,21 @@ export function PracticeListPage() {
 
   const filtered = useMemo(() => {
     const keyword = searchQuery.trim().toLowerCase()
-    return practices.filter((item) => {
-      if (keyword && !item.title.toLowerCase().includes(keyword)) return false
-      if (subjectId !== '' && item.subjectId !== subjectId) return false
-      if (hasClientFilters && classroomId !== '' && !item.classroomIds.includes(classroomId)) return false
-      if (status !== '' && item.status !== status) return false
-      return true
-    })
+    return sortByNewest(
+      practices.filter((item) => {
+        if (keyword && !item.title.toLowerCase().includes(keyword)) return false
+        if (subjectId !== '' && item.subjectId !== subjectId) return false
+        if (hasClientFilters && classroomId !== '' && !item.classroomIds.includes(classroomId)) return false
+        if (status !== '' && item.status !== status) return false
+        return true
+      }),
+    )
   }, [practices, searchQuery, subjectId, classroomId, status, hasClientFilters])
 
-  const totalElements = hasClientFilters
-    ? filtered.length
-    : (examsQuery.data?.totalElements ?? filtered.length)
-  const totalPages = hasClientFilters
-    ? Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
-    : Math.max(1, examsQuery.data?.totalPages ?? 1)
+  const totalElements = filtered.length
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const currentPage = Math.min(page, totalPages - 1)
-  const paged = hasClientFilters
-    ? filtered.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE)
-    : filtered
+  const paged = filtered.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE)
 
   const detailQuestionsFromBank = useMemo(() => {
     const ids = detailQuery.data?.questionIds ?? []

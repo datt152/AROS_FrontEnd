@@ -15,6 +15,7 @@ import {
   TableRow,
 } from '../../../components/ui/Table'
 import { getApiErrorMessage } from '../../../lib/apiError'
+import { sortByNewest } from '../../../lib/sortByNewest'
 import { useClassrooms } from '../../classrooms/hooks/useClassrooms'
 import { useExams } from '../../exams/hooks/useExams'
 import { useSubjects } from '../../subjects/hooks/useSubjects'
@@ -40,7 +41,7 @@ export function GradingPage() {
   const examsQuery = useExams(
     {
       page: 0,
-      size: 50,
+      size: 100,
       classroomId: typeof classroomId === 'number' ? classroomId : undefined,
       purpose: 'EXAM',
     },
@@ -69,7 +70,7 @@ export function GradingPage() {
 
   const exams = useMemo(
     () =>
-      (examsQuery.data?.items ?? []).map((item) => ({
+      sortByNewest(examsQuery.data?.items ?? []).map((item) => ({
         id: item.id,
         title: item.title,
         status: item.status,

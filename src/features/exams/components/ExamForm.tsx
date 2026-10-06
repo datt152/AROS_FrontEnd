@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
 import { Spinner } from '../../../components/ui/Spinner'
+import { sortByNewest } from '../../../lib/sortByNewest'
 import { focusFirstFormError } from '../../../utils/focusFormError'
 import {
   useExamTemplate,
@@ -185,7 +186,7 @@ export function ExamForm({
     })
   }, [questionOptions, selectedSubjectId, selectedMode, topicFilter])
 
-  const subjectTemplates = templatesQuery.data?.items ?? []
+  const subjectTemplates = sortByNewest(templatesQuery.data?.items ?? [])
 
   function updateCreateField<K extends keyof ExamCreateFormValues>(key: K, value: ExamCreateFormValues[K]) {
     setCreateValues((current) => {

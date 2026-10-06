@@ -16,6 +16,7 @@ import {
   TableRow,
 } from '../../../components/ui/Table'
 import { getApiErrorMessage } from '../../../lib/apiError'
+import { sortByNewest } from '../../../lib/sortByNewest'
 import { useQuestions } from '../../questions/hooks/useQuestions'
 import { useTopics } from '../../questions/hooks/useTopics'
 import { useSubjects } from '../../subjects/hooks/useSubjects'
@@ -33,6 +34,7 @@ import type { ExamTemplateFormValues, ExamTemplateItem } from '../types/examTemp
 type ModalMode = 'create' | 'edit' | null
 
 const PAGE_SIZE = 10
+const FETCH_SIZE = 100
 
 export function ExamTemplateListPage() {
   const subjectsQuery = useSubjects()
@@ -53,10 +55,11 @@ export function ExamTemplateListPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
 
+  // BE chưa sort theo ngày tạo → lấy cả lô, sort mới nhất rồi phân trang ở client.
   const templatesQuery = useExamTemplates({
     subjectId: subjectFilter === '' ? undefined : subjectFilter,
-    page,
-    size: PAGE_SIZE,
+    page: 0,
+    size: FETCH_SIZE,
   })
 
   const detailQuery = useExamTemplate(editingId ?? undefined)
@@ -100,14 +103,22 @@ export function ExamTemplateListPage() {
     [topicsQuery.data?.items],
   )
 
-  const templates = templatesQuery.data?.items ?? []
+  const templates = templatesQuery.data?.items
   const filteredTemplates = useMemo(() => {
     const keyword = searchQuery.trim().toLowerCase()
-    if (!keyword) return templates
-    return templates.filter((item) => item.title.toLowerCase().includes(keyword))
+    const list = templates ?? []
+    return sortByNewest(
+      keyword ? list.filter((item) => item.title.toLowerCase().includes(keyword)) : list,
+    )
   }, [templates, searchQuery])
 
-  const totalPages = Math.max(1, templatesQuery.data?.totalPages ?? 1)
+  const totalElements = filteredTemplates.length
+  const totalPages = Math.max(1, Math.ceil(totalElements / PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages - 1)
+  const pagedTemplates = filteredTemplates.slice(
+    currentPage * PAGE_SIZE,
+    currentPage * PAGE_SIZE + PAGE_SIZE,
+  )
   const isFormSubmitting = createTemplate.isPending || updateTemplate.isPending
 
   useEffect(() => {
@@ -183,7 +194,7 @@ export function ExamTemplateListPage() {
     modalMode === 'edit' && detailQuery.data
       ? detailQuery.data
       : modalMode === 'edit' && editingId
-        ? templates.find((item) => item.id === editingId)
+        ? templates?.find((item) => item.id === editingId)
         : undefined
 
   return (
@@ -257,7 +268,7 @@ export function ExamTemplateListPage() {
       {templatesQuery.isSuccess && filteredTemplates.length > 0 ? (
         <>
           <div className="space-y-3 md:hidden">
-            {filteredTemplates.map((template) => (
+            {pagedTemplates.map((template) => (
               <ExamTemplateCard
                 key={template.id}
                 template={template}
@@ -287,7 +298,7 @@ export function ExamTemplateListPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredTemplates.map((template) => (
+                {pagedTemplates.map((template) => (
                   <ExamTemplateTableRow
                     key={template.id}
                     template={template}
@@ -302,22 +313,22 @@ export function ExamTemplateListPage() {
             </Table>
             <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-sm text-slate-500">
               <p>
-                Trang {page + 1} / {totalPages} · {templatesQuery.data?.totalElements ?? 0} template
+                Trang {currentPage + 1} / {totalPages} · {totalElements} template
               </p>
               <div className="flex gap-2">
                 <Button
                   variant="secondary"
                   className="h-9"
-                  disabled={page === 0}
-                  onClick={() => setPage((value) => Math.max(0, value - 1))}
+                  disabled={currentPage === 0}
+                  onClick={() => setPage(Math.max(0, currentPage - 1))}
                 >
                   Trước
                 </Button>
                 <Button
                   variant="secondary"
                   className="h-9"
-                  disabled={page >= totalPages - 1}
-                  onClick={() => setPage((value) => value + 1)}
+                  disabled={currentPage >= totalPages - 1}
+                  onClick={() => setPage(Math.min(totalPages - 1, currentPage + 1))}
                 >
                   Sau
                 </Button>
