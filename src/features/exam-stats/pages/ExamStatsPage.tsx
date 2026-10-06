@@ -56,7 +56,9 @@ export function ExamStatsPage() {
 
   const exams = useMemo(
     () =>
-      (examsQuery.data?.items ?? []).map((item) => ({
+      (examsQuery.data?.items ?? [])
+        .filter((item) => item.examMode === 'ONLINE')
+        .map((item) => ({
         id: item.id,
         title: item.title,
         status: item.status,
@@ -114,7 +116,7 @@ export function ExamStatsPage() {
           <p className="mt-1 text-sm text-slate-500">
             {subtitleParts.length > 0
               ? subtitleParts.join(' · ')
-              : 'Chọn môn → lớp → đề để xem tỉ lệ nộp, điểm và độ khó từng câu.'}
+              : 'Chọn môn → lớp → đề thi trực tuyến để xem tỉ lệ nộp, điểm và độ khó từng câu.'}
           </p>
 
           <nav aria-label="Breadcrumb" className="mt-3 flex flex-wrap items-center gap-1.5 text-sm text-slate-500">
@@ -219,8 +221,8 @@ export function ExamStatsPage() {
 
       {examsEmpty ? (
         <EmptyState
-          title="Lớp chưa có đề thi"
-          description="Chưa có đề nào được giao cho lớp này. Tạo hoặc giao đề ở mục Quản lý bài thi."
+          title="Lớp chưa có đề thi trực tuyến"
+          description="Chưa có đề thi online nào được giao cho lớp này. Đề OMR không hiện ở thống kê này."
         />
       ) : null}
 

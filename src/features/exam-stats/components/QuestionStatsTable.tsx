@@ -8,6 +8,8 @@ import {
   TableHeader,
   TableRow,
 } from '../../../components/ui/Table'
+import { DIFFICULTY_BADGE_CLASS, DIFFICULTY_LABEL } from '../../questions/types/question.types'
+import type { Difficulty } from '../../questions/types/question.types'
 import type { QuestionStatItem } from '../types/examStats.types'
 import { formatCorrectRate, isHardQuestion } from '../types/examStats.types'
 
@@ -15,6 +17,15 @@ type QuestionStatsTableProps = {
   items: QuestionStatItem[]
   highlightedQuestionId: number | null
   onHighlight: (questionId: number) => void
+}
+
+function DifficultyTag({ difficulty }: { difficulty: Difficulty | null }) {
+  if (!difficulty) return null
+  return (
+    <span className={`mt-1 inline-block rounded-lg px-2 py-0.5 text-[11px] font-medium ${DIFFICULTY_BADGE_CLASS[difficulty]}`}>
+      {DIFFICULTY_LABEL[difficulty]}
+    </span>
+  )
 }
 
 export function QuestionStatsTable({ items, highlightedQuestionId, onHighlight }: QuestionStatsTableProps) {
@@ -34,13 +45,13 @@ export function QuestionStatsTable({ items, highlightedQuestionId, onHighlight }
       <div className="border-b border-slate-200 px-4 py-3 sm:px-5">
         <h2 className="text-sm font-semibold text-slate-900">Tỉ lệ đúng theo câu</h2>
         <p className="mt-0.5 text-xs text-slate-500">
-          Câu có tỉ lệ đúng dưới 50% được đánh dấu khó. Bấm một dòng để highlight.
+          Tag độ khó lấy từ ngân hàng câu hỏi. Bấm một dòng để highlight.
         </p>
       </div>
 
       <div className="divide-y divide-slate-200 md:hidden">
         {sorted.map((item) => {
-          const hard = isHardQuestion(item.correctRate)
+          const hard = isHardQuestion(item.difficulty)
           const selected = highlightedQuestionId === item.questionId
           const ratePercent =
             item.correctRate === null || item.correctRate === undefined
@@ -55,10 +66,13 @@ export function QuestionStatsTable({ items, highlightedQuestionId, onHighlight }
               className={`w-full space-y-2 px-4 py-3 text-left ${selected ? 'bg-blue-50' : 'bg-white'} ${hard ? 'border-l-4 border-l-amber-400' : ''}`}
             >
               <div className="flex items-start justify-between gap-2">
-                <p className="text-sm font-medium text-slate-900">
-                  <span className="mr-2 text-slate-400">#{item.order}</span>
-                  {item.content}
-                </p>
+                <div>
+                  <p className="text-sm font-medium text-slate-900">
+                    <span className="mr-2 text-slate-400">#{item.order}</span>
+                    {item.content}
+                  </p>
+                  <DifficultyTag difficulty={item.difficulty} />
+                </div>
                 <span
                   className={`shrink-0 rounded-lg px-2 py-0.5 text-xs font-semibold tabular-nums ${
                     hard ? 'bg-amber-50 text-amber-800' : 'bg-slate-100 text-slate-700'
@@ -101,7 +115,7 @@ export function QuestionStatsTable({ items, highlightedQuestionId, onHighlight }
           </TableHeader>
           <TableBody>
             {sorted.map((item) => {
-              const hard = isHardQuestion(item.correctRate)
+              const hard = isHardQuestion(item.difficulty)
               const selected = highlightedQuestionId === item.questionId
               const ratePercent =
                 item.correctRate === null || item.correctRate === undefined
@@ -115,13 +129,11 @@ export function QuestionStatsTable({ items, highlightedQuestionId, onHighlight }
                   onClick={() => onHighlight(item.questionId)}
                 >
                   <TableCell className="text-center tabular-nums text-slate-500">{item.order}</TableCell>
-                  <TableCell align="left">
+                  <TableCell align="left" className="overflow-visible align-top">
                     <p className="line-clamp-2 max-w-xl text-sm text-slate-800">{item.content}</p>
-                    {hard ? (
-                      <span className="mt-1 inline-block text-[11px] font-medium uppercase tracking-wider text-amber-700">
-                        Câu khó
-                      </span>
-                    ) : null}
+                    <div>
+                      <DifficultyTag difficulty={item.difficulty} />
+                    </div>
                   </TableCell>
                   <TableCell className="text-center tabular-nums">{item.rawPoint}</TableCell>
                   <TableCell className="text-center tabular-nums text-slate-700">

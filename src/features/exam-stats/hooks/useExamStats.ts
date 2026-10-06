@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
 
-import { STALE_TIME } from '../../../lib/queryStaleTime'
 import { getExamStats } from '../api/examStats.api'
 
 export const examStatsKeys = {
@@ -15,6 +14,6 @@ export function useExamStats(examId: number | undefined, classroomId: number | u
     queryKey: examStatsKeys.detail(examId ?? -1, classroomId),
     queryFn: () => getExamStats(examId!, classroomId),
     enabled: examId !== undefined && classroomId !== undefined,
-    staleTime: STALE_TIME.detail,
+    staleTime: 0,
   })
 }

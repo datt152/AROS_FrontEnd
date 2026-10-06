@@ -1,9 +1,22 @@
 import { apiClient } from '../../../lib/axios'
+import type { Difficulty } from '../../questions/types/question.types'
 import type {
   ExamStats,
   QuestionStatItem,
   ScoreDistributionBucket,
 } from '../types/examStats.types'
+
+const DIFFICULTIES: Difficulty[] = ['EASY', 'MEDIUM', 'HARD', 'VERY_HARD', 'APPLICATION']
+
+function normalizeDifficulty(value: unknown): Difficulty | null {
+  if (value == null || value === '') return null
+  let raw: unknown = value
+  if (typeof value === 'object' && value !== null && 'name' in value) {
+    raw = (value as { name?: unknown }).name
+  }
+  const upper = String(raw).trim().toUpperCase() as Difficulty
+  return DIFFICULTIES.includes(upper) ? upper : null
+}
 
 type ScoreDistributionBucketDto = {
   label?: string
@@ -16,6 +29,7 @@ type QuestionStatItemDto = {
   questionId?: number
   order?: number
   content?: string
+  difficulty?: unknown
   rawPoint?: number
   answeredCount?: number
   correctCount?: number
@@ -67,6 +81,7 @@ function normalizeQuestionStat(dto: QuestionStatItemDto): QuestionStatItem | nul
     questionId: dto.questionId,
     order: dto.order ?? 0,
     content: dto.content,
+    difficulty: normalizeDifficulty(dto.difficulty),
     rawPoint: dto.rawPoint ?? 0,
     answeredCount: dto.answeredCount ?? 0,
     correctCount: dto.correctCount ?? 0,

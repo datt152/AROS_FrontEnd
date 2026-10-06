@@ -1,3 +1,5 @@
+import type { Difficulty } from '../../questions/types/question.types'
+
 export type ExamStatsSubjectOption = {
   id: number
   subjectName: string
@@ -28,6 +30,7 @@ export type QuestionStatItem = {
   questionId: number
   order: number
   content: string
+  difficulty: Difficulty | null
   rawPoint: number
   answeredCount: number
   correctCount: number
@@ -62,6 +65,6 @@ export function formatScoreMetric(value: number | null | undefined) {
   return Number.isInteger(value) ? String(value) : value.toFixed(1)
 }
 
-export function isHardQuestion(rate: number | null | undefined) {
-  return rate !== null && rate !== undefined && rate < 0.5
+export function isHardQuestion(difficulty: Difficulty | null | undefined) {
+  return difficulty === 'HARD' || difficulty === 'VERY_HARD' || difficulty === 'APPLICATION'
 }
