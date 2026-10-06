@@ -1,4 +1,21 @@
-/** Build a minimal .xlsx (OOXML, STORE) for one or more student rows — UI helper only. */
+/** Build a minimal .xlsx (OOXML, STORE) for student import — UI helper only. */
+
+/** Cột mẫu: STT (không lưu CSDL) | Họ đệm | Tên | Mã số sinh viên | Email */
+export const STUDENT_IMPORT_HEADERS = [
+  'STT',
+  'Họ đệm',
+  'Tên',
+  'Mã số sinh viên',
+  'Email',
+] as const
+
+export type StudentImportRow = {
+  lastName: string
+  firstName: string
+  studentCode: string
+  email: string
+}
+
 function crc32(data: Uint8Array): number {
   let crc = 0xffffffff
   for (let i = 0; i < data.length; i += 1) {
@@ -110,22 +127,28 @@ function sheetCell(ref: string, value: string) {
   return `<c r="${ref}" t="inlineStr"><is><t>${escapeXml(value)}</t></is></c>`
 }
 
+function headerRowXml() {
+  const [stt, lastName, firstName, studentCode, email] = STUDENT_IMPORT_HEADERS
+  return `<row r="1">${sheetCell('A1', stt)}${sheetCell('B1', lastName)}${sheetCell('C1', firstName)}${sheetCell('D1', studentCode)}${sheetCell('E1', email)}</row>`
+}
+
 export function buildStudentsImportXlsxFile(
-  rows: { email: string; fullName: string; studentCode: string }[],
+  rows: StudentImportRow[],
   fileName = 'students.xlsx',
 ): File {
   const encoder = new TextEncoder()
   const dataRows = rows
     .map((row, index) => {
       const r = index + 2
-      return `<row r="${r}">${sheetCell(`A${r}`, row.email)}${sheetCell(`B${r}`, row.fullName)}${sheetCell(`C${r}`, row.studentCode)}</row>`
+      const stt = String(index + 1)
+      return `<row r="${r}">${sheetCell(`A${r}`, stt)}${sheetCell(`B${r}`, row.lastName)}${sheetCell(`C${r}`, row.firstName)}${sheetCell(`D${r}`, row.studentCode)}${sheetCell(`E${r}`, row.email)}</row>`
     })
     .join('')
 
   const sheet1 = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
   <sheetData>
-    <row r="1">${sheetCell('A1', 'email')}${sheetCell('B1', 'fullName')}${sheetCell('C1', 'studentCode')}</row>
+    ${headerRowXml()}
     ${dataRows}
   </sheetData>
 </worksheet>`
@@ -164,4 +187,32 @@ export function buildStudentsImportXlsxFile(
   return new File([bytes], fileName, {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   })
+}
+
+/** File mẫu chỉ có dòng tiêu đề (+ 1 dòng ví dụ tùy chọn). */
+export function buildStudentsImportTemplateFile(includeExample = true) {
+  const rows: StudentImportRow[] = includeExample
+    ? [
+        {
+          lastName: 'Nguyễn Văn',
+          firstName: 'A',
+          studentCode: '12345678',
+          email: 'sv@uni.edu.vn',
+        },
+      ]
+    : []
+  return buildStudentsImportXlsxFile(rows, 'mau-import-sinh-vien.xlsx')
+}
+
+export function downloadStudentsImportTemplate() {
+  const file = buildStudentsImportTemplateFile(true)
+  const url = URL.createObjectURL(file)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = file.name
+  anchor.rel = 'noopener'
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }

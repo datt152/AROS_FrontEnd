@@ -5,7 +5,7 @@ import { Button } from '../../../components/ui/Button'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { Input } from '../../../components/ui/Input'
 import { Spinner } from '../../../components/ui/Spinner'
-import { buildStudentsImportXlsxFile } from '../lib/buildStudentsImportXlsx'
+import { buildStudentsImportXlsxFile, downloadStudentsImportTemplate } from '../lib/buildStudentsImportXlsx'
 import type {
   ClassroomItem,
   ClassroomStudent,
@@ -49,10 +49,10 @@ type ClassroomStudentsPanelProps = {
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const STUDENT_CODE_PATTERN = /^\d{8}$/
-const STUDENT_IMPORT_TEMPLATE_URL = '/templates/students-import.xlsx'
 
 type ManualFormErrors = {
-  fullName?: string
+  lastName?: string
+  firstName?: string
   studentCode?: string
   email?: string
 }
@@ -101,7 +101,8 @@ export function ClassroomStudentsPanel({
   const [enrollEmailError, setEnrollEmailError] = useState<string | undefined>()
   const [enrollSuccess, setEnrollSuccess] = useState<string | null>(null)
 
-  const [manualFullName, setManualFullName] = useState('')
+  const [manualLastName, setManualLastName] = useState('')
+  const [manualFirstName, setManualFirstName] = useState('')
   const [manualStudentCode, setManualStudentCode] = useState('')
   const [manualEmail, setManualEmail] = useState('')
   const [manualErrors, setManualErrors] = useState<ManualFormErrors>({})
@@ -238,11 +239,13 @@ export function ClassroomStudentsPanel({
   async function handleManualSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const nextErrors: ManualFormErrors = {}
-    const fullName = manualFullName.trim()
+    const lastName = manualLastName.trim()
+    const firstName = manualFirstName.trim()
     const studentCode = manualStudentCode.trim()
     const email = manualEmail.trim().toLowerCase()
 
-    if (!fullName) nextErrors.fullName = 'Vui lòng nhập họ tên'
+    if (!lastName) nextErrors.lastName = 'Vui lòng nhập họ đệm'
+    if (!firstName) nextErrors.firstName = 'Vui lòng nhập tên'
     if (!studentCode) nextErrors.studentCode = 'Vui lòng nhập MSSV'
     else if (!STUDENT_CODE_PATTERN.test(studentCode)) nextErrors.studentCode = 'MSSV phải gồm đúng 8 chữ số'
     if (!email) nextErrors.email = 'Vui lòng nhập email'
@@ -255,9 +258,13 @@ export function ClassroomStudentsPanel({
     onClearImportResult?.()
 
     try {
-      const file = buildStudentsImportXlsxFile([{ email, fullName, studentCode }], 'them-sinh-vien.xlsx')
+      const file = buildStudentsImportXlsxFile(
+        [{ lastName, firstName, studentCode, email }],
+        'them-sinh-vien.xlsx',
+      )
       await onImportFile(file)
-      setManualFullName('')
+      setManualLastName('')
+      setManualFirstName('')
       setManualStudentCode('')
       setManualEmail('')
     } catch {
@@ -557,29 +564,55 @@ export function ClassroomStudentsPanel({
                       Lớp đã có đề thi OMR — mỗi sinh viên phải có MSSV đủ 8 chữ số trước khi thêm vào lớp.
                     </p>
                   ) : null}
-                  <p className="text-xs text-slate-500">Họ tên, MSSV (8 số) và Email đều bắt buộc.</p>
+                  <p className="text-xs text-slate-500">
+                    Họ đệm, Tên, MSSV (8 số) và Email đều bắt buộc.
+                  </p>
 
-                  <div className="space-y-1.5">
-                    <label htmlFor="manualFullName" className="text-sm font-medium text-slate-700">
-                      Họ tên sinh viên
-                    </label>
-                    <Input
-                      id="manualFullName"
-                      value={manualFullName}
-                      hasError={Boolean(manualErrors.fullName)}
-                      disabled={isImporting}
-                      placeholder="Nguyễn Văn A"
-                      onChange={(e) => {
-                        setManualFullName(e.target.value)
-                        if (manualErrors.fullName) setManualErrors((c) => ({ ...c, fullName: undefined }))
-                      }}
-                    />
-                    {manualErrors.fullName ? <p className="text-sm text-red-500">{manualErrors.fullName}</p> : null}
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <label htmlFor="manualLastName" className="text-sm font-medium text-slate-700">
+                        Họ đệm
+                      </label>
+                      <Input
+                        id="manualLastName"
+                        value={manualLastName}
+                        hasError={Boolean(manualErrors.lastName)}
+                        disabled={isImporting}
+                        placeholder="Nguyễn Văn"
+                        onChange={(e) => {
+                          setManualLastName(e.target.value)
+                          if (manualErrors.lastName) setManualErrors((c) => ({ ...c, lastName: undefined }))
+                        }}
+                      />
+                      {manualErrors.lastName ? (
+                        <p className="text-sm text-red-500">{manualErrors.lastName}</p>
+                      ) : null}
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label htmlFor="manualFirstName" className="text-sm font-medium text-slate-700">
+                        Tên
+                      </label>
+                      <Input
+                        id="manualFirstName"
+                        value={manualFirstName}
+                        hasError={Boolean(manualErrors.firstName)}
+                        disabled={isImporting}
+                        placeholder="A"
+                        onChange={(e) => {
+                          setManualFirstName(e.target.value)
+                          if (manualErrors.firstName) setManualErrors((c) => ({ ...c, firstName: undefined }))
+                        }}
+                      />
+                      {manualErrors.firstName ? (
+                        <p className="text-sm text-red-500">{manualErrors.firstName}</p>
+                      ) : null}
+                    </div>
                   </div>
 
                   <div className="space-y-1.5">
                     <label htmlFor="manualStudentCode" className="text-sm font-medium text-slate-700">
-                      MSSV
+                      Mã số sinh viên
                     </label>
                     <Input
                       id="manualStudentCode"
@@ -626,20 +659,21 @@ export function ClassroomStudentsPanel({
               ) : (
                 <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
                   <p className="text-sm text-slate-600">
-                    File <span className="font-medium">.xlsx</span> — cột A email, B họ tên, C MSSV. Tối đa 500 dòng.
+                    File <span className="font-medium">.xlsx</span> — STT, Họ đệm, Tên, MSSV, Email. Tối đa 500 dòng.
                     {requiresStudentCodeForAdd
                       ? ' Lớp có đề OMR: MSSV bắt buộc đúng 8 chữ số.'
                       : ''}
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    <a
-                      href={STUDENT_IMPORT_TEMPLATE_URL}
-                      download="mau-import-sinh-vien.xlsx"
-                      className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      disabled={isImporting}
+                      onClick={() => downloadStudentsImportTemplate()}
                     >
                       <Download className="h-3.5 w-3.5" strokeWidth={1.75} />
                       Tải file mẫu
-                    </a>
+                    </Button>
                     <Button
                       variant="secondary"
                       disabled={isImporting}
