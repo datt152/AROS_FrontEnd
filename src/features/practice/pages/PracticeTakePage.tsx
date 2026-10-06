@@ -81,12 +81,14 @@ export function PracticeTakePage() {
   const [now, setNow] = useState(() => Date.now())
   const [takeKey, setTakeKey] = useState(0)
   const autoSubmittedRef = useRef(false)
+  const answersRef = useRef(answers)
+  answersRef.current = answers
 
   const takeQuery = useTakeExam(examId, classroomId, !result, takeKey)
   const submitExam = useSubmitExam()
   const exam = submittedExam ?? takeQuery.data
 
-  const timeLimited = exam?.timeLimitEnabled === true
+  const timeLimited = Boolean(exam?.timeLimitEnabled)
   const attemptNo = exam?.attemptNo ?? 1
   const maxAttempts = exam?.maxAttempts ?? null
 
@@ -95,7 +97,7 @@ export function PracticeTakePage() {
     draftRestoredRef.current = true
 
     const attemptExpired =
-      exam.timeLimitEnabled === true &&
+      Boolean(exam.timeLimitEnabled) &&
       Date.now() >= new Date(exam.startTime).getTime() + exam.duration * 60 * 1000
 
     // Lượt đã hết giờ: bỏ draft cũ, để auto-submit rồi làm lại (không restore bài dở)
@@ -143,6 +145,10 @@ export function PracticeTakePage() {
     if (!exam || !timeLimited) return 0
     return new Date(exam.startTime).getTime() + exam.duration * 60 * 1000
   }, [exam, timeLimited])
+
+  useEffect(() => {
+    setNow(Date.now())
+  }, [exam?.startTime, takeKey])
 
   useEffect(() => {
     if (result || !exam || !timeLimited) return
@@ -206,7 +212,7 @@ export function PracticeTakePage() {
         examId: exam.examId,
         classroomId,
         versionCode: exam.versionCode,
-        answers: answersToSubmitPayload(answers),
+        answers: answersToSubmitPayload(answersRef.current),
       })
       clearExamTakeDraft(userEmail, exam.examId, classroomId, 'practice')
       setSubmittedExam(exam)
@@ -329,7 +335,7 @@ export function PracticeTakePage() {
 
   if (takeQuery.isError) {
     const message = mapExamTakeError(getApiErrorMessage(takeQuery.error, 'Không thể vào làm bài'))
-    const exhausted = /hết|lượt|attempt/i.test(message)
+    const exhausted = /hết số lần|hết lượt|đã nộp bài thi này rồi/i.test(message)
     return (
       <section className="mx-auto max-w-lg space-y-4 py-10">
         <EmptyState

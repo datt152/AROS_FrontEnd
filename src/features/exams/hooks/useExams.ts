@@ -118,7 +118,10 @@ export function useTakeExam(
     queryFn: () => takeExam(id!, classroomId!),
     enabled: enabled && id !== undefined && id > 0 && classroomId !== undefined && classroomId > 0,
     retry: false,
-    staleTime: STALE_TIME.realtime,
+    staleTime: Infinity,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    refetchOnWindowFocus: false,
   })
 }
 

@@ -686,7 +686,8 @@ export async function takeExam(id: number, classroomId: number): Promise<ExamTak
     versionCode: data.versionCode,
     startTime: data.startTime,
     purpose: data.purpose === 'PRACTICE' ? 'PRACTICE' : data.purpose === 'EXAM' ? 'EXAM' : undefined,
-    timeLimitEnabled: data.timeLimitEnabled,
+    timeLimitEnabled:
+      data.purpose === 'PRACTICE' ? Boolean(data.timeLimitEnabled) : data.timeLimitEnabled !== false,
     showScoreToStudent: data.showScoreToStudent,
     attemptNo: data.attemptNo,
     maxAttempts: data.maxAttempts ?? null,
