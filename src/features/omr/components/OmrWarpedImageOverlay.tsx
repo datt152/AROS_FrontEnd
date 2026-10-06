@@ -12,15 +12,46 @@ type OmrWarpedImageOverlayProps = {
 
 type NaturalSize = { width: number; height: number }
 
-/** Màu overlay theo isCorrect từ BE (không theo draft sửa bên phải). */
-function bubbleToneClass(answer: OmrAnswerItem) {
-  if (answer.isCorrect === true) {
+type OverlayDot = {
+  key: string
+  question: number
+  choice: string
+  x: number
+  y: number
+  w: number
+  h: number
+  tone: string
+}
+
+function bubbleToneClass(tone: string) {
+  if (tone === 'green') {
     return 'border-emerald-500 bg-emerald-400/35 shadow-[0_0_0_1px_rgba(16,185,129,0.5)]'
   }
-  if (answer.isCorrect === false) {
-    return 'border-red-500 bg-red-400/35 shadow-[0_0_0_1px_rgba(239,68,68,0.5)]'
+  return 'border-red-500 bg-red-400/35 shadow-[0_0_0_1px_rgba(239,68,68,0.5)]'
+}
+
+function collectOverlays(answers: OmrAnswerItem[]): OverlayDot[] {
+  const dots: OverlayDot[] = []
+  for (const answer of answers) {
+    for (const bubble of answer.overlayBubbles ?? []) {
+      if (bubble.w <= 0 || bubble.h <= 0) continue
+      let tone = bubble.tone || (answer.isCorrect === true ? 'green' : 'red')
+      if (tone === 'yellow') {
+        tone = answer.isCorrect === true ? 'green' : 'red'
+      }
+      dots.push({
+        key: `${answer.question}-${bubble.choice}-${bubble.x}-${bubble.y}-${tone}`,
+        question: answer.question,
+        choice: bubble.choice,
+        x: bubble.x,
+        y: bubble.y,
+        w: bubble.w,
+        h: bubble.h,
+        tone,
+      })
+    }
   }
-  return 'border-amber-500 bg-amber-400/35 shadow-[0_0_0_1px_rgba(245,158,11,0.5)]'
+  return dots
 }
 
 export function OmrWarpedImageOverlay({
@@ -31,11 +62,7 @@ export function OmrWarpedImageOverlay({
   onSelectQuestion,
 }: OmrWarpedImageOverlayProps) {
   const [natural, setNatural] = useState<NaturalSize | null>(null)
-
-  const overlays = answers.filter(
-    (answer): answer is OmrAnswerItem & { bubble: NonNullable<OmrAnswerItem['bubble']> } =>
-      Boolean(answer.bubble && answer.bubble.w > 0 && answer.bubble.h > 0),
-  )
+  const overlays = collectOverlays(answers)
 
   return (
     <div className="relative mx-auto w-max max-w-full">
@@ -50,11 +77,9 @@ export function OmrWarpedImageOverlay({
       />
 
       {natural && natural.width > 0 && natural.height > 0
-        ? overlays.map((answer) => {
-            const { bubble } = answer
-            const active = highlightedQuestion === answer.question
+        ? overlays.map((bubble) => {
+            const active = highlightedQuestion === bubble.question
             const padScale = active ? 1.45 : 1.25
-
             const leftPct = (bubble.x / natural.width) * 100
             const topPct = (bubble.y / natural.height) * 100
             const widthPct = (bubble.w / natural.width) * 100
@@ -62,12 +87,12 @@ export function OmrWarpedImageOverlay({
 
             return (
               <button
-                key={`${answer.question}-${bubble.choice}-${bubble.x}-${bubble.y}`}
+                key={bubble.key}
                 type="button"
-                title={`Câu ${answer.question}: ${bubble.choice}`}
-                aria-label={`Câu ${answer.question}, nhận dạng ${bubble.choice}`}
-                onClick={() => onSelectQuestion?.(answer.question)}
-                className={`absolute z-10 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 ${bubbleToneClass(answer)} ${
+                title={`Câu ${bubble.question}: ${bubble.choice}`}
+                aria-label={`Câu ${bubble.question}, ${bubble.choice}`}
+                onClick={() => onSelectQuestion?.(bubble.question)}
+                className={`absolute z-10 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 ${bubbleToneClass(bubble.tone)} ${
                   active ? 'z-20 ring-2 ring-blue-500 ring-offset-1' : ''
                 }`}
                 style={{

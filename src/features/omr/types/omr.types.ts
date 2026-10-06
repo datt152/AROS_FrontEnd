@@ -19,13 +19,28 @@ export type ExamSessionItem = {
   sheetCount: number
 }
 
+export type OmrAnswerLevel = 'ok' | 'warning' | 'error' | 'empty'
+
+export type OmrBubble = {
+  choice: string
+  x: number
+  y: number
+  w: number
+  h: number
+  tone?: string | null
+}
+
 export type OmrAnswerItem = {
   question: number
   chosen: string | null
   correctAnswer: string | null
   isCorrect: boolean | null
   status: string
-  bubble?: { choice: string; x: number; y: number; w: number; h: number } | null
+  level: OmrAnswerLevel
+  color: string | null
+  bubble?: OmrBubble | null
+  markedBubbles: OmrBubble[]
+  overlayBubbles: OmrBubble[]
 }
 
 export type OmrSheetItem = {
@@ -96,9 +111,68 @@ export const OMR_SHEET_STATUS_BADGE: Record<OmrSheetStatus, string> = {
   FAILED: 'bg-red-100 text-red-800 border-red-200',
 }
 
+export const OMR_ANSWER_LEVEL_LABEL: Record<OmrAnswerLevel, string> = {
+  ok: 'Đúng',
+  warning: 'Sai',
+  error: 'Sai',
+  empty: 'Sai',
+}
+
+/** Tô trùng = từ 2 overlay đỏ trở lên trên cùng 1 câu. */
+export function omrAnswerListLabel(answer: {
+  level: OmrAnswerLevel
+  isCorrect: boolean | null
+  chosen: string | null
+  overlayBubbles?: { tone?: string | null }[]
+  markedBubbles?: { choice: string }[]
+}): 'Đúng' | 'Sai' | 'Tô trùng' {
+  const redOverlayCount = (answer.overlayBubbles ?? []).filter(
+    (b) => (b.tone ?? 'red').toLowerCase() === 'red',
+  ).length
+  const markedCount = new Set((answer.markedBubbles ?? []).map((b) => b.choice).filter(Boolean)).size
+  if (redOverlayCount >= 2 || (redOverlayCount === 0 && markedCount >= 2)) {
+    return 'Tô trùng'
+  }
+  if (answer.isCorrect === true) return 'Đúng'
+  return 'Sai'
+}
+
+export const OMR_ANSWER_LEVEL_BADGE: Record<OmrAnswerLevel, string> = {
+  ok: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  warning: 'bg-amber-50 text-amber-800 border-amber-200',
+  error: 'bg-red-50 text-red-700 border-red-200',
+  empty: 'bg-slate-100 text-slate-600 border-slate-200',
+}
+
+export type OmrSheetMatchIssues = {
+  studentUnmatched: boolean
+  examCodeMissing: boolean
+  label: string | null
+}
+
+/** Phiếu NEEDS_REVIEW có thể chưa gắn được sinh viên hoặc chưa có mã đề. */
+export function getOmrSheetMatchIssues(
+  sheet: Pick<OmrSheetItem, 'status' | 'matchedStudentId' | 'examCode'>,
+): OmrSheetMatchIssues {
+  if (sheet.status === 'PROCESSING') {
+    return { studentUnmatched: false, examCodeMissing: false, label: null }
+  }
+  const studentUnmatched = sheet.matchedStudentId == null
+  const examCodeMissing = !sheet.examCode?.trim()
+  const label =
+    studentUnmatched && examCodeMissing
+      ? 'Chưa khớp SV / mã đề'
+      : studentUnmatched
+        ? 'Chưa khớp SV'
+        : examCodeMissing
+          ? 'Chưa có mã đề'
+          : null
+  return { studentUnmatched, examCodeMissing, label }
+}
+
 export function formatOmrScore(score: number | null, maxScore: number | null) {
   if (score == null || maxScore == null) return '—'
-  return `${score}/${maxScore}`
+  return `${score.toFixed(2)}/${maxScore.toFixed(2)}`
 }
 
 export function formatOmrDateTime(value: string | null | undefined) {

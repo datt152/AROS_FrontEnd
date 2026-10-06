@@ -1,4 +1,4 @@
-import { ArrowLeft, Search } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Search } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
@@ -31,6 +31,7 @@ import {
   EXAM_SESSION_STATUS_LABEL,
   formatOmrDateTime,
   formatOmrScore,
+  getOmrSheetMatchIssues,
   OMR_SHEET_STATUS_BADGE,
   OMR_SHEET_STATUS_LABEL,
 } from '../types/omr.types'
@@ -131,13 +132,18 @@ export function OmrSessionWorkspacePage() {
 
       patchQueueItem(item.id, { status: 'uploading', progress: 0, error: undefined })
       try {
-        await uploadMutation.mutateAsync({
+        const sheet = await uploadMutation.mutateAsync({
           file: item.file,
           onUploadProgress: (percent) => {
             patchQueueItem(item.id, { progress: percent })
           },
         })
-        patchQueueItem(item.id, { status: 'done', progress: 100 })
+        const issueLabel = getOmrSheetMatchIssues(sheet).label
+        const reviewNote =
+          sheet.status === 'NEEDS_REVIEW'
+            ? [OMR_SHEET_STATUS_LABEL.NEEDS_REVIEW, issueLabel].filter(Boolean).join(' · ')
+            : undefined
+        patchQueueItem(item.id, { status: 'done', progress: 100, reviewNote })
       } catch (error) {
         const resolved = parseOmrApiError(error, item.file.name)
         patchQueueItem(item.id, { status: 'error', error: resolved, progress: 0 })
@@ -287,11 +293,8 @@ export function OmrSessionWorkspacePage() {
             className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800"
           >
             <option value="">Tất cả</option>
-            {(Object.keys(OMR_SHEET_STATUS_LABEL) as OmrSheetStatus[]).map((key) => (
-              <option key={key} value={key}>
-                {OMR_SHEET_STATUS_LABEL[key]}
-              </option>
-            ))}
+            <option value="GRADED">Đã chấm</option>
+            <option value="NEEDS_REVIEW">Cần xem lại</option>
           </select>
         </label>
       </div>
@@ -317,18 +320,16 @@ export function OmrSessionWorkspacePage() {
           <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:block">
             <Table>
               <TableColGroup>
-                <TableCol className="w-[10%]" />
-                <TableCol className="w-[14%]" />
-                <TableCol className="w-[18%]" />
-                <TableCol className="w-[10%]" />
-                <TableCol className="w-[14%]" />
+                <TableCol className="w-[16%]" />
+                <TableCol className="w-[22%]" />
+                <TableCol className="w-[12%]" />
+                <TableCol className="w-[16%]" />
                 <TableCol className="w-[12%]" />
                 <TableCol className="w-[12%]" />
                 <TableCol className="w-[10%]" />
               </TableColGroup>
               <TableHeader>
                 <TableRow>
-                  <TableHead>ID</TableHead>
                   <TableHead>MSSV</TableHead>
                   <TableHead>Họ tên</TableHead>
                   <TableHead>Mã đề</TableHead>
@@ -339,24 +340,38 @@ export function OmrSessionWorkspacePage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((sheet) => (
+                {filtered.map((sheet) => {
+                  const issues = getOmrSheetMatchIssues(sheet)
+                  return (
                   <TableRow key={sheet.submissionId}>
-                    <TableCell align="center" className="text-sm text-slate-600">
-                      {sheet.submissionId}
-                    </TableCell>
                     <TableCell className="font-medium text-slate-900">
                       {sheet.studentId ?? '—'}
                     </TableCell>
-                    <TableCell className="text-slate-700">{sheet.studentName ?? '—'}</TableCell>
+                    <TableCell className="text-slate-700">
+                      {sheet.studentName ??
+                        (issues.studentUnmatched ? (
+                          <span className="text-amber-700">Chưa khớp SV</span>
+                        ) : (
+                          '—'
+                        ))}
+                    </TableCell>
                     <TableCell align="center" className="text-slate-700">
-                      {sheet.examCode ?? '—'}
+                      {sheet.examCode ??
+                        (issues.examCodeMissing ? (
+                          <span className="text-amber-700">Chưa có</span>
+                        ) : (
+                          '—'
+                        ))}
                     </TableCell>
                     <TableCell align="center">
-                      <span
-                        className={`inline-flex rounded-lg border px-2 py-1 text-xs font-medium ${OMR_SHEET_STATUS_BADGE[sheet.status]}`}
-                      >
-                        {OMR_SHEET_STATUS_LABEL[sheet.status]}
-                      </span>
+                      <div className="flex flex-col items-center gap-1">
+                        <span
+                          className={`inline-flex rounded-lg border px-2 py-1 text-xs font-medium ${OMR_SHEET_STATUS_BADGE[sheet.status]}`}
+                        >
+                          {OMR_SHEET_STATUS_LABEL[sheet.status]}
+                        </span>
+                        {issues.label ? <MatchIssueBadge label={issues.label} /> : null}
+                      </div>
                     </TableCell>
                     <TableCell align="center" className="text-slate-800">
                       {formatOmrScore(sheet.score, sheet.maxScore)}
@@ -374,13 +389,16 @@ export function OmrSessionWorkspacePage() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))}
+                  )
+                })}
               </TableBody>
             </Table>
           </div>
 
           <ul className="space-y-3 lg:hidden">
-            {filtered.map((sheet) => (
+            {filtered.map((sheet) => {
+              const issues = getOmrSheetMatchIssues(sheet)
+              return (
               <li
                 key={sheet.submissionId}
                 className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
@@ -388,17 +406,20 @@ export function OmrSessionWorkspacePage() {
                 <div className="mb-2 flex items-start justify-between gap-2">
                   <div>
                     <p className="font-medium text-slate-900">
-                      {sheet.studentName ?? sheet.studentId ?? `Phiếu #${sheet.submissionId}`}
+                      {sheet.studentName ?? sheet.studentId ?? 'Phiếu chưa nhận diện'}
                     </p>
                     <p className="text-sm text-slate-500">
                       MSSV {sheet.studentId ?? '—'} · mã {sheet.examCode ?? '—'}
                     </p>
                   </div>
-                  <span
-                    className={`shrink-0 rounded-lg border px-2 py-1 text-xs font-medium ${OMR_SHEET_STATUS_BADGE[sheet.status]}`}
-                  >
-                    {OMR_SHEET_STATUS_LABEL[sheet.status]}
-                  </span>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <span
+                      className={`rounded-lg border px-2 py-1 text-xs font-medium ${OMR_SHEET_STATUS_BADGE[sheet.status]}`}
+                    >
+                      {OMR_SHEET_STATUS_LABEL[sheet.status]}
+                    </span>
+                    {issues.label ? <MatchIssueBadge label={issues.label} /> : null}
+                  </div>
                 </div>
                 <p className="mb-3 text-sm text-slate-600">
                   Điểm {formatOmrScore(sheet.score, sheet.maxScore)}
@@ -407,11 +428,21 @@ export function OmrSessionWorkspacePage() {
                   Xem phiếu
                 </Button>
               </li>
-            ))}
+              )
+            })}
           </ul>
         </>
       )}
 
     </div>
+  )
+}
+
+function MatchIssueBadge({ label }: { label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-800">
+      <AlertTriangle className="h-3 w-3" strokeWidth={1.75} />
+      {label}
+    </span>
   )
 }

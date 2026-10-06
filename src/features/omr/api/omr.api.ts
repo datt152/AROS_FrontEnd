@@ -4,6 +4,8 @@ import type {
   ExamSessionItem,
   ExamSessionStatus,
   OmrAnswerItem,
+  OmrAnswerLevel,
+  OmrBubble,
   OmrSheetItem,
   OmrSheetReviewPayload,
   OmrSheetStatus,
@@ -27,6 +29,7 @@ type OmrBubbleDto = {
   y?: number
   w?: number
   h?: number
+  tone?: string | null
 }
 
 type OmrAnswerDto = {
@@ -35,7 +38,11 @@ type OmrAnswerDto = {
   correctAnswer?: string | null
   isCorrect?: boolean | null
   status?: string
+  level?: string | null
+  color?: string | null
   bubble?: OmrBubbleDto | null
+  markedBubbles?: OmrBubbleDto[] | null
+  overlayBubbles?: OmrBubbleDto[] | null
 }
 
 type OmrSheetDto = {
@@ -94,7 +101,30 @@ function normalizeSheetStatus(value: string | undefined): OmrSheetStatus {
   return SHEET_STATUSES.includes(upper) ? upper : 'FAILED'
 }
 
-function normalizeBubble(dto: OmrBubbleDto | null | undefined): OmrAnswerItem['bubble'] {
+const ANSWER_LEVELS: OmrAnswerLevel[] = ['ok', 'warning', 'error', 'empty']
+
+const LEVEL_BY_COLOR: Record<string, OmrAnswerLevel> = {
+  green: 'ok',
+  yellow: 'warning',
+  red: 'error',
+  gray: 'empty',
+  grey: 'empty',
+}
+
+function normalizeAnswerLevel(
+  dto: OmrAnswerDto,
+  chosen: string | null,
+  needReview: boolean,
+): OmrAnswerLevel {
+  const level = (dto.level ?? '').toLowerCase() as OmrAnswerLevel
+  if (ANSWER_LEVELS.includes(level)) return level
+  const byColor = LEVEL_BY_COLOR[(dto.color ?? '').toLowerCase()]
+  if (byColor) return byColor
+  if (!chosen) return 'empty'
+  return needReview ? 'warning' : 'ok'
+}
+
+function normalizeBubble(dto: OmrBubbleDto | null | undefined): OmrBubble | null {
   if (!dto) return null
   const w = dto.w ?? 0
   const h = dto.h ?? 0
@@ -105,18 +135,43 @@ function normalizeBubble(dto: OmrBubbleDto | null | undefined): OmrAnswerItem['b
     y: dto.y ?? 0,
     w,
     h,
+    tone: dto.tone ?? null,
   }
 }
 
-function normalizeAnswer(dto: OmrAnswerDto): OmrAnswerItem | null {
+function normalizeAnswer(dto: OmrAnswerDto, needReview: Set<number>): OmrAnswerItem | null {
   if (dto.question === undefined) return null
+  const chosen = dto.chosen ?? null
+  const isCorrect = dto.isCorrect ?? null
+  const bubble = normalizeBubble(dto.bubble)
+  const marked = (Array.isArray(dto.markedBubbles) ? dto.markedBubbles : [])
+    .map(normalizeBubble)
+    .filter((item): item is OmrBubble => item !== null)
+  const overlays = (Array.isArray(dto.overlayBubbles) ? dto.overlayBubbles : [])
+    .map(normalizeBubble)
+    .filter((item): item is OmrBubble => item !== null)
+    .map((item) =>
+      item.tone === 'yellow'
+        ? { ...item, tone: isCorrect === true ? 'green' : 'red' }
+        : item,
+    )
+
+  let level = normalizeAnswerLevel(dto, chosen, needReview.has(dto.question))
+  if (level === 'warning') {
+    level = isCorrect === true ? 'ok' : 'error'
+  }
+
   return {
     question: dto.question,
-    chosen: dto.chosen ?? null,
+    chosen,
     correctAnswer: dto.correctAnswer ?? null,
-    isCorrect: dto.isCorrect ?? null,
+    isCorrect,
     status: dto.status ?? '',
-    bubble: normalizeBubble(dto.bubble),
+    level,
+    color: dto.color === 'yellow' ? (isCorrect === true ? 'green' : 'red') : dto.color ?? null,
+    bubble,
+    markedBubbles: marked.length > 0 ? marked : bubble ? [bubble] : [],
+    overlayBubbles: overlays,
   }
 }
 
@@ -151,6 +206,9 @@ function normalizeSheet(dto: OmrSheetDto): OmrSheetItem | null {
     return null
   }
 
+  const needReview = Array.isArray(dto.needReview) ? dto.needReview : []
+  const needReviewSet = new Set(needReview)
+
   return {
     submissionId: dto.submissionId,
     examSessionId: dto.examSessionId,
@@ -164,9 +222,9 @@ function normalizeSheet(dto: OmrSheetDto): OmrSheetItem | null {
     maxScore: dto.maxScore ?? null,
     warpedUrl: dto.warpedUrl ?? null,
     originalImageUrl: dto.originalImageUrl ?? null,
-    needReview: Array.isArray(dto.needReview) ? dto.needReview : [],
+    needReview,
     answers: (dto.answers ?? [])
-      .map(normalizeAnswer)
+      .map((answer) => normalizeAnswer(answer, needReviewSet))
       .filter((item): item is OmrAnswerItem => item !== null),
     gradedAt: dto.gradedAt ?? null,
   }

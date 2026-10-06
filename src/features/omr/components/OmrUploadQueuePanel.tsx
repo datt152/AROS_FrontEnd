@@ -13,6 +13,8 @@ export type OmrUploadQueueItem = {
   status: OmrUploadItemStatus
   progress: number
   error?: ResolvedOmrError
+  /** Upload thành công nhưng phiếu vào NEEDS_REVIEW (vd. chưa khớp SV / mã đề) */
+  reviewNote?: string
 }
 
 type OmrUploadQueuePanelProps = {
@@ -225,6 +227,24 @@ function UploadQueueRow({ item, onView }: { item: OmrUploadQueueItem; onView: ()
         <p className="shrink-0 text-sm text-slate-500">
           {item.status === 'queued' ? 'Chờ tải...' : `Đang tải lên · ${item.progress}%`}
         </p>
+      </li>
+    )
+  }
+
+  if (item.reviewNote) {
+    return (
+      <li className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50/60 px-3 py-3">
+        <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" strokeWidth={1.75} />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-slate-800" title={item.file.name}>
+            {item.file.name}
+          </p>
+          <p className="mt-0.5 text-xs text-amber-800">Đã tải lên · {item.reviewNote}</p>
+        </div>
+        <Button type="button" variant="secondary" className="h-9 shrink-0 gap-1.5 px-3" onClick={onView}>
+          <Eye className="h-4 w-4" strokeWidth={1.75} />
+          Xem ảnh
+        </Button>
       </li>
     )
   }
