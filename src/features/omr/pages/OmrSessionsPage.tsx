@@ -1,4 +1,4 @@
-import { ArrowLeft, Lock, Plus, Unlock } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Eye, Lock, Plus, Unlock } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
@@ -26,12 +26,15 @@ import {
   useExamSessions,
   useUpdateExamSessionStatus,
 } from '../hooks/useOmr'
-import type { ExamSessionStatus } from '../types/omr.types'
+import type { ExamSessionItem, ExamSessionStatus } from '../types/omr.types'
 import {
   EXAM_SESSION_STATUS_BADGE,
   EXAM_SESSION_STATUS_LABEL,
   formatOmrDateTime,
 } from '../types/omr.types'
+
+const iconBtn =
+  'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border p-0 transition disabled:cursor-not-allowed disabled:opacity-50'
 
 export function OmrSessionsPage() {
   const { examId: examIdParam } = useParams()
@@ -298,7 +301,7 @@ export function OmrSessionsPage() {
                       <TableHead>Trạng thái</TableHead>
                       <TableHead>Phiếu</TableHead>
                       <TableHead>Tạo lúc</TableHead>
-                      <TableHead className="text-right">Thao tác</TableHead>
+                      <TableHead align="center">Thao tác</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -321,48 +324,15 @@ export function OmrSessionsPage() {
                         <TableCell align="center" className="text-sm text-slate-600">
                           {formatOmrDateTime(session.createdAt)}
                         </TableCell>
-                        <TableCell align="right">
-                          <div className="flex flex-wrap justify-end gap-2">
-                            <Button
-                              variant="secondary"
-                              className="h-9 px-3"
-                              onClick={() => navigate(omrSessionPath(session.id))}
-                            >
-                              Mở
-                            </Button>
-                            {session.status === 'OPEN' ? (
-                              <Button
-                                variant="ghost"
-                                className="h-9 px-3"
-                                disabled={statusMutation.isPending}
-                                onClick={() => void patchStatus(session.id, 'CLOSED')}
-                                title="Khóa phiên"
-                              >
-                                <Lock className="h-4 w-4" strokeWidth={1.75} />
-                              </Button>
-                            ) : null}
-                            {session.status === 'CLOSED' ? (
-                              <Button
-                                variant="ghost"
-                                className="h-9 px-3"
-                                disabled={statusMutation.isPending}
-                                onClick={() => void patchStatus(session.id, 'OPEN')}
-                                title="Mở lại"
-                              >
-                                <Unlock className="h-4 w-4" strokeWidth={1.75} />
-                              </Button>
-                            ) : null}
-                            {session.status === 'CLOSED' ? (
-                              <Button
-                                variant="ghost"
-                                className="h-9 px-3 text-blue-700"
-                                disabled={statusMutation.isPending}
-                                onClick={() => void patchStatus(session.id, 'GRADED')}
-                              >
-                                Kết thúc
-                              </Button>
-                            ) : null}
-                          </div>
+                        <TableCell align="center">
+                          <SessionTableActions
+                            session={session}
+                            pending={statusMutation.isPending}
+                            onOpen={() => navigate(omrSessionPath(session.id))}
+                            onLock={() => void patchStatus(session.id, 'CLOSED')}
+                            onUnlock={() => void patchStatus(session.id, 'OPEN')}
+                            onFinish={() => void patchStatus(session.id, 'GRADED')}
+                          />
                         </TableCell>
                       </TableRow>
                     ))}
@@ -392,9 +362,14 @@ export function OmrSessionsPage() {
                     <p className="mb-3 text-sm text-slate-500">
                       {session.sheetCount} phiếu · {formatOmrDateTime(session.createdAt)}
                     </p>
-                    <Button className="w-full" onClick={() => navigate(omrSessionPath(session.id))}>
-                      Mở phiên
-                    </Button>
+                    <SessionCardActions
+                      session={session}
+                      pending={statusMutation.isPending}
+                      onOpen={() => navigate(omrSessionPath(session.id))}
+                      onLock={() => void patchStatus(session.id, 'CLOSED')}
+                      onUnlock={() => void patchStatus(session.id, 'OPEN')}
+                      onFinish={() => void patchStatus(session.id, 'GRADED')}
+                    />
                   </li>
                 ))}
               </ul>
@@ -402,6 +377,129 @@ export function OmrSessionsPage() {
           )}
         </>
       )}
+    </div>
+  )
+}
+
+type SessionActionsProps = {
+  session: ExamSessionItem
+  pending: boolean
+  onOpen: () => void
+  onLock: () => void
+  onUnlock: () => void
+  onFinish: () => void
+}
+
+function SessionTableActions({
+  session,
+  pending,
+  onOpen,
+  onLock,
+  onUnlock,
+  onFinish,
+}: SessionActionsProps) {
+  return (
+    <div className="flex items-center justify-center gap-1.5">
+      <button
+        type="button"
+        title="Mở phiên"
+        aria-label="Mở phiên"
+        className={`${iconBtn} border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100`}
+        onClick={onOpen}
+      >
+        <Eye className="h-3.5 w-3.5" strokeWidth={1.75} />
+      </button>
+      {session.status === 'OPEN' ? (
+        <button
+          type="button"
+          title="Khóa phiên"
+          aria-label="Khóa phiên"
+          disabled={pending}
+          className={`${iconBtn} border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100`}
+          onClick={onLock}
+        >
+          <Lock className="h-3.5 w-3.5" strokeWidth={1.75} />
+        </button>
+      ) : null}
+      {session.status === 'CLOSED' ? (
+        <button
+          type="button"
+          title="Mở lại"
+          aria-label="Mở lại"
+          disabled={pending}
+          className={`${iconBtn} border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100`}
+          onClick={onUnlock}
+        >
+          <Unlock className="h-3.5 w-3.5" strokeWidth={1.75} />
+        </button>
+      ) : null}
+      {session.status === 'CLOSED' ? (
+        <button
+          type="button"
+          title="Kết thúc"
+          aria-label="Kết thúc"
+          disabled={pending}
+          className={`${iconBtn} border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100`}
+          onClick={onFinish}
+        >
+          <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
+function SessionCardActions({
+  session,
+  pending,
+  onOpen,
+  onLock,
+  onUnlock,
+  onFinish,
+}: SessionActionsProps) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Button
+        variant="ghost"
+        className="h-8 border border-blue-200 bg-blue-50 px-2.5 text-xs text-blue-700 hover:bg-blue-100 hover:text-blue-800"
+        onClick={onOpen}
+      >
+        <Eye className="h-3.5 w-3.5" strokeWidth={1.75} />
+        Mở
+      </Button>
+      {session.status === 'OPEN' ? (
+        <Button
+          variant="ghost"
+          className="h-8 border border-slate-200 bg-slate-50 px-2.5 text-xs text-slate-700 hover:bg-slate-100 hover:text-slate-800"
+          disabled={pending}
+          onClick={onLock}
+        >
+          <Lock className="h-3.5 w-3.5" strokeWidth={1.75} />
+          Khóa
+        </Button>
+      ) : null}
+      {session.status === 'CLOSED' ? (
+        <Button
+          variant="ghost"
+          className="h-8 border border-emerald-200 bg-emerald-50 px-2.5 text-xs text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800"
+          disabled={pending}
+          onClick={onUnlock}
+        >
+          <Unlock className="h-3.5 w-3.5" strokeWidth={1.75} />
+          Mở lại
+        </Button>
+      ) : null}
+      {session.status === 'CLOSED' ? (
+        <Button
+          variant="ghost"
+          className="h-8 border border-blue-200 bg-blue-50 px-2.5 text-xs text-blue-700 hover:bg-blue-100 hover:text-blue-800"
+          disabled={pending}
+          onClick={onFinish}
+        >
+          <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+          Kết thúc
+        </Button>
+      ) : null}
     </div>
   )
 }
