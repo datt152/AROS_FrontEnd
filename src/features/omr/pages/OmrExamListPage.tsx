@@ -10,6 +10,7 @@ import { getApiErrorMessage } from '../../../lib/apiError'
 import { sortByNewest } from '../../../lib/sortByNewest'
 import { omrSessionsPath, ROUTES } from '../../../routes/routes.config'
 import { useExamVersionsMany, useExams } from '../../exams/hooks/useExams'
+import { OmrAnswerSheetDownloadLink } from '../components/OmrAnswerSheetDownloadLink'
 import type { OmrExamCard } from '../types/omr.types'
 
 const FETCH_SIZE = 100
@@ -38,11 +39,14 @@ export function OmrExamListPage() {
 
   return (
     <div className="space-y-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Chấm OMR</h1>
-        <p className="text-sm text-slate-500">
-          Chọn đề OMR → chọn lớp đã giao → tạo phiên chấm → tải phiếu trả lời.
-        </p>
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Chấm OMR</h1>
+          <p className="text-sm text-slate-500">
+            Chọn đề OMR → chọn lớp đã giao → tạo phiên chấm → tải phiếu trả lời.
+          </p>
+        </div>
+        <OmrAnswerSheetDownloadLink className="w-full shrink-0 sm:w-auto" />
       </header>
 
       {examsQuery.isLoading ? (

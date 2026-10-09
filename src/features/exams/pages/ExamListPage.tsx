@@ -19,6 +19,7 @@ import { getApiErrorMessage } from '../../../lib/apiError'
 import { sortByNewest } from '../../../lib/sortByNewest'
 import { ROUTES } from '../../../routes/routes.config'
 import { useClassrooms } from '../../classrooms/hooks/useClassrooms'
+import { OmrAnswerSheetDownloadLink } from '../../omr/components/OmrAnswerSheetDownloadLink'
 import { useQuestions } from '../../questions/hooks/useQuestions'
 import { useTopics } from '../../questions/hooks/useTopics'
 import { useSubjects } from '../../subjects/hooks/useSubjects'
@@ -532,6 +533,7 @@ export function ExamListPage({ examMode }: ExamListPageProps) {
           <p className="mt-1 text-sm text-slate-500">{pageSubtitle}</p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
+          {!isOnline ? <OmrAnswerSheetDownloadLink className="w-full sm:w-auto" /> : null}
           <Button onClick={openCreate} className="w-full sm:w-auto">
             <Plus className="h-4 w-4" strokeWidth={2} />
             {isOnline ? 'Tạo đề thi' : 'Tạo đề OMR'}
