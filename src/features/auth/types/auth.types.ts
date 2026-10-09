@@ -48,3 +48,22 @@ export type UpdateMePayload = {
   fullName: string
   studentCode?: string
 }
+
+/** POST /v1/auth/forgot-password */
+export type ForgotPasswordPayload = {
+  email: string
+}
+
+/** POST /v1/auth/reset-password — token lấy từ ?token= trong link email */
+export type ResetPasswordPayload = {
+  token: string
+  newPassword: string
+  confirmPassword: string
+}
+
+/** PUT /v1/users/me/password */
+export type ChangePasswordPayload = {
+  currentPassword: string
+  newPassword: string
+  confirmPassword: string
+}

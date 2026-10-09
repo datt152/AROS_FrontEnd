@@ -219,9 +219,9 @@ export function LoginForm() {
           />
           <span className="text-sm text-slate-600">Ghi nhớ đăng nhập</span>
         </label>
-        <a href="#" className="text-sm font-medium text-blue-600 transition hover:text-blue-700">
+        <Link to={ROUTES.forgotPassword} className="text-sm font-medium text-blue-600 transition hover:text-blue-700">
           Quên mật khẩu?
-        </a>
+        </Link>
       </div>
 
       <button

@@ -8,7 +8,22 @@ import {
 } from '../../../lib/axios'
 import type { Role } from '../../../routes/routes.config'
 import { clearActivityTracking, getIdleRemainingMs, isIdleTimedOut, markIdleExpiredFlag, touchActivity } from '../lib/idleTimeout'
-import type { AuthSession, LoginPayload, LoginResponse, RegisterPayload } from '../types/auth.types'
+import type {
+  AuthSession,
+  ForgotPasswordPayload,
+  LoginPayload,
+  LoginResponse,
+  RegisterPayload,
+  ResetPasswordPayload,
+} from '../types/auth.types'
+
+export const FORGOT_PASSWORD_SUCCESS_MESSAGE =
+  'Nếu email tồn tại trong hệ thống, liên kết đặt lại mật khẩu đã được gửi.'
+export const RESET_PASSWORD_SUCCESS_MESSAGE = 'Đặt lại mật khẩu thành công!'
+
+function readTextMessage(data: unknown, fallback: string) {
+  return typeof data === 'string' && data.trim() ? data.trim() : fallback
+}
 
 export class UnsupportedRoleError extends Error {
   readonly receivedRole: string
@@ -115,6 +130,23 @@ export async function register(payload: RegisterPayload) {
     { headers: { [SKIP_AUTH_REFRESH_HEADER]: '1' } },
   )
   return response.data
+}
+
+/** Luôn 200 cùng một câu (kể cả email không tồn tại / đang cooldown) — không lộ email nào có tài khoản. */
+export async function forgotPassword(payload: ForgotPasswordPayload) {
+  const response = await apiClient.post<string>(
+    '/v1/auth/forgot-password',
+    { email: payload.email.trim() },
+    { headers: { [SKIP_AUTH_REFRESH_HEADER]: '1' } },
+  )
+  return readTextMessage(response.data, FORGOT_PASSWORD_SUCCESS_MESSAGE)
+}
+
+export async function resetPassword(payload: ResetPasswordPayload) {
+  const response = await apiClient.post<string>('/v1/auth/reset-password', payload, {
+    headers: { [SKIP_AUTH_REFRESH_HEADER]: '1' },
+  })
+  return readTextMessage(response.data, RESET_PASSWORD_SUCCESS_MESSAGE)
 }
 
 export async function logoutRequest() {

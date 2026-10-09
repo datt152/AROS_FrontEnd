@@ -8,13 +8,21 @@ import { getApiErrorMessage } from '../../../lib/apiError'
 import { focusFirstFormError } from '../../../utils/focusFormError'
 import { useAuthSession } from '../hooks/useAuthSession'
 import { useMe, useUpdateMe } from '../hooks/useMe'
+import { ChangePasswordForm } from './ChangePasswordForm'
 import { RoleTag } from './RoleTag'
 
 type AccountProfileModalProps = {
   onClose: () => void
 }
 
+type AccountTab = 'profile' | 'password'
+
 const STUDENT_CODE_PATTERN = /^\d{8}$/
+
+const TABS: { id: AccountTab; label: string }[] = [
+  { id: 'profile', label: 'Thông tin' },
+  { id: 'password', label: 'Đổi mật khẩu' },
+]
 
 export function AccountProfileModal({ onClose }: AccountProfileModalProps) {
   const { role } = useAuthSession()
@@ -26,6 +34,9 @@ export function AccountProfileModal({ onClose }: AccountProfileModalProps) {
   const [fullName, setFullName] = useState('')
   const [studentCode, setStudentCode] = useState('')
   const [fieldErrors, setFieldErrors] = useState<{ fullName?: string; studentCode?: string }>({})
+  const [activeTab, setActiveTab] = useState<AccountTab>('profile')
+  const [passwordPending, setPasswordPending] = useState(false)
+  const busy = updateMe.isPending || passwordPending
 
   useEffect(() => {
     if (!profile) return
@@ -73,20 +84,29 @@ export function AccountProfileModal({ onClose }: AccountProfileModalProps) {
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center bg-slate-900/40 p-0 sm:items-center sm:p-4">
-      <button type="button" className="absolute inset-0 cursor-default" aria-label="Đóng" onClick={onClose} />
+      <button
+        type="button"
+        className="absolute inset-0 cursor-default"
+        aria-label="Đóng"
+        onClick={() => {
+          if (!busy) onClose()
+        }}
+      />
       <div className="relative z-10 max-h-[90dvh] w-full overflow-y-auto rounded-t-3xl border border-slate-200 bg-white p-5 shadow-2xl sm:max-w-md sm:rounded-3xl sm:p-6">
         <div className="mb-5 flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-medium uppercase tracking-wider text-blue-600">Tài khoản</p>
             <div className="mt-1 flex flex-wrap items-center gap-2">
-              <h2 className="text-lg font-semibold text-slate-900">Thông tin cá nhân</h2>
+              <h2 className="text-lg font-semibold text-slate-900">
+                {activeTab === 'password' ? 'Đổi mật khẩu' : 'Thông tin cá nhân'}
+              </h2>
               {profile ? <RoleTag role={profile.role || role || ''} /> : null}
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            disabled={updateMe.isPending}
+            disabled={busy}
             className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
             aria-label="Đóng"
           >
@@ -94,9 +114,34 @@ export function AccountProfileModal({ onClose }: AccountProfileModalProps) {
           </button>
         </div>
 
-        {meQuery.isLoading ? <Spinner label="Đang tải..." className="py-8" /> : null}
+        <div className="mb-5 grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1" role="tablist">
+          {TABS.map((tab) => {
+            const selected = activeTab === tab.id
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                disabled={busy}
+                onClick={() => setActiveTab(tab.id)}
+                className={`h-9 rounded-lg text-sm font-medium transition disabled:cursor-not-allowed ${
+                  selected ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                {tab.label}
+              </button>
+            )
+          })}
+        </div>
 
-        {loadError ? (
+        {activeTab === 'password' ? (
+          <ChangePasswordForm onClose={onClose} onPendingChange={setPasswordPending} />
+        ) : null}
+
+        {activeTab === 'profile' && meQuery.isLoading ? <Spinner label="Đang tải..." className="py-8" /> : null}
+
+        {activeTab === 'profile' && loadError ? (
           <div className="space-y-3">
             <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">{loadError}</p>
             <Button variant="secondary" className="w-full" onClick={() => void meQuery.refetch()}>
@@ -105,7 +150,7 @@ export function AccountProfileModal({ onClose }: AccountProfileModalProps) {
           </div>
         ) : null}
 
-        {profile && !meQuery.isLoading ? (
+        {activeTab === 'profile' && profile && !meQuery.isLoading ? (
           <form className="space-y-4" onSubmit={(event) => void handleSubmit(event)} noValidate>
             {apiError ? (
               <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">{apiError}</p>

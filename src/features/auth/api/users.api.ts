@@ -1,5 +1,10 @@
 import { apiClient } from '../../../lib/axios'
-import type { UpdateMePayload, UpdateStudentCodePayload, UserProfile } from '../types/auth.types'
+import type {
+  ChangePasswordPayload,
+  UpdateMePayload,
+  UpdateStudentCodePayload,
+  UserProfile,
+} from '../types/auth.types'
 
 type UserProfileDto = {
   id?: number
@@ -46,6 +51,14 @@ export async function updateMe(payload: UpdateMePayload) {
 
   const response = await apiClient.put<UserProfileDto>('/v1/users/me', body)
   return normalizeProfile(response.data)
+}
+
+/** Sai mật khẩu hiện tại trả 400 (không phải 401) → interceptor không refresh / logout. */
+export async function changeMyPassword(payload: ChangePasswordPayload) {
+  const response = await apiClient.put<string>('/v1/users/me/password', payload)
+  return typeof response.data === 'string' && response.data.trim()
+    ? response.data.trim()
+    : 'Đổi mật khẩu thành công!'
 }
 
 export async function updateMyStudentCode(payload: UpdateStudentCodePayload) {

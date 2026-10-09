@@ -9,6 +9,8 @@ export const ROUTES = {
   home: '/',
   login: '/login',
   register: '/register',
+  forgotPassword: '/forgot-password',
+  resetPassword: '/reset-password',
   unauthorized: '/unauthorized',
 
   student: {

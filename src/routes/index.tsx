@@ -1,8 +1,10 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 
 import { AuthSessionBridge } from '../features/auth/components/AuthSessionBridge'
+import { ForgotPasswordPage } from '../features/auth/pages/ForgotPasswordPage'
 import { LoginPage } from '../features/auth/pages/LoginPage'
 import { RegisterPage } from '../features/auth/pages/RegisterPage'
+import { ResetPasswordPage } from '../features/auth/pages/ResetPasswordPage'
 import { ClassroomListPage } from '../features/classrooms/pages/ClassroomListPage'
 import { StudentDashboardPage } from '../features/dashboard/pages/StudentDashboardPage'
 import { TeacherDashboardPage } from '../features/dashboard/pages/TeacherDashboardPage'
@@ -85,6 +87,13 @@ export const router = createBrowserRouter([
               { path: ROUTES.register, element: <RegisterPage /> },
             ],
           },
+        ],
+      },
+      {
+        element: <AuthLayout />,
+        children: [
+          { path: ROUTES.forgotPassword, element: <ForgotPasswordPage /> },
+          { path: ROUTES.resetPassword, element: <ResetPasswordPage /> },
         ],
       },
       {
