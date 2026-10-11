@@ -3,7 +3,7 @@ import type { NavigateFunction } from 'react-router-dom'
 
 import { clearAccessToken } from '../../../lib/axios'
 import { ROUTES } from '../../../routes/routes.config'
-import { logoutRequest } from '../api/auth.api'
+import { logoutRequest } from '@aros/shared/features/auth/api/auth.api'
 import { authKeys } from '../hooks/useAuthSession'
 import { clearActivityTracking, markIdleExpiredFlag } from './idleTimeout'
 

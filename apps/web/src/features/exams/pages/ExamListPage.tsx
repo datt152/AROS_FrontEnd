@@ -15,15 +15,15 @@ import {
   TableHeader,
   TableRow,
 } from '../../../components/ui/Table'
-import { getApiErrorMessage } from '../../../lib/apiError'
-import { sortByNewest } from '../../../lib/sortByNewest'
+import { getApiErrorMessage } from '@aros/shared/api/apiError'
+import { sortByNewest } from '@aros/shared/utils/sortByNewest'
 import { ROUTES } from '../../../routes/routes.config'
 import { useClassrooms } from '../../classrooms/hooks/useClassrooms'
 import { OmrAnswerSheetDownloadLink } from '../../omr/components/OmrAnswerSheetDownloadLink'
 import { useQuestions } from '../../questions/hooks/useQuestions'
 import { useTopics } from '../../questions/hooks/useTopics'
 import { useSubjects } from '../../subjects/hooks/useSubjects'
-import { toRawPointsPayload } from '../api/exams.api'
+import { toRawPointsPayload } from '@aros/shared/features/exams/api/exams.api'
 import { ExamAssignClassroomsModal } from '../components/ExamAssignClassroomsModal'
 import { ExamDetailPanel } from '../components/ExamDetailPanel'
 import { ExamForm } from '../components/ExamForm'
@@ -57,7 +57,7 @@ import type {
   ExamUpdatePayload,
   ExamVersionCreateValues,
   QuestionPickItem,
-} from '../types/exam.types'
+} from '@aros/shared/features/exams/types/exam.types'
 
 type ModalMode = 'create' | 'edit' | null
 

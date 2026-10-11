@@ -6,12 +6,12 @@ import {
   resolveStudentActionNavigation,
   studentActionLabel,
 } from '../lib/studentDashboardLinks'
-import type { DashboardActivityItem } from '../types/dashboard.types'
+import type { DashboardActivityItem } from '@aros/shared/features/dashboard/types/dashboard.types'
 import type {
   StudentDashboardAction,
   StudentDashboardActionType,
-} from '../types/studentDashboard.types'
-import { STUDENT_ACTION_PRIORITY_LABEL } from '../types/studentDashboard.types'
+} from '@aros/shared/features/dashboard/types/studentDashboard.types'
+import { STUDENT_ACTION_PRIORITY_LABEL } from '@aros/shared/features/dashboard/types/studentDashboard.types'
 import { STUDENT_ACTION_PRIORITY_CLASS } from './dashboardStyles'
 
 const actionIconByType: Record<

@@ -14,7 +14,7 @@ import {
   getStudentTakeBlockReason,
   type StudentExamListItem,
   type TakeExamLocationState,
-} from '../types/studentExam.types'
+} from '@aros/shared/features/exams/types/studentExam.types'
 
 type StudentExamCardProps = {
   exam: StudentExamListItem

@@ -13,8 +13,8 @@ import type {
   DashboardActivityItem,
   DashboardTodoItem,
   DashboardTodoType,
-} from '../types/dashboard.types'
-import { DASHBOARD_PRIORITY_LABEL } from '../types/dashboard.types'
+} from '@aros/shared/features/dashboard/types/dashboard.types'
+import { DASHBOARD_PRIORITY_LABEL } from '@aros/shared/features/dashboard/types/dashboard.types'
 import { DASHBOARD_PRIORITY_CLASS } from './dashboardStyles'
 
 const todoIconByType: Record<

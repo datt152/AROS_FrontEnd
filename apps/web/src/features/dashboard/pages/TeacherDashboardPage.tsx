@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import { Button } from '../../../components/ui/Button'
 import { ErrorState } from '../../../components/ui/ErrorState'
 import { Spinner } from '../../../components/ui/Spinner'
-import { getApiErrorMessage } from '../../../lib/apiError'
+import { getApiErrorMessage } from '@aros/shared/api/apiError'
 import { DashboardAgendaPanel } from '../components/DashboardAgendaPanel'
 import { DashboardCalendar } from '../components/DashboardCalendar'
 import { DashboardStatCards } from '../components/DashboardStatCards'
@@ -12,7 +12,7 @@ import {
   getDashboardRangeForAnchor,
   mapStatsToCards,
   toDateKey,
-} from '../types/dashboard.types'
+} from '@aros/shared/features/dashboard/types/dashboard.types'
 
 export function TeacherDashboardPage() {
   const [anchor, setAnchor] = useState(() => new Date())

@@ -4,7 +4,7 @@ import { Button } from '../../../components/ui/Button'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { ErrorState } from '../../../components/ui/ErrorState'
 import { Spinner } from '../../../components/ui/Spinner'
-import { getApiErrorMessage } from '../../../lib/apiError'
+import { getApiErrorMessage } from '@aros/shared/api/apiError'
 import type { ClassroomItem } from '../../classrooms/types/classroom.types'
 import { useMyClasses } from '../../classrooms/hooks/useClassrooms'
 import { StudentClassroomSubjectCard } from '../components/StudentClassroomSubjectCard'
@@ -18,7 +18,7 @@ import {
   type StudentExamSortMode,
   type StudentExamStatus,
   type StudentMyStatus,
-} from '../types/studentExam.types'
+} from '@aros/shared/features/exams/types/studentExam.types'
 import { useMySubmissions } from '../../submissions/hooks/useSubmissions'
 
 const PAGE_SIZE = 5

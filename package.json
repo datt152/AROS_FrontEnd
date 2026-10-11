@@ -3,12 +3,14 @@
   "private": true,
   "version": "0.0.0",
   "workspaces": [
+    "packages/*",
     "apps/*"
   ],
   "scripts": {
     "dev": "npm run dev -w @aros/web --",
     "build": "npm run build -w @aros/web --",
-    "lint": "npm run lint -w @aros/web --",
+    "lint": "npm run lint -w @aros/shared && npm run lint -w @aros/web",
+    "typecheck": "npm run typecheck -w @aros/shared",
     "preview": "npm run preview -w @aros/web --"
   }
 }

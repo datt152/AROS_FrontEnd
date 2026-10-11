@@ -30,7 +30,7 @@ import {
 
 } from '../../../components/ui/Table'
 
-import { getApiErrorMessage } from '../../../lib/apiError'
+import { getApiErrorMessage } from '@aros/shared/api/apiError'
 
 import { IncludeInactiveToggle } from '../../../components/common/IncludeInactiveToggle'
 

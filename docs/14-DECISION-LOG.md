@@ -52,7 +52,7 @@ Future shared packages contain API/types/validation/domain utilities, not Web UI
 
 ## ADR-007 — Monorepo Deferred Until Mobile
 
-Status: Accepted
+Status: Superseded by ADR-009
 
 The project does not introduce monorepo complexity before there is a concrete Web + Mobile sharing need.
 
@@ -61,3 +61,9 @@ The project does not introduce monorepo complexity before there is a concrete We
 Status: Accepted
 
 Frontend role checks are UX protections. Backend authorization and final exam grading are authoritative.
+
+## ADR-009 — Monorepo with npm Workspaces and a Single Shared Package
+
+Status: Accepted
+
+Mobile (Expo) development is starting, so the repo becomes an npm-workspaces monorepo: `apps/web` (`@aros/web`), later `apps/mobile`, and one package `packages/shared` (`@aros/shared`) instead of several small packages. Shared code is plain TypeScript (no React, no browser APIs); platform specifics are injected via `configureApiClient()` and `configureStorage()`. Vercel builds from the repo root using the root `vercel.json`. See `09-WEB-MOBILE-SHARING.md`.

@@ -1,7 +1,7 @@
 import { Eraser, Flag } from 'lucide-react'
 
 import { Button } from '../../../components/ui/Button'
-import { QUESTION_TYPE_LABEL, type QuestionType } from '../types/exam.types'
+import { QUESTION_TYPE_LABEL, type QuestionType } from '@aros/shared/features/exams/types/exam.types'
 
 export type TakeQuestion = {
   questionId: number

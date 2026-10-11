@@ -1,10 +1,10 @@
 import { useState } from 'react'
 
 import { Button } from '../../../components/ui/Button'
-import { getApiErrorMessage } from '../../../lib/apiError'
+import { getApiErrorMessage } from '@aros/shared/api/apiError'
 import { focusFirstFormError } from '../../../utils/focusFormError'
 import { useChangePassword } from '../hooks/usePassword'
-import { validateNewPassword } from '../lib/passwordValidation'
+import { validateNewPassword } from '@aros/shared/features/auth/lib/passwordValidation'
 import { PasswordInput } from './PasswordInput'
 
 type FieldErrors = {

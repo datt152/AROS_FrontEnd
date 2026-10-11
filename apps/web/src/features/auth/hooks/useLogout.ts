@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 
 import { ROUTES } from '../../../routes/routes.config'
-import { logoutRequest } from '../api/auth.api'
+import { logoutRequest } from '@aros/shared/features/auth/api/auth.api'
 import { clearClientSession } from '../lib/sessionCleanup'
 
 export function useLogout() {

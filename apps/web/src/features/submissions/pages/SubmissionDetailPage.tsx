@@ -6,7 +6,7 @@ import { Button } from '../../../components/ui/Button'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { ErrorState } from '../../../components/ui/ErrorState'
 import { Spinner } from '../../../components/ui/Spinner'
-import { getApiErrorMessage } from '../../../lib/apiError'
+import { getApiErrorMessage } from '@aros/shared/api/apiError'
 import { ROUTES } from '../../../routes/routes.config'
 import { StudentSubmissionQuestionItem } from '../components/StudentSubmissionQuestionItem'
 import { PURPOSE_BADGE, SUBMISSION_STATUS_BADGE } from '../components/submissionStyles'
@@ -18,7 +18,7 @@ import {
   formatSubmissionDateTime,
   formatSubmissionScore,
   type StudentSubmissionDetailItem,
-} from '../types/submission.types'
+} from '@aros/shared/features/submissions/types/submission.types'
 
 function parseSubmissionId(value: string | undefined): number | undefined {
   if (!value) return undefined

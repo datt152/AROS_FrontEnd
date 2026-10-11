@@ -1,4 +1,6 @@
-export type Role = 'teacher' | 'student'
+import type { AppRole } from '@aros/shared/features/auth/types/auth.types'
+
+export type Role = AppRole
 
 export const ROLE_LABEL: Record<Role, string> = {
   teacher: 'Giáo viên',

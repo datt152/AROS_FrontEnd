@@ -1,4 +1,4 @@
-import type { ExamPurpose, SubmissionStatus } from '../types/submission.types'
+import type { ExamPurpose, SubmissionStatus } from '@aros/shared/features/submissions/types/submission.types'
 
 export const SUBMISSION_STATUS_BADGE: Record<SubmissionStatus, string> = {
   NOT_STARTED: 'bg-slate-100 text-slate-600 border-slate-200',

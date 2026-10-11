@@ -1,15 +1,6 @@
-import {
-  AUTH_REFRESH_URL,
-  apiClient,
-  clearAccessToken,
-  getAccessToken,
-  setAccessToken,
-  SKIP_AUTH_REFRESH_HEADER,
-} from '../../../lib/api/apiClient'
-import type { Role } from '../../../routes/routes.config'
-import { clearActivityTracking, getIdleRemainingMs, isIdleTimedOut, markIdleExpiredFlag, touchActivity } from '../lib/idleTimeout'
+import { AUTH_REFRESH_URL, apiClient, SKIP_AUTH_REFRESH_HEADER } from '../../../api/apiClient'
 import type {
-  AuthSession,
+  AppRole,
   ForgotPasswordPayload,
   LoginPayload,
   LoginResponse,
@@ -35,92 +26,29 @@ export class UnsupportedRoleError extends Error {
   }
 }
 
-export function parseAppRole(role: string): Role | null {
+export function parseAppRole(role: string): AppRole | null {
   const value = role.trim().toLowerCase()
   if (value === 'teacher') return 'teacher'
   if (value === 'student') return 'student'
   return null
 }
 
-function applyAuthSession(
-  data: LoginResponse,
-  options: { trackActivity?: boolean } = {},
-): AuthSession & { accessToken: string } {
-  const role = parseAppRole(data.role)
-
-  if (!role) {
-    clearAccessToken()
-    throw new UnsupportedRoleError(data.role || 'unknown')
-  }
-
-  if (data.accessToken) {
-    setAccessToken(data.accessToken)
-  }
-
-  // Chỉ login / restore thành công lần đầu mới nên gọi touch ngoài — refresh 401 không reset idle.
-  if (options.trackActivity) {
-    touchActivity()
-  }
-
-  return {
-    accessToken: data.accessToken,
-    email: data.email,
-    role,
-    tokenType: data.tokenType,
-  }
-}
-
-export async function login(payload: LoginPayload) {
+export async function loginRequest(payload: LoginPayload) {
   const response = await apiClient.post<LoginResponse>(
     '/v1/auth/login',
     payload,
     { headers: { [SKIP_AUTH_REFRESH_HEADER]: '1' } },
   )
-  return applyAuthSession(response.data, { trackActivity: true })
+  return response.data
 }
 
-export async function refreshSession() {
+export async function refreshRequest() {
   const response = await apiClient.post<LoginResponse>(
     AUTH_REFRESH_URL,
     {},
     { headers: { [SKIP_AUTH_REFRESH_HEADER]: '1' } },
   )
-  return applyAuthSession(response.data, { trackActivity: false })
-}
-
-export async function restoreSession(): Promise<AuthSession | null> {
-  // AFK quá lâu rồi reload → không restore bằng refresh cookie.
-  if (isIdleTimedOut()) {
-    markIdleExpiredFlag()
-    clearAccessToken()
-    clearActivityTracking()
-    try {
-      await logoutRequest()
-    } catch {
-      // ignore
-    }
-    return null
-  }
-
-  try {
-    const session = await refreshSession()
-    // Restore thành công: nếu chưa có mốc activity thì tạo; không gia hạn nếu đã có.
-    if (getIdleRemainingMs() === null) {
-      touchActivity()
-    }
-    return {
-      email: session.email,
-      role: session.role,
-      tokenType: session.tokenType,
-    }
-  } catch {
-    if (getAccessToken()) {
-      throw new Error('LOGIN_IN_PROGRESS')
-    }
-    clearAccessToken()
-    clearActivityTracking()
-    return null
-  }
+  return response.data
 }
 
 export async function register(payload: RegisterPayload) {

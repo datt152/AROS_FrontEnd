@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from '../../../components/ui/Table'
-import { getApiErrorMessage } from '../../../lib/apiError'
+import { getApiErrorMessage } from '@aros/shared/api/apiError'
 import { omrSessionPath, ROUTES } from '../../../routes/routes.config'
 import { useExam, useExamClassrooms, useExamVersions } from '../../exams/hooks/useExams'
 import { OmrClassroomCard } from '../components/OmrClassroomCard'
@@ -27,8 +27,8 @@ import {
   useExamSessions,
   useUpdateExamSessionStatus,
 } from '../hooks/useOmr'
-import type { ExamSessionItem, ExamSessionStatus } from '../types/omr.types'
-import { EXAM_SESSION_STATUS_LABEL, formatOmrDateTime } from '../types/omr.types'
+import type { ExamSessionItem, ExamSessionStatus } from '@aros/shared/features/omr/types/omr.types'
+import { EXAM_SESSION_STATUS_LABEL, formatOmrDateTime } from '@aros/shared/features/omr/types/omr.types'
 
 const iconBtn =
   'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border p-0 transition disabled:cursor-not-allowed disabled:opacity-50'

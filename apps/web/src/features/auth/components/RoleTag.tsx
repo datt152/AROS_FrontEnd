@@ -1,4 +1,4 @@
-import { parseAppRole } from '../api/auth.api'
+import { parseAppRole } from '@aros/shared/features/auth/api/auth.api'
 import { ROLE_LABEL, type Role } from '../../../routes/routes.config'
 
 const roleTagClass: Record<Role, string> = {

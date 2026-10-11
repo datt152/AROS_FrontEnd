@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { STALE_TIME } from '../../../lib/queryStaleTime'
-import { getMe, updateMe, updateMyStudentCode } from '../api/users.api'
-import type { UpdateMePayload, UpdateStudentCodePayload, UserProfile } from '../types/auth.types'
+import { getMe, updateMe, updateMyStudentCode } from '@aros/shared/features/auth/api/users.api'
+import type { UpdateMePayload, UpdateStudentCodePayload, UserProfile } from '@aros/shared/features/auth/types/auth.types'
 
 export const meKeys = {
   all: ['users', 'me'] as const,

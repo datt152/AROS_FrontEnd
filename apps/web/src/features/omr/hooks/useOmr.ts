@@ -10,13 +10,13 @@ import {
   reviewOmrSheet,
   updateExamSessionStatus,
   uploadOmrSheet,
-} from '../api/omr.api'
+} from '@aros/shared/features/omr/api/omr.api'
 import type {
   CreateExamSessionPayload,
   ExamSessionStatus,
   OmrSheetItem,
   OmrSheetReviewPayload,
-} from '../types/omr.types'
+} from '@aros/shared/features/omr/types/omr.types'
 
 export const omrKeys = {
   all: ['omr'] as const,

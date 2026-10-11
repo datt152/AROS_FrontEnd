@@ -1,4 +1,4 @@
-import { apiClient } from '../../../lib/api/apiClient'
+import { apiClient } from '../../../api/apiClient'
 import type { ExamStatus } from '../../exams/types/exam.types'
 import type { StudentMyStatus } from '../../exams/types/studentExam.types'
 import type {

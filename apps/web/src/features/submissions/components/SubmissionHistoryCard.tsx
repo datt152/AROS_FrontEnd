@@ -13,7 +13,7 @@ import {
   getSubmissionListScoreDisplay,
   type StudentSubmissionItem,
   type SubmissionDetailLocationState,
-} from '../types/submission.types'
+} from '@aros/shared/features/submissions/types/submission.types'
 
 type SubmissionHistoryCardProps = {
   item: StudentSubmissionItem

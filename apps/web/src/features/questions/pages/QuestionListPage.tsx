@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from '../../../components/ui/Table'
-import { getApiErrorMessage } from '../../../lib/apiError'
+import { getApiErrorMessage } from '@aros/shared/api/apiError'
 import { useSubjects } from '../../subjects/hooks/useSubjects'
 import { QuestionForm } from '../components/QuestionForm'
 import { QuestionItem, QuestionTableRow } from '../components/QuestionItem'

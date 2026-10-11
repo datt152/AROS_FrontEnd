@@ -4,7 +4,7 @@ import { STALE_TIME } from '../../../lib/queryStaleTime'
 import {
   getStudentDashboard,
   type GetStudentDashboardParams,
-} from '../api/studentDashboard.api'
+} from '@aros/shared/features/dashboard/api/studentDashboard.api'
 
 export type { GetStudentDashboardParams }
 

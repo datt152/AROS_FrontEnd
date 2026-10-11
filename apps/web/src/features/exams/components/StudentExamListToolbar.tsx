@@ -7,7 +7,7 @@ import {
   type StudentExamSortMode,
   type StudentExamStatus,
   type StudentMyStatus,
-} from '../types/studentExam.types'
+} from '@aros/shared/features/exams/types/studentExam.types'
 
 const selectClass =
   'h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/30'

@@ -1,8 +1,8 @@
 import { Eye, Lock, Pencil, Trash2 } from 'lucide-react'
 
 import { TableCell, TableRow } from '../../../components/ui/Table'
-import type { PracticeItem } from '../types/practice.types'
-import { formatMaxAttempts, formatTimeLimit } from '../types/practice.types'
+import type { PracticeItem } from '@aros/shared/features/practice/types/practice.types'
+import { formatMaxAttempts, formatTimeLimit } from '@aros/shared/features/practice/types/practice.types'
 import { PracticeStatusBadge } from './PracticeStatusBadge'
 
 type PracticeTableRowProps = {

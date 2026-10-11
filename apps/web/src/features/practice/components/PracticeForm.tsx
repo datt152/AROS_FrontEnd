@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
 import { Spinner } from '../../../components/ui/Spinner'
-import { sortByNewest } from '../../../lib/sortByNewest'
+import { sortByNewest } from '@aros/shared/utils/sortByNewest'
 import { focusFirstFormError } from '../../../utils/focusFormError'
 import {
   useExamTemplate,
@@ -16,8 +16,8 @@ import type {
   PracticeItem,
   PracticeQuestionOption,
   PracticeSubjectOption,
-} from '../types/practice.types'
-import { emptyPracticeFormValues, practiceToFormValues } from '../types/practice.types'
+} from '@aros/shared/features/practice/types/practice.types'
+import { emptyPracticeFormValues, practiceToFormValues } from '@aros/shared/features/practice/types/practice.types'
 import { PracticeConfigSection } from './PracticeConfigSection'
 
 type QuestionPickMode = 'manual' | 'template'

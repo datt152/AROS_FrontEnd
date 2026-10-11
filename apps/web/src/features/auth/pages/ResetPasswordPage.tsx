@@ -3,12 +3,12 @@ import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { Button } from '../../../components/ui/Button'
-import { getApiErrorMessage } from '../../../lib/apiError'
+import { getApiErrorMessage } from '@aros/shared/api/apiError'
 import { focusFirstFormError } from '../../../utils/focusFormError'
 import { ROUTES } from '../../../routes/routes.config'
 import { PasswordInput } from '../components/PasswordInput'
 import { useResetPassword } from '../hooks/usePassword'
-import { validateNewPassword } from '../lib/passwordValidation'
+import { validateNewPassword } from '@aros/shared/features/auth/lib/passwordValidation'
 
 type FieldErrors = {
   newPassword?: string

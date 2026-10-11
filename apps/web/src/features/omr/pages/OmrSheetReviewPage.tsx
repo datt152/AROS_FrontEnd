@@ -6,12 +6,12 @@ import { Button } from '../../../components/ui/Button'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { ErrorState } from '../../../components/ui/ErrorState'
 import { Spinner } from '../../../components/ui/Spinner'
-import { getApiErrorMessage } from '../../../lib/apiError'
+import { getApiErrorMessage } from '@aros/shared/api/apiError'
 import { omrSessionPath, ROUTES } from '../../../routes/routes.config'
 import { OmrWarpedImageOverlay } from '../components/OmrWarpedImageOverlay'
 import { OMR_ANSWER_LEVEL_BADGE, OMR_SHEET_STATUS_BADGE } from '../components/omrStyles'
 import { useOmrSheet, useReviewOmrSheet } from '../hooks/useOmr'
-import type { OmrAnswerItem, OmrAnswerLevel, OmrSheetReviewPayload } from '../types/omr.types'
+import type { OmrAnswerItem, OmrAnswerLevel, OmrSheetReviewPayload } from '@aros/shared/features/omr/types/omr.types'
 import {
   formatOmrDateTime,
   formatOmrScore,
@@ -20,7 +20,7 @@ import {
   OMR_ANSWER_LEVEL_LABEL,
   OMR_SHEET_STATUS_LABEL,
   resolveOmrSheetImageUrl,
-} from '../types/omr.types'
+} from '@aros/shared/features/omr/types/omr.types'
 
 const CHOICES = ['A', 'B', 'C', 'D'] as const
 

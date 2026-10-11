@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { X } from 'lucide-react'
 
 import { Button } from '../../../components/ui/Button'
-import type { ClassroomOption, ExamItem } from '../types/exam.types'
+import type { ClassroomOption, ExamItem } from '@aros/shared/features/exams/types/exam.types'
 
 type ExamAssignClassroomsModalProps = {
   exam: ExamItem

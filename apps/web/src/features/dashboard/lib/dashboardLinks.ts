@@ -8,7 +8,7 @@ import type {
   DashboardCalendarEvent,
   DashboardTodoItem,
   DashboardTodoType,
-} from '../types/dashboard.types'
+} from '@aros/shared/features/dashboard/types/dashboard.types'
 
 const TODO_ACTION_LABEL: Record<DashboardTodoType, string> = {
   MISSING_VERSIONS: 'Sinh mã đề',

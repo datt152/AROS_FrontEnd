@@ -1,12 +1,12 @@
 import { useMutation } from '@tanstack/react-query'
 
-import { forgotPassword, resetPassword } from '../api/auth.api'
-import { changeMyPassword } from '../api/users.api'
+import { forgotPassword, resetPassword } from '@aros/shared/features/auth/api/auth.api'
+import { changeMyPassword } from '@aros/shared/features/auth/api/users.api'
 import type {
   ChangePasswordPayload,
   ForgotPasswordPayload,
   ResetPasswordPayload,
-} from '../types/auth.types'
+} from '@aros/shared/features/auth/types/auth.types'
 
 export function useForgotPassword() {
   return useMutation({

@@ -2,10 +2,10 @@ import { useState } from 'react'
 import { Eye, EyeOff, Lock, ShieldOff, User, X } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
-import { getApiErrorMessage } from '../../../lib/apiError'
+import { getApiErrorMessage } from '@aros/shared/api/apiError'
 import { focusFirstFormError } from '../../../utils/focusFormError'
 import { ROUTES, type Role } from '../../../routes/routes.config'
-import { UnsupportedRoleError } from '../api/auth.api'
+import { UnsupportedRoleError } from '@aros/shared/features/auth/api/auth.api'
 import { useLogin } from '../hooks/useLogin'
 
 type FieldErrors = {

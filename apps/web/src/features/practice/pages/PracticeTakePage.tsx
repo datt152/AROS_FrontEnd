@@ -7,7 +7,7 @@ import { ExamTimeWarningDialog } from '../../../components/common/ExamTimeWarnin
 import { useExamTimeWarning } from '../../../hooks/useExamTimeWarning'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { Spinner } from '../../../components/ui/Spinner'
-import { getApiErrorMessage } from '../../../lib/apiError'
+import { getApiErrorMessage } from '@aros/shared/api/apiError'
 import { ROUTES } from '../../../routes/routes.config'
 import { useAuthSession } from '../../auth/hooks/useAuthSession'
 import { ExamTakePreview } from '../../exams/components/ExamTakePreview'
@@ -21,16 +21,16 @@ import {
   loadActiveExamTake,
   loadExamTakeDraft,
   saveExamTakeDraft,
-} from '../../exams/lib/examTakeDraft'
-import type { TakeExamLocationState } from '../../exams/types/studentExam.types'
+} from '@aros/shared/features/exams/lib/examTakeDraft'
+import type { TakeExamLocationState } from '@aros/shared/features/exams/types/studentExam.types'
 import {
   answersToSubmitPayload,
   mapExamTakeError,
   type ExamTakeItem,
   type SubmissionResultItem,
-} from '../../exams/types/exam.types'
+} from '@aros/shared/features/exams/types/exam.types'
 import { PracticeAttemptBadge } from '../components/PracticeAttemptBadge'
-import { canRetryPractice } from '../types/practice.types'
+import { canRetryPractice } from '@aros/shared/features/practice/types/practice.types'
 
 type Phase = 'answering' | 'preview'
 

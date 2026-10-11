@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { login } from '../api/auth.api'
-import type { AuthSession, LoginPayload } from '../types/auth.types'
+import { login } from '../api/authSession'
+import type { AuthSession, LoginPayload } from '@aros/shared/features/auth/types/auth.types'
 import { authKeys } from './useAuthSession'
 
 export function useLogin() {

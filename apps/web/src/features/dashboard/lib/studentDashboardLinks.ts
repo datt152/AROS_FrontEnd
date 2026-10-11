@@ -2,13 +2,13 @@ import {
   ROUTES,
   studentHistoryDetailPath,
 } from '../../../routes/routes.config'
-import type { TakeExamLocationState } from '../../exams/types/studentExam.types'
-import type { DashboardCalendarEvent } from '../types/dashboard.types'
+import type { TakeExamLocationState } from '@aros/shared/features/exams/types/studentExam.types'
+import type { DashboardCalendarEvent } from '@aros/shared/features/dashboard/types/dashboard.types'
 import type {
   StudentDashboardAction,
   StudentDashboardActionType,
-} from '../types/studentDashboard.types'
-import { STUDENT_ACTION_LABEL } from '../types/studentDashboard.types'
+} from '@aros/shared/features/dashboard/types/studentDashboard.types'
+import { STUDENT_ACTION_LABEL } from '@aros/shared/features/dashboard/types/studentDashboard.types'
 
 export type StudentNavTarget = {
   to: string

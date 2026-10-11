@@ -3,7 +3,7 @@ import { Eye, EyeOff, Lock, Mail, User } from 'lucide-react'
 import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile'
 import { Link, useNavigate } from 'react-router-dom'
 
-import { getApiErrorMessage } from '../../../lib/apiError'
+import { getApiErrorMessage } from '@aros/shared/api/apiError'
 import { ROUTES } from '../../../routes/routes.config'
 import { useRegister } from '../hooks/useRegister'
 

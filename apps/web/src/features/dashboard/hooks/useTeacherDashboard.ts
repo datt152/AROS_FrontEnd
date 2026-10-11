@@ -4,7 +4,7 @@ import { STALE_TIME } from '../../../lib/queryStaleTime'
 import {
   getTeacherDashboard,
   type GetTeacherDashboardParams,
-} from '../api/dashboard.api'
+} from '@aros/shared/features/dashboard/api/dashboard.api'
 
 export const dashboardKeys = {
   all: ['teacher-dashboard'] as const,

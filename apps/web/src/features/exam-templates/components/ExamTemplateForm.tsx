@@ -2,9 +2,9 @@ import { useMemo, useRef, useState } from 'react'
 
 import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
-import { getApiErrorMessage } from '../../../lib/apiError'
+import { getApiErrorMessage } from '@aros/shared/api/apiError'
 import { focusFirstFormError } from '../../../utils/focusFormError'
-import { QUESTION_TYPE_LABEL } from '../../exams/types/exam.types'
+import { QUESTION_TYPE_LABEL } from '@aros/shared/features/exams/types/exam.types'
 import { usePreviewExamTemplate } from '../hooks/useExamTemplates'
 import type {
   ExamTemplateFormErrors,

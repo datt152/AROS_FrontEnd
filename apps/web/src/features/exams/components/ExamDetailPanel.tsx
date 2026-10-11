@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 
 import { Button } from '../../../components/ui/Button'
 import { omrSessionsPath, ROUTES } from '../../../routes/routes.config'
-import type { ClassroomOption, ExamItem, QuestionPickItem } from '../types/exam.types'
+import type { ClassroomOption, ExamItem, QuestionPickItem } from '@aros/shared/features/exams/types/exam.types'
 import { EXAM_MODE_BADGE_CLASS, EXAM_STATUS_BADGE_CLASS } from './examStyles'
 import {
   EXAM_MODE_LABEL,
@@ -15,7 +15,7 @@ import {
   formatExamDateOnly,
   formatExamSchedule,
   getOpenExamBlockReason,
-} from '../types/exam.types'
+} from '@aros/shared/features/exams/types/exam.types'
 import { ExamPrintVersionsDialog } from './ExamPrintVersionsDialog'
 
 type DetailTab = 'info' | 'questions' | 'classrooms' | 'versions'

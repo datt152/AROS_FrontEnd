@@ -1,4 +1,4 @@
-import type { PracticeStatus } from '../types/practice.types'
+import type { PracticeStatus } from '@aros/shared/features/practice/types/practice.types'
 
 export const PRACTICE_STATUS_BADGE_CLASS: Record<PracticeStatus, string> = {
   DRAFT: 'bg-slate-100 text-slate-600',

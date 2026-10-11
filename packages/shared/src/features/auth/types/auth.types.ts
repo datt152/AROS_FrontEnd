@@ -1,3 +1,5 @@
+export type AppRole = 'teacher' | 'student'
+
 export type LoginPayload = {
   email: string
   password: string
@@ -24,7 +26,7 @@ export type RegisterPayload = {
 
 export type AuthSession = {
   email: string
-  role: 'teacher' | 'student'
+  role: AppRole
   tokenType: string
 }
 

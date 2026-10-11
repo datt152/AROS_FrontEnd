@@ -1,14 +1,14 @@
 import { Eye, Lock, Pencil, Trash2 } from 'lucide-react'
 
 import { TableCell, TableRow } from '../../../components/ui/Table'
-import type { ExamItem as ExamItemType } from '../types/exam.types'
+import type { ExamItem as ExamItemType } from '@aros/shared/features/exams/types/exam.types'
 import { EXAM_MODE_BADGE_CLASS, EXAM_STATUS_BADGE_CLASS } from './examStyles'
 import {
   EXAM_MODE_LABEL,
   EXAM_STATUS_LABEL,
   formatExamDateOnly,
   formatExamSchedule,
-} from '../types/exam.types'
+} from '@aros/shared/features/exams/types/exam.types'
 
 type ExamItemProps = {
   exam: ExamItemType

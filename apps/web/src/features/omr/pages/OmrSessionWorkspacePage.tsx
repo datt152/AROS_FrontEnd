@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from '../../../components/ui/Table'
-import { getApiErrorMessage } from '../../../lib/apiError'
+import { getApiErrorMessage } from '@aros/shared/api/apiError'
 import { omrSessionsPath, omrSheetPath, ROUTES } from '../../../routes/routes.config'
 import {
   OmrUploadQueuePanel,
@@ -25,15 +25,15 @@ import {
 } from '../components/OmrUploadQueuePanel'
 import { EXAM_SESSION_STATUS_BADGE, OMR_SHEET_STATUS_BADGE } from '../components/omrStyles'
 import { useExamSession, useOmrSheets, useUploadOmrSheet } from '../hooks/useOmr'
-import { parseOmrApiError, resolveOmrError, type ResolvedOmrError } from '../lib/omrErrors'
-import type { OmrSheetStatus } from '../types/omr.types'
+import { parseOmrApiError, resolveOmrError, type ResolvedOmrError } from '@aros/shared/features/omr/lib/omrErrors'
+import type { OmrSheetStatus } from '@aros/shared/features/omr/types/omr.types'
 import {
   EXAM_SESSION_STATUS_LABEL,
   formatOmrDateTime,
   formatOmrScore,
   getOmrSheetMatchIssues,
   OMR_SHEET_STATUS_LABEL,
-} from '../types/omr.types'
+} from '@aros/shared/features/omr/types/omr.types'
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024
 const ACCEPT = 'image/jpeg,image/png,.jpg,.jpeg,.png'

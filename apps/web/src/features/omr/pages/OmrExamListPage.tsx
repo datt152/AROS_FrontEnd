@@ -6,12 +6,12 @@ import { Button } from '../../../components/ui/Button'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { ErrorState } from '../../../components/ui/ErrorState'
 import { Spinner } from '../../../components/ui/Spinner'
-import { getApiErrorMessage } from '../../../lib/apiError'
-import { sortByNewest } from '../../../lib/sortByNewest'
+import { getApiErrorMessage } from '@aros/shared/api/apiError'
+import { sortByNewest } from '@aros/shared/utils/sortByNewest'
 import { omrSessionsPath, ROUTES } from '../../../routes/routes.config'
 import { useExamVersionsMany, useExams } from '../../exams/hooks/useExams'
 import { OmrAnswerSheetDownloadLink } from '../components/OmrAnswerSheetDownloadLink'
-import type { OmrExamCard } from '../types/omr.types'
+import type { OmrExamCard } from '@aros/shared/features/omr/types/omr.types'
 
 const FETCH_SIZE = 100
 

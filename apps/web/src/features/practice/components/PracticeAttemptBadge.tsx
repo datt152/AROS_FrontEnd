@@ -1,4 +1,4 @@
-import { formatMaxAttempts } from '../types/practice.types'
+import { formatMaxAttempts } from '@aros/shared/features/practice/types/practice.types'
 
 type PracticeAttemptBadgeProps = {
   attemptNo: number

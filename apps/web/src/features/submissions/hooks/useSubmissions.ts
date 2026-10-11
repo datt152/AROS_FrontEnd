@@ -3,8 +3,8 @@ import { useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
 
 import { STALE_TIME } from '../../../lib/queryStaleTime'
-import { getMySubmissionDetail, getMySubmissions, type GetMySubmissionsParams } from '../api/submissions.api'
-import type { ExamPurpose, StudentSubmissionItem, SubmissionDetailLocationState } from '../types/submission.types'
+import { getMySubmissionDetail, getMySubmissions, type GetMySubmissionsParams } from '@aros/shared/features/submissions/api/submissions.api'
+import type { ExamPurpose, StudentSubmissionItem, SubmissionDetailLocationState } from '@aros/shared/features/submissions/types/submission.types'
 
 export const submissionKeys = {
   all: ['submissions'] as const,

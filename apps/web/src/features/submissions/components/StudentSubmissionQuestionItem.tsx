@@ -1,4 +1,4 @@
-import type { StudentSubmissionDetailItem } from '../types/submission.types'
+import type { StudentSubmissionDetailItem } from '@aros/shared/features/submissions/types/submission.types'
 
 type StudentSubmissionQuestionItemProps = {
   item: StudentSubmissionDetailItem

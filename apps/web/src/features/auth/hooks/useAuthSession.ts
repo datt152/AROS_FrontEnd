@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import { getAccessToken } from '../../../lib/axios'
 import { STALE_TIME } from '../../../lib/queryStaleTime'
-import { restoreSession } from '../api/auth.api'
+import { restoreSession } from '../api/authSession'
 
 export const authKeys = {
   all: ['auth'] as const,

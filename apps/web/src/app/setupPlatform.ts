@@ -1,5 +1,5 @@
 import '../lib/axios'
-import { configureStorage } from '../lib/storage'
+import { configureStorage } from '@aros/shared/platform/storage'
 
 try {
   configureStorage(window.localStorage)

@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 
 import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
-import { getApiErrorMessage } from '../../../lib/apiError'
+import { getApiErrorMessage } from '@aros/shared/api/apiError'
 import { ROUTES } from '../../../routes/routes.config'
 import { useForgotPassword } from '../hooks/usePassword'
 

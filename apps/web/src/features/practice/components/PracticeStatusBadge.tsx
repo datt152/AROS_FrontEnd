@@ -1,5 +1,5 @@
-import type { PracticeStatus } from '../types/practice.types'
-import { PRACTICE_STATUS_LABEL } from '../types/practice.types'
+import type { PracticeStatus } from '@aros/shared/features/practice/types/practice.types'
+import { PRACTICE_STATUS_LABEL } from '@aros/shared/features/practice/types/practice.types'
 import { PRACTICE_STATUS_BADGE_CLASS } from './practiceStyles'
 
 export function PracticeStatusBadge({ status }: { status: PracticeStatus }) {

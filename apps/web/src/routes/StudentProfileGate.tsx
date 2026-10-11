@@ -4,7 +4,7 @@ import { AuthBootScreen } from '../features/auth/components/AuthBootScreen'
 import { StudentCodeRequiredScreen } from '../features/auth/components/StudentCodeRequiredScreen'
 import { useAuthSession } from '../features/auth/hooks/useAuthSession'
 import { useMe } from '../features/auth/hooks/useMe'
-import { getApiErrorMessage } from '../lib/apiError'
+import { getApiErrorMessage } from '@aros/shared/api/apiError'
 import { Button } from '../components/ui/Button'
 import { useLogout } from '../features/auth/hooks/useLogout'
 

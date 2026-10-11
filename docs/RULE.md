@@ -116,7 +116,7 @@ Nếu 1 component trong `components/ui` bắt đầu biết đến khái niệm 
 - UI/local state (mở/đóng modal, tab đang chọn...) → **React state** (`useState`).
 - Client state cần share giữa nhiều component xa nhau, có lý do chính đáng → **Zustand** (chỉ dùng khi thực sự cần, không mặc định).
 - Form phức tạp (có validate nhiều field) → **React Hook Form + Zod**.
-- Gọi API → luôn qua **1 instance Axios duy nhất** ở `src/lib/axios.ts`, không tạo instance khác trong feature.
+- Gọi API → luôn qua **1 instance Axios duy nhất** `apiClient` ở `packages/shared/src/api/apiClient.ts` (Web cấu hình trong `apps/web/src/lib/axios.ts`), không tạo instance khác trong feature.
 
 ## 7. Trước khi bắt tay code (quy trình bắt buộc)
 

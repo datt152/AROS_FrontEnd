@@ -1,8 +1,8 @@
 import { X } from 'lucide-react'
 
 import { Button } from '../../../components/ui/Button'
-import type { ExamVersionDetailItem } from '../types/exam.types'
-import { QUESTION_TYPE_LABEL } from '../types/exam.types'
+import type { ExamVersionDetailItem } from '@aros/shared/features/exams/types/exam.types'
+import { QUESTION_TYPE_LABEL } from '@aros/shared/features/exams/types/exam.types'
 
 type ExamVersionPreviewProps = {
   detail: ExamVersionDetailItem

@@ -1,7 +1,7 @@
 import { AlertTriangle, Upload, X } from 'lucide-react'
 
 import { Button } from '../../../components/ui/Button'
-import type { ResolvedOmrError } from '../lib/omrErrors'
+import type { ResolvedOmrError } from '@aros/shared/features/omr/lib/omrErrors'
 
 type OmrRetakeDialogProps = {
   error: ResolvedOmrError

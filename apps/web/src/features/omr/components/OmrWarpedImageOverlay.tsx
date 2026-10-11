@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-import type { OmrAnswerItem } from '../types/omr.types'
+import type { OmrAnswerItem } from '@aros/shared/features/omr/types/omr.types'
 
 type OmrWarpedImageOverlayProps = {
   src: string

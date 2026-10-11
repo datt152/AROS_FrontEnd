@@ -6,11 +6,11 @@ import { Button } from '../../../components/ui/Button'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { ErrorState } from '../../../components/ui/ErrorState'
 import { Input } from '../../../components/ui/Input'
-import { getApiErrorMessage } from '../../../lib/apiError'
+import { getApiErrorMessage } from '@aros/shared/api/apiError'
 import { SubmissionHistoryCard } from '../components/SubmissionHistoryCard'
 import { SubmissionHistorySkeleton } from '../components/SubmissionHistorySkeleton'
 import { useMySubmissions } from '../hooks/useSubmissions'
-import type { PurposeFilter } from '../types/submission.types'
+import type { PurposeFilter } from '@aros/shared/features/submissions/types/submission.types'
 
 const PURPOSE_TABS: { value: PurposeFilter; label: string }[] = [
   { value: 'ALL', label: 'Tất cả' },

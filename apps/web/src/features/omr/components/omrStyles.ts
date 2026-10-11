@@ -1,4 +1,4 @@
-import type { ExamSessionStatus, OmrAnswerLevel, OmrSheetStatus } from '../types/omr.types'
+import type { ExamSessionStatus, OmrAnswerLevel, OmrSheetStatus } from '@aros/shared/features/omr/types/omr.types'
 
 export const EXAM_SESSION_STATUS_BADGE: Record<ExamSessionStatus, string> = {
   OPEN: 'bg-emerald-50 text-emerald-700 border-emerald-200',

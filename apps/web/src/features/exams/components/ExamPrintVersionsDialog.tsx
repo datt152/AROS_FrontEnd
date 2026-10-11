@@ -2,7 +2,7 @@ import { Printer, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import { Button } from '../../../components/ui/Button'
-import { getApiErrorMessage } from '../../../lib/apiError'
+import { getApiErrorMessage } from '@aros/shared/api/apiError'
 import { useDownloadExamVersionPdf } from '../hooks/useExams'
 
 type ExamPrintVersionsDialogProps = {

@@ -1,7 +1,7 @@
 import { Flag } from 'lucide-react'
 
 import { Button } from '../../../components/ui/Button'
-import { QUESTION_TYPE_LABEL } from '../types/exam.types'
+import { QUESTION_TYPE_LABEL } from '@aros/shared/features/exams/types/exam.types'
 import type { TakeQuestion } from './ExamTakeQuestionPanel'
 
 type ExamTakePreviewProps = {

@@ -1,5 +1,5 @@
-import { apiClient } from '../../../lib/api/apiClient'
-import { appendUploadFile, getUploadFileSize, type UploadFile } from '../../../lib/uploadFile'
+import { apiClient } from '../../../api/apiClient'
+import { appendUploadFile, getUploadFileSize, type UploadFile } from '../../../platform/uploadFile'
 import type {
   CreateExamSessionPayload,
   ExamSessionItem,

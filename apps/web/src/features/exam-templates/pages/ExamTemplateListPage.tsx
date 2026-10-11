@@ -15,8 +15,8 @@ import {
   TableHeader,
   TableRow,
 } from '../../../components/ui/Table'
-import { getApiErrorMessage } from '../../../lib/apiError'
-import { sortByNewest } from '../../../lib/sortByNewest'
+import { getApiErrorMessage } from '@aros/shared/api/apiError'
+import { sortByNewest } from '@aros/shared/utils/sortByNewest'
 import { useQuestions } from '../../questions/hooks/useQuestions'
 import { useTopics } from '../../questions/hooks/useTopics'
 import { useSubjects } from '../../subjects/hooks/useSubjects'

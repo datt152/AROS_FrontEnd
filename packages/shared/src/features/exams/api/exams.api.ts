@@ -1,4 +1,4 @@
-import { apiClient } from '../../../lib/api/apiClient'
+import { apiClient } from '../../../api/apiClient'
 import type {
   ExamCreatePayload,
   ExamItem,

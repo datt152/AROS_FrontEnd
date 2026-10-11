@@ -3,7 +3,7 @@ import { GraduationCap, LogOut } from 'lucide-react'
 
 import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
-import { getApiErrorMessage } from '../../../lib/apiError'
+import { getApiErrorMessage } from '@aros/shared/api/apiError'
 import { focusFirstFormError } from '../../../utils/focusFormError'
 import { useLogout } from '../hooks/useLogout'
 import { useUpdateMyStudentCode } from '../hooks/useMe'

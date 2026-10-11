@@ -1,5 +1,5 @@
-import type { DashboardExamKind, DashboardExamPhase, DashboardTodoPriority } from '../types/dashboard.types'
-import type { StudentDashboardActionPriority } from '../types/studentDashboard.types'
+import type { DashboardExamKind, DashboardExamPhase, DashboardTodoPriority } from '@aros/shared/features/dashboard/types/dashboard.types'
+import type { StudentDashboardActionPriority } from '@aros/shared/features/dashboard/types/studentDashboard.types'
 
 export const DASHBOARD_PHASE_CLASS: Record<DashboardExamPhase, string> = {
   UPCOMING: 'bg-sky-50 text-sky-800 border-sky-200',

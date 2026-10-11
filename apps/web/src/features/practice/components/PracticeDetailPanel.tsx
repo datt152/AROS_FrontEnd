@@ -4,13 +4,13 @@ import { Link } from 'react-router-dom'
 
 import { Button } from '../../../components/ui/Button'
 import { ROUTES } from '../../../routes/routes.config'
-import { QUESTION_TYPE_LABEL, formatExamDate, formatExamSchedule } from '../../exams/types/exam.types'
+import { QUESTION_TYPE_LABEL, formatExamDate, formatExamSchedule } from '@aros/shared/features/exams/types/exam.types'
 import type {
   PracticeClassroomOption,
   PracticeItem,
   PracticeQuestionOption,
-} from '../types/practice.types'
-import { formatMaxAttempts, formatTimeLimit } from '../types/practice.types'
+} from '@aros/shared/features/practice/types/practice.types'
+import { formatMaxAttempts, formatTimeLimit } from '@aros/shared/features/practice/types/practice.types'
 import { PracticeStatusBadge } from './PracticeStatusBadge'
 
 type DetailTab = 'info' | 'questions' | 'classrooms' | 'versions'

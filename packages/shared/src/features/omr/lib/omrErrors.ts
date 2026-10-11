@@ -134,7 +134,7 @@ export function resolveOmrError(
   const message =
     typeof body?.message === 'string' && body.message.trim() ? body.message.trim() : undefined
 
-  let title = mapped?.title ?? 'Không tải được phiếu'
+  const title = mapped?.title ?? 'Không tải được phiếu'
   let description = mapped?.description ?? hint ?? message ?? 'Đã xảy ra lỗi. Vui lòng thử lại.'
 
   if (!mapped && hint) {

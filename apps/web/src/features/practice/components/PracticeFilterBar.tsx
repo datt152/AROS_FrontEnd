@@ -1,8 +1,8 @@
 import { Search } from 'lucide-react'
 
 import { Input } from '../../../components/ui/Input'
-import type { PracticeClassroomOption, PracticeStatus, PracticeSubjectOption } from '../types/practice.types'
-import { PRACTICE_STATUS_LABEL } from '../types/practice.types'
+import type { PracticeClassroomOption, PracticeStatus, PracticeSubjectOption } from '@aros/shared/features/practice/types/practice.types'
+import { PRACTICE_STATUS_LABEL } from '@aros/shared/features/practice/types/practice.types'
 
 type PracticeFilterBarProps = {
   subjects: PracticeSubjectOption[]

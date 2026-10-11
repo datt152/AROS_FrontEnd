@@ -15,8 +15,8 @@ import {
   TableHeader,
   TableRow,
 } from '../../../components/ui/Table'
-import { getApiErrorMessage } from '../../../lib/apiError'
-import { sortByNewest } from '../../../lib/sortByNewest'
+import { getApiErrorMessage } from '@aros/shared/api/apiError'
+import { sortByNewest } from '@aros/shared/utils/sortByNewest'
 import { useClassrooms } from '../../classrooms/hooks/useClassrooms'
 import { ExamAssignClassroomsModal } from '../../exams/components/ExamAssignClassroomsModal'
 import { ExamOpenModal } from '../../exams/components/ExamOpenModal'
@@ -40,7 +40,7 @@ import type {
   ExamOpenValues,
   ExamUpdatePayload,
   ExamVersionCreateValues,
-} from '../../exams/types/exam.types'
+} from '@aros/shared/features/exams/types/exam.types'
 import { useQuestions } from '../../questions/hooks/useQuestions'
 import { useTopics } from '../../questions/hooks/useTopics'
 import { useSubjects } from '../../subjects/hooks/useSubjects'
@@ -48,8 +48,8 @@ import { PracticeDetailPanel } from '../components/PracticeDetailPanel'
 import { PracticeFilterBar } from '../components/PracticeFilterBar'
 import { PracticeForm } from '../components/PracticeForm'
 import { PracticeTableRow } from '../components/PracticeTableRow'
-import type { PracticeFormValues, PracticeItem, PracticeStatus } from '../types/practice.types'
-import { examToPracticeItem } from '../types/practice.types'
+import type { PracticeFormValues, PracticeItem, PracticeStatus } from '@aros/shared/features/practice/types/practice.types'
+import { examToPracticeItem } from '@aros/shared/features/practice/types/practice.types'
 
 type DrawerMode = 'create' | 'edit' | null
 

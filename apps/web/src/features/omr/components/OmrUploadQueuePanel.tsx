@@ -2,7 +2,7 @@ import { AlertTriangle, CheckCircle2, Eye, LoaderCircle, Trash2, Upload, X } fro
 import { useEffect, useState, type RefObject } from 'react'
 
 import { Button } from '../../../components/ui/Button'
-import type { ResolvedOmrError } from '../lib/omrErrors'
+import type { ResolvedOmrError } from '@aros/shared/features/omr/lib/omrErrors'
 
 export type OmrUploadItemStatus = 'queued' | 'uploading' | 'done' | 'error'
 

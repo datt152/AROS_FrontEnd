@@ -3,7 +3,7 @@ import { X } from 'lucide-react'
 
 import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
-import type { ExamVersionCreateErrors, ExamVersionCreateValues } from '../types/exam.types'
+import type { ExamVersionCreateErrors, ExamVersionCreateValues } from '@aros/shared/features/exams/types/exam.types'
 
 type ExamVersionGenerateModalProps = {
   examTitle: string

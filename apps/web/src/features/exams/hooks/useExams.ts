@@ -19,14 +19,14 @@ import {
   takeExam,
   updateExam,
   updateExamClassrooms,
-} from '../api/exams.api'
-import type { GetExamsParams, GetMyExamsParams } from '../api/exams.api'
+} from '@aros/shared/features/exams/api/exams.api'
+import type { GetExamsParams, GetMyExamsParams } from '@aros/shared/features/exams/api/exams.api'
 import type {
   ExamCreatePayload,
   ExamUpdatePayload,
   ExamVersionCreatePayload,
   SubmissionPayload,
-} from '../types/exam.types'
+} from '@aros/shared/features/exams/types/exam.types'
 
 export const examKeys = {
   all: ['exams'] as const,

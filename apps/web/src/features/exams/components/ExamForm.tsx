@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
 import { Spinner } from '../../../components/ui/Spinner'
-import { sortByNewest } from '../../../lib/sortByNewest'
+import { sortByNewest } from '@aros/shared/utils/sortByNewest'
 import { focusFirstFormError } from '../../../utils/focusFormError'
 import {
   useExamTemplate,
@@ -20,8 +20,8 @@ import type {
   ExamUpdateFormValues,
   QuestionPickItem,
   SubjectOption,
-} from '../types/exam.types'
-import { EXAM_MODE_LABEL, QUESTION_TYPE_LABEL } from '../types/exam.types'
+} from '@aros/shared/features/exams/types/exam.types'
+import { EXAM_MODE_LABEL, QUESTION_TYPE_LABEL } from '@aros/shared/features/exams/types/exam.types'
 
 type QuestionPickMode = 'manual' | 'template'
 

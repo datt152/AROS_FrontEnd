@@ -5,7 +5,7 @@ import {
   readAccessToken,
   SKIP_AUTH_REFRESH_HEADER,
   type TokenResponse,
-} from './api/apiClient'
+} from '@aros/shared/api/apiClient'
 
 /**
  * Cấu hình `apiClient` cho Web: refresh token nằm trong cookie httpOnly.
@@ -25,5 +25,5 @@ configureApiClient({
   },
 })
 
-export * from './api/apiClient'
+export * from '@aros/shared/api/apiClient'
 export default apiClient

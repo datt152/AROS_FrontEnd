@@ -6,7 +6,7 @@ import type {
   ExamTemplatePreviewQuestion,
   ExamTemplatePreviewResult,
 } from '../types/examTemplate.types'
-import type { QuestionType } from '../../exams/types/exam.types'
+import type { QuestionType } from '@aros/shared/features/exams/types/exam.types'
 
 type ExamTemplateDto = {
   id?: number

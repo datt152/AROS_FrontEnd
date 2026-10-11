@@ -14,8 +14,8 @@ import {
   TableHeader,
   TableRow,
 } from '../../../components/ui/Table'
-import { getApiErrorMessage } from '../../../lib/apiError'
-import { sortByNewest } from '../../../lib/sortByNewest'
+import { getApiErrorMessage } from '@aros/shared/api/apiError'
+import { sortByNewest } from '@aros/shared/utils/sortByNewest'
 import { useClassrooms } from '../../classrooms/hooks/useClassrooms'
 import { useExams } from '../../exams/hooks/useExams'
 import { useSubjects } from '../../subjects/hooks/useSubjects'

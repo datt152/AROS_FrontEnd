@@ -1,5 +1,5 @@
-import type { ExamMode, ExamStatus } from '../types/exam.types'
-import type { StudentExamStatus, StudentMyStatus } from '../types/studentExam.types'
+import type { ExamMode, ExamStatus } from '@aros/shared/features/exams/types/exam.types'
+import type { StudentExamStatus, StudentMyStatus } from '@aros/shared/features/exams/types/studentExam.types'
 
 export const EXAM_MODE_BADGE_CLASS: Record<ExamMode, string> = {
   ONLINE: 'bg-sky-50 text-sky-700',

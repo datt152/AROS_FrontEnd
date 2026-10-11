@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import type { ComponentType } from 'react'
 
-import type { DashboardStatCard } from '../types/dashboard.types'
+import type { DashboardStatCard } from '@aros/shared/features/dashboard/types/dashboard.types'
 
 const toneClass: Record<DashboardStatCard['tone'], string> = {
   blue: 'from-blue-50 to-white border-blue-100 text-blue-700',

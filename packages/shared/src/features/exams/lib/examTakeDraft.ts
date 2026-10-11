@@ -1,4 +1,4 @@
-import { getStorage } from '../../../lib/storage'
+import { getStorage } from '../../../platform/storage'
 
 const DRAFT_PREFIX = 'aros.exam-take-draft.v1'
 const ACTIVE_PREFIX = 'aros.exam-take-active.v1'

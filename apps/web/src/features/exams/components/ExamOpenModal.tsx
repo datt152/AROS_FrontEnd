@@ -4,8 +4,8 @@ import { X } from 'lucide-react'
 import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
 import { focusFirstFormError } from '../../../utils/focusFormError'
-import type { ExamItem, ExamOpenErrors, ExamOpenValues } from '../types/exam.types'
-import { canOpenExam, getOpenExamBlockReason } from '../types/exam.types'
+import type { ExamItem, ExamOpenErrors, ExamOpenValues } from '@aros/shared/features/exams/types/exam.types'
+import { canOpenExam, getOpenExamBlockReason } from '@aros/shared/features/exams/types/exam.types'
 
 type ExamOpenModalProps = {
   exam: ExamItem

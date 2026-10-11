@@ -84,26 +84,36 @@ Mobile supports Teacher and Student but only selected high-value functions.
 
 Do not force Mobile to implement every Web feature.
 
-## Monorepo decision
+## Monorepo (đã áp dụng — ADR-009)
 
-Use a monorepo when Mobile begins and there is real shared-code value.
-
-Possible structure:
+npm workspaces, không dùng Turborepo/pnpm:
 
 ```text
 apps/
-├── web/
-└── mobile/
+├── web/            # @aros/web — Vite + React (toàn bộ UI web)
+└── mobile/         # @aros/mobile — Expo (khi bắt đầu làm app)
 
 packages/
-├── api/
-├── types/
-├── validation/
-├── domain/
-├── utils/
-└── config/
+└── shared/         # @aros/shared — TypeScript thuần, dùng chung Web + Mobile
+    └── src/
+        ├── api/        # apiClient (configureApiClient), apiError
+        ├── platform/   # storage (KeyValueStorage), uploadFile (Blob | {uri,name,type})
+        ├── utils/      # sortByNewest
+        └── features/   # auth, dashboard, exams, omr, practice, submissions
+                        # → api/, types/, lib/ thuần (không UI)
 ```
 
-A monorepo is an organizational tool, not an architectural goal.
+Import: `@aros/shared/<đường dẫn trong src, không đuôi .ts>`, ví dụ `@aros/shared/features/omr/types/omr.types`.
 
-Do not introduce Turborepo/pnpm workspace/etc. solely to appear production-grade before the need exists.
+### Quy tắc cho `packages/shared`
+
+- Không React, React Native, router, icon, TanStack Query, Tailwind class.
+- Không `window`, `document`, `localStorage`, `sessionStorage`, `File`, `import.meta` — ESLint (`packages/shared/eslint.config.js`) chặn.
+- Phụ thuộc nền tảng được tiêm từ app lúc khởi động:
+  - `configureApiClient({ baseURL, withCredentials, requestNewAccessToken })` — Web: `apps/web/src/lib/axios.ts` (refresh cookie); Mobile: refresh token trong body.
+  - `configureStorage(storage)` — Web: `localStorage` (`apps/web/src/app/setupPlatform.ts`); Mobile: MMKV (API đồng bộ).
+- Hook TanStack Query nằm trong từng app (tránh lệch phiên bản React giữa Web và Expo).
+- Class Tailwind/badge nằm trong `apps/web/src/features/*/components/*Styles.ts`.
+- `features/auth/api/auth.api.ts` chỉ chứa request thô; logic phiên (idle timeout, restore bằng cookie) là của Web: `apps/web/src/features/auth/api/authSession.ts`.
+
+Feature chỉ có trên Web (classrooms, questions, subjects, exam-templates, grading, exam-stats, system-settings) giữ nguyên trong `apps/web`.

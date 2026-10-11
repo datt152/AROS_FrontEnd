@@ -1,5 +1,14 @@
 # Folder Structure
 
+## Monorepo
+
+```text
+apps/web/          # @aros/web — cấu trúc bên dưới nằm trong apps/web/src
+packages/shared/   # @aros/shared — api/types/lib thuần dùng chung Web + Mobile (xem 09-WEB-MOBILE-SHARING.md)
+```
+
+Chạy từ thư mục gốc: `npm run dev`, `npm run build`, `npm run lint`, `npm run typecheck`.
+
 ## Web
 
 ```text

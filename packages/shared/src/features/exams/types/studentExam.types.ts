@@ -1,4 +1,4 @@
-import { compareNewestFirst } from '../../../lib/sortByNewest'
+import { compareNewestFirst } from '../../../utils/sortByNewest'
 
 export type StudentExamStatus = 'UPCOMING' | 'ONGOING' | 'COMPLETED' | 'CLOSED'
 
