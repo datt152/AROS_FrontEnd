@@ -23,16 +23,15 @@ import {
   OmrUploadQueuePanel,
   type OmrUploadQueueItem,
 } from '../components/OmrUploadQueuePanel'
+import { EXAM_SESSION_STATUS_BADGE, OMR_SHEET_STATUS_BADGE } from '../components/omrStyles'
 import { useExamSession, useOmrSheets, useUploadOmrSheet } from '../hooks/useOmr'
 import { parseOmrApiError, resolveOmrError, type ResolvedOmrError } from '../lib/omrErrors'
 import type { OmrSheetStatus } from '../types/omr.types'
 import {
-  EXAM_SESSION_STATUS_BADGE,
   EXAM_SESSION_STATUS_LABEL,
   formatOmrDateTime,
   formatOmrScore,
   getOmrSheetMatchIssues,
-  OMR_SHEET_STATUS_BADGE,
   OMR_SHEET_STATUS_LABEL,
 } from '../types/omr.types'
 

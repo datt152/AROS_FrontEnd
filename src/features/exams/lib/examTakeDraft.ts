@@ -1,3 +1,5 @@
+import { getStorage } from '../../../lib/storage'
+
 const DRAFT_PREFIX = 'aros.exam-take-draft.v1'
 const ACTIVE_PREFIX = 'aros.exam-take-active.v1'
 
@@ -32,9 +34,10 @@ export function loadExamTakeDraft(
   classroomId: number,
   scope: TakeDraftScope = 'exam',
 ): ExamTakeDraft | null {
-  if (!email || typeof localStorage === 'undefined') return null
+  const storage = getStorage()
+  if (!email || !storage) return null
   try {
-    const raw = localStorage.getItem(draftKey(scope, normalizeUserKey(email), examId, classroomId))
+    const raw = storage.getItem(draftKey(scope, normalizeUserKey(email), examId, classroomId))
     if (!raw) return null
     const parsed = JSON.parse(raw) as ExamTakeDraft
     if (
@@ -56,11 +59,12 @@ export function saveExamTakeDraft(
   draft: ExamTakeDraft,
   scope: TakeDraftScope = 'exam',
 ) {
-  if (!email || typeof localStorage === 'undefined') return
+  const storage = getStorage()
+  if (!email || !storage) return
   const userKey = normalizeUserKey(email)
   try {
-    localStorage.setItem(draftKey(scope, userKey, draft.examId, draft.classroomId), JSON.stringify(draft))
-    localStorage.setItem(
+    storage.setItem(draftKey(scope, userKey, draft.examId, draft.classroomId), JSON.stringify(draft))
+    storage.setItem(
       activeKey(scope, userKey),
       JSON.stringify({ examId: draft.examId, classroomId: draft.classroomId }),
     )
@@ -75,15 +79,16 @@ export function clearExamTakeDraft(
   classroomId: number,
   scope: TakeDraftScope = 'exam',
 ) {
-  if (!email || typeof localStorage === 'undefined') return
+  const storage = getStorage()
+  if (!email || !storage) return
   const userKey = normalizeUserKey(email)
   try {
-    localStorage.removeItem(draftKey(scope, userKey, examId, classroomId))
-    const activeRaw = localStorage.getItem(activeKey(scope, userKey))
+    storage.removeItem(draftKey(scope, userKey, examId, classroomId))
+    const activeRaw = storage.getItem(activeKey(scope, userKey))
     if (activeRaw) {
       const active = JSON.parse(activeRaw) as { examId?: number; classroomId?: number }
       if (active.examId === examId && active.classroomId === classroomId) {
-        localStorage.removeItem(activeKey(scope, userKey))
+        storage.removeItem(activeKey(scope, userKey))
       }
     }
   } catch {
@@ -95,9 +100,10 @@ export function loadActiveExamTake(
   email: string | undefined,
   scope: TakeDraftScope = 'exam',
 ): { examId: number; classroomId: number } | null {
-  if (!email || typeof localStorage === 'undefined') return null
+  const storage = getStorage()
+  if (!email || !storage) return null
   try {
-    const raw = localStorage.getItem(activeKey(scope, normalizeUserKey(email)))
+    const raw = storage.getItem(activeKey(scope, normalizeUserKey(email)))
     if (!raw) return null
     const parsed = JSON.parse(raw) as { examId?: number; classroomId?: number }
     if (

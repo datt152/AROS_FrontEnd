@@ -4,10 +4,9 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { studentHistoryDetailPath, ROUTES } from '../../../routes/routes.config'
 import { INTERACTIVE_CARD_HOVER_CLASS } from '../../../constants/ui'
+import { PURPOSE_BADGE, SUBMISSION_STATUS_BADGE } from './submissionStyles'
 import {
-  PURPOSE_BADGE,
   PURPOSE_LABEL,
-  SUBMISSION_STATUS_BADGE,
   SUBMISSION_STATUS_LABEL,
   canResumeSubmission,
   formatSubmissionDateTime,

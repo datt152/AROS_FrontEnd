@@ -4,10 +4,9 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { INTERACTIVE_CARD_HOVER_CLASS } from '../../../constants/ui'
 import { ROUTES } from '../../../routes/routes.config'
+import { STUDENT_EXAM_STATUS_BADGE, STUDENT_MY_STATUS_BADGE } from './examStyles'
 import {
-  STUDENT_EXAM_STATUS_BADGE,
   STUDENT_EXAM_STATUS_LABEL,
-  STUDENT_MY_STATUS_BADGE,
   STUDENT_MY_STATUS_LABEL,
   canShowStudentScoreOnCard,
   formatStudentExamSchedule,

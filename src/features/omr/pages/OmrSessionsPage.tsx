@@ -21,17 +21,14 @@ import { getApiErrorMessage } from '../../../lib/apiError'
 import { omrSessionPath, ROUTES } from '../../../routes/routes.config'
 import { useExam, useExamClassrooms, useExamVersions } from '../../exams/hooks/useExams'
 import { OmrClassroomCard } from '../components/OmrClassroomCard'
+import { EXAM_SESSION_STATUS_BADGE } from '../components/omrStyles'
 import {
   useCreateExamSession,
   useExamSessions,
   useUpdateExamSessionStatus,
 } from '../hooks/useOmr'
 import type { ExamSessionItem, ExamSessionStatus } from '../types/omr.types'
-import {
-  EXAM_SESSION_STATUS_BADGE,
-  EXAM_SESSION_STATUS_LABEL,
-  formatOmrDateTime,
-} from '../types/omr.types'
+import { EXAM_SESSION_STATUS_LABEL, formatOmrDateTime } from '../types/omr.types'
 
 const iconBtn =
   'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border p-0 transition disabled:cursor-not-allowed disabled:opacity-50'

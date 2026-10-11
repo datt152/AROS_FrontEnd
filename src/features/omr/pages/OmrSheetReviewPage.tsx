@@ -9,6 +9,7 @@ import { Spinner } from '../../../components/ui/Spinner'
 import { getApiErrorMessage } from '../../../lib/apiError'
 import { omrSessionPath, ROUTES } from '../../../routes/routes.config'
 import { OmrWarpedImageOverlay } from '../components/OmrWarpedImageOverlay'
+import { OMR_ANSWER_LEVEL_BADGE, OMR_SHEET_STATUS_BADGE } from '../components/omrStyles'
 import { useOmrSheet, useReviewOmrSheet } from '../hooks/useOmr'
 import type { OmrAnswerItem, OmrAnswerLevel, OmrSheetReviewPayload } from '../types/omr.types'
 import {
@@ -16,9 +17,7 @@ import {
   formatOmrScore,
   getOmrSheetMatchIssues,
   omrAnswerListLabel,
-  OMR_ANSWER_LEVEL_BADGE,
   OMR_ANSWER_LEVEL_LABEL,
-  OMR_SHEET_STATUS_BADGE,
   OMR_SHEET_STATUS_LABEL,
   resolveOmrSheetImageUrl,
 } from '../types/omr.types'

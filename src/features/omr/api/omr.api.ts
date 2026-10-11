@@ -1,4 +1,5 @@
-import { apiClient } from '../../../lib/axios'
+import { apiClient } from '../../../lib/api/apiClient'
+import { appendUploadFile, getUploadFileSize, type UploadFile } from '../../../lib/uploadFile'
 import type {
   CreateExamSessionPayload,
   ExamSessionItem,
@@ -280,11 +281,12 @@ export async function getOmrSheets(sessionId: number): Promise<OmrSheetItem[]> {
 
 export async function uploadOmrSheet(
   sessionId: number,
-  file: File,
+  file: UploadFile,
   options?: { onUploadProgress?: (percent: number) => void },
 ): Promise<OmrSheetItem> {
   const formData = new FormData()
-  formData.append('file', file)
+  appendUploadFile(formData, 'file', file)
+  const fileSize = getUploadFileSize(file)
 
   const response = await apiClient.post<unknown>(
     `/v1/exam-sessions/${sessionId}/submissions`,
@@ -294,7 +296,7 @@ export async function uploadOmrSheet(
       onUploadProgress: (event) => {
         if (!options?.onUploadProgress) return
         if (!event.total || event.total <= 0) {
-          options.onUploadProgress(Math.min(90, Math.round((event.loaded / Math.max(file.size, 1)) * 100)))
+          options.onUploadProgress(Math.min(90, Math.round((event.loaded / Math.max(fileSize, 1)) * 100)))
           return
         }
         options.onUploadProgress(Math.min(99, Math.round((event.loaded / event.total) * 100)))

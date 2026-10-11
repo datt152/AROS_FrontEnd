@@ -9,11 +9,10 @@ import { Spinner } from '../../../components/ui/Spinner'
 import { getApiErrorMessage } from '../../../lib/apiError'
 import { ROUTES } from '../../../routes/routes.config'
 import { StudentSubmissionQuestionItem } from '../components/StudentSubmissionQuestionItem'
+import { PURPOSE_BADGE, SUBMISSION_STATUS_BADGE } from '../components/submissionStyles'
 import { useMySubmissionDetail, useResolvedSubmissionPurpose } from '../hooks/useSubmissions'
 import {
-  PURPOSE_BADGE,
   PURPOSE_LABEL,
-  SUBMISSION_STATUS_BADGE,
   SUBMISSION_STATUS_LABEL,
   canResumeSubmission,
   formatSubmissionDateTime,

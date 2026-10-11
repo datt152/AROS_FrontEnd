@@ -1,4 +1,4 @@
-import { apiClient } from '../../../lib/axios'
+import { apiClient } from '../../../lib/api/apiClient'
 import type {
   ExamCreatePayload,
   ExamItem,
@@ -654,18 +654,6 @@ export async function getExamVersionPdf(examId: number, versionCode: string): Pr
   }
 
   return blob.type ? blob : new Blob([blob], { type: 'application/pdf' })
-}
-
-export function openExamVersionPdf(blob: Blob, fileName: string) {
-  const url = URL.createObjectURL(blob)
-  const anchor = document.createElement('a')
-  anchor.href = url
-  anchor.download = fileName
-  anchor.rel = 'noopener'
-  document.body.appendChild(anchor)
-  anchor.click()
-  anchor.remove()
-  window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }
 
 export async function takeExam(id: number, classroomId: number): Promise<ExamTakeItem> {

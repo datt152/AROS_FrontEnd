@@ -100,14 +100,6 @@ export const PRACTICE_STATUS_LABEL: Record<PracticeStatus, string> = {
   CLOSED: 'Đã đóng',
 }
 
-export const PRACTICE_STATUS_BADGE_CLASS: Record<PracticeStatus, string> = {
-  DRAFT: 'bg-slate-100 text-slate-600',
-  UPCOMING: 'bg-sky-50 text-sky-800',
-  ONGOING: 'bg-emerald-50 text-emerald-800',
-  COMPLETED: 'bg-violet-50 text-violet-800',
-  CLOSED: 'bg-red-50 text-red-700',
-}
-
 export function formatMaxAttempts(value: number | null | undefined) {
   if (value === null || value === undefined) return 'Không giới hạn'
   return `${value} lần`

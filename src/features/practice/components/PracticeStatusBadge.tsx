@@ -1,5 +1,6 @@
 import type { PracticeStatus } from '../types/practice.types'
-import { PRACTICE_STATUS_BADGE_CLASS, PRACTICE_STATUS_LABEL } from '../types/practice.types'
+import { PRACTICE_STATUS_LABEL } from '../types/practice.types'
+import { PRACTICE_STATUS_BADGE_CLASS } from './practiceStyles'
 
 export function PracticeStatusBadge({ status }: { status: PracticeStatus }) {
   return (

@@ -2,6 +2,7 @@ import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/rea
 import axios from 'axios'
 
 import { STALE_TIME } from '../../../lib/queryStaleTime'
+import { downloadBlob } from '../../../utils/downloadBlob'
 import {
   createExam,
   createExamVersions,
@@ -13,7 +14,6 @@ import {
   getExamVersionPdf,
   getExamVersions,
   getMyExams,
-  openExamVersionPdf,
   saveExamAsTemplate,
   submitExam,
   takeExam,
@@ -203,7 +203,7 @@ async function downloadExamVersionPdfOrThrow(
 ) {
   try {
     const blob = await getExamVersionPdf(examId, versionCode)
-    openExamVersionPdf(blob, fileName ?? `de-${examId}-ma-${versionCode}.pdf`)
+    downloadBlob(blob, fileName ?? `de-${examId}-ma-${versionCode}.pdf`)
     return blob
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data instanceof Blob) {

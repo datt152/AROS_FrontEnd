@@ -3,12 +3,11 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { Button } from '../../../components/ui/Button'
+import { DASHBOARD_KIND_DOT, DASHBOARD_PHASE_CLASS } from './dashboardStyles'
 import { resolveCalendarEventPath } from '../lib/dashboardLinks'
 import type { DashboardCalendarEvent } from '../types/dashboard.types'
 import {
-  DASHBOARD_KIND_DOT,
   DASHBOARD_KIND_LABEL,
-  DASHBOARD_PHASE_CLASS,
   DASHBOARD_PHASE_LABEL,
   addDays,
   formatMonthLabel,

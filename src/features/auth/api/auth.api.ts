@@ -5,7 +5,7 @@ import {
   getAccessToken,
   setAccessToken,
   SKIP_AUTH_REFRESH_HEADER,
-} from '../../../lib/axios'
+} from '../../../lib/api/apiClient'
 import type { Role } from '../../../routes/routes.config'
 import { clearActivityTracking, getIdleRemainingMs, isIdleTimedOut, markIdleExpiredFlag, touchActivity } from '../lib/idleTimeout'
 import type {
@@ -18,7 +18,7 @@ import type {
 } from '../types/auth.types'
 
 export const FORGOT_PASSWORD_SUCCESS_MESSAGE =
-  'Nếu email tồn tại trong hệ thống, liên kết đặt lại mật khẩu đã được gửi.'
+  'Yêu cầu đặt lại mật khẩu đã được gửi. Vui lòng kiểm tra email của bạn.'
 export const RESET_PASSWORD_SUCCESS_MESSAGE = 'Đặt lại mật khẩu thành công!'
 
 function readTextMessage(data: unknown, fallback: string) {

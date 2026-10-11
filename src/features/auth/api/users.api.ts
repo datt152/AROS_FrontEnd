@@ -1,4 +1,4 @@
-import { apiClient } from '../../../lib/axios'
+import { apiClient } from '../../../lib/api/apiClient'
 import type {
   ChangePasswordPayload,
   UpdateMePayload,

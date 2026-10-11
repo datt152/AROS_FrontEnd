@@ -242,25 +242,12 @@ export const EXAM_MODE_LABEL: Record<ExamMode, string> = {
   OMR_PAPER: 'OMR / Giấy',
 }
 
-export const EXAM_MODE_BADGE_CLASS: Record<ExamMode, string> = {
-  ONLINE: 'bg-sky-50 text-sky-700',
-  OMR_PAPER: 'bg-violet-50 text-violet-700',
-}
-
 export const EXAM_STATUS_LABEL: Record<ExamStatus, string> = {
   DRAFT: 'Nháp',
   UPCOMING: 'Sắp diễn ra',
   ONGOING: 'Đang mở',
   COMPLETED: 'Hoàn thành',
   CLOSED: 'Đã đóng',
-}
-
-export const EXAM_STATUS_BADGE_CLASS: Record<ExamStatus, string> = {
-  DRAFT: 'bg-slate-100 text-slate-600',
-  UPCOMING: 'bg-sky-50 text-sky-700',
-  ONGOING: 'bg-emerald-50 text-emerald-700',
-  COMPLETED: 'bg-violet-50 text-violet-700',
-  CLOSED: 'bg-red-50 text-red-700',
 }
 
 export const QUESTION_TYPE_LABEL: Record<QuestionType, string> = {

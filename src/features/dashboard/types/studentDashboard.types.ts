@@ -41,12 +41,6 @@ export type StudentDashboardData = {
   calendarEvents: DashboardCalendarEvent[]
 }
 
-export const STUDENT_ACTION_PRIORITY_CLASS: Record<StudentDashboardActionPriority, string> = {
-  HIGH: 'bg-rose-50 text-rose-700',
-  MEDIUM: 'bg-amber-50 text-amber-800',
-  LOW: 'bg-slate-100 text-slate-600',
-}
-
 export const STUDENT_ACTION_PRIORITY_LABEL: Record<StudentDashboardActionPriority, string> = {
   HIGH: 'Ưu tiên cao',
   MEDIUM: 'Trung bình',

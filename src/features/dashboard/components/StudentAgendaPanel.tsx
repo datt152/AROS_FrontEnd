@@ -11,10 +11,8 @@ import type {
   StudentDashboardAction,
   StudentDashboardActionType,
 } from '../types/studentDashboard.types'
-import {
-  STUDENT_ACTION_PRIORITY_CLASS,
-  STUDENT_ACTION_PRIORITY_LABEL,
-} from '../types/studentDashboard.types'
+import { STUDENT_ACTION_PRIORITY_LABEL } from '../types/studentDashboard.types'
+import { STUDENT_ACTION_PRIORITY_CLASS } from './dashboardStyles'
 
 const actionIconByType: Record<
   StudentDashboardActionType,

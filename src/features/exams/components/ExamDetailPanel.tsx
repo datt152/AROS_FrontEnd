@@ -5,10 +5,9 @@ import { Link } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { omrSessionsPath, ROUTES } from '../../../routes/routes.config'
 import type { ClassroomOption, ExamItem, QuestionPickItem } from '../types/exam.types'
+import { EXAM_MODE_BADGE_CLASS, EXAM_STATUS_BADGE_CLASS } from './examStyles'
 import {
-  EXAM_MODE_BADGE_CLASS,
   EXAM_MODE_LABEL,
-  EXAM_STATUS_BADGE_CLASS,
   EXAM_STATUS_LABEL,
   QUESTION_TYPE_LABEL,
   canOpenExam,
