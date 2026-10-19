@@ -1,7 +1,6 @@
 import { apiClient } from '../../../lib/axios'
 import type {
   ClassroomCreatePayload,
-  ClassroomItem,
   ClassroomStudent,
   ClassroomUpdatePayload,
   CreateStudentAccountsPayload,
@@ -12,6 +11,17 @@ import type {
   StudentImportResult,
   StudentImportRowResult,
 } from '../types/classroom.types'
+
+export type { ClassroomItem } from '@aros/shared/features/classrooms/types/classroom.types'
+
+export {
+  getClassrooms,
+  getMyClasses,
+  CLASSROOMS_PICKER_SIZE,
+  type ClassroomsPageResult,
+  type GetClassroomsParams,
+  type GetMyClassesParams,
+} from '@aros/shared/features/classrooms/api/classrooms.api'
 
 type ClassroomDto = {
   id?: number
@@ -54,7 +64,7 @@ function normalizeStudent(dto: ClassroomStudentDto): ClassroomStudent | null {
   }
 }
 
-function normalizeClassroom(dto: ClassroomDto): ClassroomItem | null {
+function normalizeClassroom(dto: ClassroomDto) {
   const subjectId = dto.subjectId ?? dto.subject?.id
   if (dto.id === undefined || !dto.className || subjectId === undefined) return null
 
@@ -72,66 +82,6 @@ function normalizeClassroom(dto: ClassroomDto): ClassroomItem | null {
   }
 }
 
-export type ClassroomsPageResult = {
-  items: ClassroomItem[]
-  totalElements: number
-  totalPages: number
-  page: number
-  size: number
-}
-
-/** Dropdown / reference lists. */
-export const CLASSROOMS_PICKER_SIZE = 100
-
-function unwrapPage(data: unknown): {
-  items: ClassroomDto[]
-  totalElements: number
-  totalPages: number
-  page: number
-  size: number
-} {
-  if (Array.isArray(data)) {
-    return {
-      items: data as ClassroomDto[],
-      totalElements: data.length,
-      totalPages: 1,
-      page: 0,
-      size: data.length,
-    }
-  }
-
-  if (data && typeof data === 'object') {
-    const record = data as {
-      content?: unknown
-      data?: unknown
-      totalElements?: number
-      totalPages?: number
-      number?: number
-      size?: number
-    }
-
-    const items = Array.isArray(record.content)
-      ? (record.content as ClassroomDto[])
-      : Array.isArray(record.data)
-        ? (record.data as ClassroomDto[])
-        : []
-
-    const size = record.size ?? items.length
-    const totalElements = record.totalElements ?? items.length
-    const totalPages = record.totalPages ?? Math.max(1, Math.ceil(totalElements / Math.max(size, 1)))
-
-    return {
-      items,
-      totalElements,
-      totalPages,
-      page: record.number ?? 0,
-      size,
-    }
-  }
-
-  return { items: [], totalElements: 0, totalPages: 0, page: 0, size: 0 }
-}
-
 function unwrapList(data: unknown): ClassroomStudentDto[] {
   if (Array.isArray(data)) return data
   if (data && typeof data === 'object') {
@@ -141,68 +91,6 @@ function unwrapList(data: unknown): ClassroomStudentDto[] {
     if (Array.isArray(record.students)) return record.students as ClassroomStudentDto[]
   }
   return []
-}
-
-export type GetClassroomsParams = {
-  subjectId?: number
-  page?: number
-  size?: number
-  includeInactive?: boolean
-}
-
-export async function getClassrooms(params: GetClassroomsParams = {}): Promise<ClassroomsPageResult> {
-  const page = params.page ?? 0
-  const size = params.size ?? CLASSROOMS_PICKER_SIZE
-
-  const response = await apiClient.get<unknown>('/v1/classes', {
-    params: {
-      page,
-      size,
-      ...(params.subjectId !== undefined ? { subjectId: params.subjectId } : {}),
-      ...(params.includeInactive ? { includeInactive: true } : {}),
-    },
-  })
-
-  const pageData = unwrapPage(response.data)
-  const items = pageData.items
-    .map(normalizeClassroom)
-    .filter((item): item is ClassroomItem => item !== null)
-
-  return {
-    items,
-    totalElements: pageData.totalElements,
-    totalPages: pageData.totalPages,
-    page: pageData.page,
-    size: pageData.size,
-  }
-}
-
-export type GetMyClassesParams = {
-  page?: number
-  size?: number
-}
-
-/** Lớp sinh viên đang học — GET /v1/classes/my */
-export async function getMyClasses(params: GetMyClassesParams = {}): Promise<ClassroomsPageResult> {
-  const page = params.page ?? 0
-  const size = params.size ?? CLASSROOMS_PICKER_SIZE
-
-  const response = await apiClient.get<unknown>('/v1/classes/my', {
-    params: { page, size },
-  })
-
-  const pageData = unwrapPage(response.data)
-  const items = pageData.items
-    .map(normalizeClassroom)
-    .filter((item): item is ClassroomItem => item !== null)
-
-  return {
-    items,
-    totalElements: pageData.totalElements,
-    totalPages: pageData.totalPages,
-    page: pageData.page,
-    size: pageData.size,
-  }
 }
 
 export async function getClassroom(id: number) {

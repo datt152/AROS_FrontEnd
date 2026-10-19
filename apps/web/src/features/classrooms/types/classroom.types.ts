@@ -1,15 +1,4 @@
-export type ClassroomItem = {
-  id: number
-  className: string
-  description: string
-  semester: string
-  academicYear: string
-  isActive: boolean
-  subjectId: number
-  subjectName: string
-  teacherName?: string
-  teacherEmail?: string
-}
+export type { ClassroomItem } from '@aros/shared/features/classrooms/types/classroom.types'
 
 export type ClassroomCreatePayload = {
   className: string

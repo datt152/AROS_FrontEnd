@@ -1,7 +1,3 @@
-import { ScreenPlaceholder } from '@/components/ScreenPlaceholder'
+import { PracticeListScreen } from '@/features/practice/screens/PracticeListScreen'
 
-export default function StudentPracticeScreen() {
-  return (
-    <ScreenPlaceholder title="Luyện tập" description="Danh sách bài luyện tập và làm bài trên điện thoại." />
-  )
-}
+export default PracticeListScreen
