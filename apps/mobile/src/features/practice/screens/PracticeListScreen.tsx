@@ -1,4 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
+import type { ClassroomItem } from '@aros/shared/features/classrooms/types/classroom.types'
+import { mergeStudentExamsWithSubmissions } from '@aros/shared/features/exams/types/studentExam.types'
 import { useMemo, useState } from 'react'
 import {
   ActivityIndicator,
@@ -12,14 +14,14 @@ import {
 } from 'react-native'
 
 import { getApiErrorMessage } from '@aros/shared/api/apiError'
-import { mergeStudentExamsWithSubmissions } from '@aros/shared/features/exams/types/studentExam.types'
 
+import { ClassroomStrip } from '@/components/ClassroomStrip'
+import { StudentExamCard } from '@/components/StudentExamCard'
+import { useMyClasses } from '@/features/classrooms/hooks/useMyClasses'
+import { useMySubmissions } from '@/features/submissions/hooks/useMySubmissions'
 import { colors } from '@/theme/colors'
 
-import type { ClassroomItem } from '../api/practiceApi'
-import { ClassroomStrip } from '../components/ClassroomChip'
-import { PracticeCard } from '../components/PracticeCard'
-import { useMyClasses, useMySubmissions, usePracticeExams } from '../hooks/usePractice'
+import { usePracticeExams } from '../hooks/usePractice'
 
 export function PracticeListScreen() {
   const [selected, setSelected] = useState<ClassroomItem | null>(null)
@@ -108,21 +110,19 @@ export function PracticeListScreen() {
         keyExtractor={(item) => String(item.id)}
         renderItem={({ item }) => (
           <View style={styles.cardPadding}>
-            <PracticeCard exam={item} />
+            <StudentExamCard exam={item} purpose="PRACTICE" />
           </View>
         )}
         contentContainerStyle={styles.listContent}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />}
         ListHeaderComponent={
           <>
-            {/* Classroom selector */}
             <ClassroomStrip
               classrooms={classrooms}
               selectedId={selected?.id}
               onSelect={(item) => setSelected(item.id === selected?.id ? null : item)}
             />
 
-            {/* Context bar */}
             {selected ? (
               <View style={styles.contextBar}>
                 <Ionicons name="book-outline" size={15} color={colors.primary} />
@@ -210,7 +210,6 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
 
-  // ─── Context bar ──────────────
   contextBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -234,7 +233,6 @@ const styles = StyleSheet.create({
     color: '#3B82F6',
   },
 
-  // ─── Prompt card ──────────────
   promptCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -262,7 +260,6 @@ const styles = StyleSheet.create({
     color: colors.textSubtle,
   },
 
-  // ─── Shared states ────────────
   loadingText: {
     fontSize: 14,
     color: colors.textMuted,

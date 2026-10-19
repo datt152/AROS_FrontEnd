@@ -29,31 +29,41 @@ const MY_STATUS_STYLE: Record<StudentMyStatus, { bg: string; text: string; icon:
   SUBMITTED: { bg: '#D1FAE5', text: '#065F46', icon: 'checkmark-done-outline' },
 }
 
-type PracticeCardProps = {
+type StudentExamCardProps = {
   exam: StudentExamListItem
+  purpose: 'EXAM' | 'PRACTICE'
 }
 
-export function PracticeCard({ exam }: PracticeCardProps) {
+function getHintText(
+  exam: StudentExamListItem,
+  purpose: 'EXAM' | 'PRACTICE',
+): string | null {
+  const blockReason = getStudentTakeBlockReason(exam, purpose)
+
+  if (!exam.canTake) return blockReason
+
+  if (exam.myStatus === 'IN_PROGRESS') return 'Tiếp tục làm bài'
+
+  if (purpose === 'PRACTICE') {
+    if (exam.myStatus === 'SUBMITTED' || exam.myStatus === 'EXPIRED') return 'Còn lượt làm lại'
+    return 'Sẵn sàng luyện tập'
+  }
+
+  return 'Vào làm bài'
+}
+
+export function StudentExamCard({ exam, purpose }: StudentExamCardProps) {
   const showScore = canShowStudentScoreOnCard(exam)
-  const blockReason = getStudentTakeBlockReason(exam, 'PRACTICE')
   const accent = STATUS_ACCENT[exam.examStatus]
   const myStyle = MY_STATUS_STYLE[exam.myStatus]
-
-  const statusHint = exam.canTake
-    ? exam.myStatus === 'IN_PROGRESS'
-      ? 'Tiếp tục làm bài'
-      : exam.myStatus === 'SUBMITTED' || exam.myStatus === 'EXPIRED'
-        ? 'Còn lượt làm lại'
-        : 'Sẵn sàng luyện tập'
-    : blockReason
+  const hint = getHintText(exam, purpose)
 
   return (
     <View style={styles.card}>
-      {/* Thanh accent trái */}
       <View style={[styles.accentBar, { backgroundColor: accent }]} />
 
       <View style={styles.body}>
-        {/* Header: title + exam status */}
+        {/* Header */}
         <View style={styles.topRow}>
           <View style={styles.titleWrap}>
             <Text style={styles.title} numberOfLines={2}>{exam.title}</Text>
@@ -72,16 +82,22 @@ export function PracticeCard({ exam }: PracticeCardProps) {
           </View>
         </View>
 
-        {/* Meta row */}
+        {/* Meta */}
         <View style={styles.metaRow}>
-          <MetaPill icon="time-outline" text={exam.timeLimitEnabled ? `${exam.duration} phút` : 'Tự do'} />
+          <MetaPill
+            icon="time-outline"
+            text={exam.timeLimitEnabled ? `${exam.duration} phút` : 'Không giới hạn'}
+          />
           {exam.totalQuestions > 0 ? (
             <MetaPill icon="list-outline" text={`${exam.totalQuestions} câu`} />
           ) : null}
           <MetaPill icon="trophy-outline" text={`${exam.maxScore} điểm`} />
+          {purpose === 'EXAM' && exam.maxAttempts != null ? (
+            <MetaPill icon="repeat-outline" text={`${exam.maxAttempts} lượt`} />
+          ) : null}
         </View>
 
-        {/* Điểm */}
+        {/* Score */}
         {showScore ? (
           <View style={styles.scoreStrip}>
             <View style={styles.scoreLeft}>
@@ -94,7 +110,7 @@ export function PracticeCard({ exam }: PracticeCardProps) {
           </View>
         ) : null}
 
-        {/* Footer: my status + hint */}
+        {/* Footer */}
         <View style={styles.footer}>
           <View style={[styles.myBadge, { backgroundColor: myStyle.bg }]}>
             <Ionicons name={myStyle.icon as any} size={14} color={myStyle.text} />
@@ -102,9 +118,9 @@ export function PracticeCard({ exam }: PracticeCardProps) {
               {STUDENT_MY_STATUS_LABEL[exam.myStatus]}
             </Text>
           </View>
-          {statusHint ? (
+          {hint ? (
             <Text style={[styles.hint, exam.canTake && styles.hintActive]} numberOfLines={1}>
-              {statusHint}
+              {hint}
             </Text>
           ) : null}
         </View>

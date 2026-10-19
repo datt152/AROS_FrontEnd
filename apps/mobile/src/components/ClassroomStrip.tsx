@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons'
+import type { ClassroomItem } from '@aros/shared/features/classrooms/types/classroom.types'
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { colors } from '@/theme/colors'
 
-import type { ClassroomItem } from '../api/practiceApi'
+export type { ClassroomItem }
 
 type ClassroomChipProps = {
   item: ClassroomItem
