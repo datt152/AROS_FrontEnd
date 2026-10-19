@@ -20,6 +20,8 @@ export type TokenResponse = {
 export type ApiClientConfig = {
   baseURL: string
   withCredentials?: boolean
+  /** Header gửi kèm mọi request (Mobile: `X-Client-Type: mobile`). */
+  headers?: Record<string, string>
   /** Lấy access token mới khi gặp 401. Web: refresh cookie; Mobile: refresh token trong body. */
   requestNewAccessToken: () => Promise<string | null>
 }
@@ -138,6 +140,7 @@ function installInterceptors() {
 export function configureApiClient(config: ApiClientConfig) {
   apiClient.defaults.baseURL = config.baseURL
   apiClient.defaults.withCredentials = config.withCredentials ?? false
+  Object.assign(apiClient.defaults.headers.common, config.headers)
   requestNewAccessToken = config.requestNewAccessToken
 
   if (!interceptorsInstalled) {

@@ -42,10 +42,11 @@ export async function loginRequest(payload: LoginPayload) {
   return response.data
 }
 
-export async function refreshRequest() {
+/** Web để trống `refreshToken` (server đọc cookie); Mobile truyền token đang lưu. */
+export async function refreshRequest(refreshToken?: string) {
   const response = await apiClient.post<LoginResponse>(
     AUTH_REFRESH_URL,
-    {},
+    refreshToken ? { refreshToken } : {},
     { headers: { [SKIP_AUTH_REFRESH_HEADER]: '1' } },
   )
   return response.data
@@ -77,6 +78,8 @@ export async function resetPassword(payload: ResetPasswordPayload) {
   return readTextMessage(response.data, RESET_PASSWORD_SUCCESS_MESSAGE)
 }
 
-export async function logoutRequest() {
-  await apiClient.post('/v1/auth/logout', {}, { headers: { [SKIP_AUTH_REFRESH_HEADER]: '1' } })
+export async function logoutRequest(refreshToken?: string) {
+  await apiClient.post('/v1/auth/logout', refreshToken ? { refreshToken } : {}, {
+    headers: { [SKIP_AUTH_REFRESH_HEADER]: '1' },
+  })
 }

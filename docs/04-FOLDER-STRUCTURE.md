@@ -4,10 +4,30 @@
 
 ```text
 apps/web/          # @aros/web — cấu trúc bên dưới nằm trong apps/web/src
+apps/mobile/       # @aros/mobile — Expo (xem mục Mobile bên dưới)
 packages/shared/   # @aros/shared — api/types/lib thuần dùng chung Web + Mobile (xem 09-WEB-MOBILE-SHARING.md)
 ```
 
-Chạy từ thư mục gốc: `npm run dev`, `npm run build`, `npm run lint`, `npm run typecheck`.
+Chạy từ thư mục gốc: `npm run dev`, `npm run build`, `npm run lint`, `npm run typecheck`, `npm run mobile`.
+
+## Mobile
+
+```text
+apps/mobile/src/
+├── app/                 # expo-router: mỗi file là một màn hình
+│   ├── _layout.tsx      # providers + Stack.Protected theo vai trò
+│   ├── index.tsx        # chuyển tới /login, /teacher hoặc /student
+│   ├── login.tsx
+│   ├── teacher/         # tab: Chấm OMR, Tài khoản
+│   └── student/         # tab: Tổng quan, Luyện tập, Bài thi, Tài khoản
+├── platform/            # cấu hình apiClient, storage, lưu refresh token
+├── features/<feature>/  # api/ (logic riêng mobile), hooks/, screens/, store/
+├── components/          # ui/ + component dùng chung
+├── lib/                 # queryClient
+└── theme/               # màu
+```
+
+File trong `src/app` chỉ re-export hoặc ghép screen từ `features/*/screens`; logic không đặt trong `src/app`.
 
 ## Web
 

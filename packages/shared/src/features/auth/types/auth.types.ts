@@ -10,6 +10,8 @@ export type LoginResponse = {
   tokenType: string
   email: string
   role: string
+  /** Chỉ có khi gửi header `X-Client-Type: mobile`; Web nhận qua cookie httpOnly. */
+  refreshToken?: string
 }
 
 export type RegisterRole = 'TEACHER' | 'STUDENT'

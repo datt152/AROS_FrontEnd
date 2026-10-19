@@ -1,6 +1,6 @@
 /**
  * Key-value storage đồng bộ, không phụ thuộc nền tảng.
- * Web: `localStorage` (cấu hình trong `src/app/setupPlatform.ts`); Mobile: MMKV hoặc tương đương.
+ * Web: `localStorage` (`apps/web/src/app/setupPlatform.ts`); Mobile: `expo-sqlite/kv-store` (`apps/mobile/src/platform/storage.ts`).
  */
 export type KeyValueStorage = {
   getItem(key: string): string | null
