@@ -1,7 +1,11 @@
 import { Ionicons } from '@expo/vector-icons'
 import type { ClassroomItem } from '@aros/shared/features/classrooms/types/classroom.types'
-import { mergeStudentExamsWithSubmissions } from '@aros/shared/features/exams/types/studentExam.types'
-import { useMemo, useState } from 'react'
+import {
+  mergeStudentExamsWithSubmissions,
+  type StudentExamListItem,
+} from '@aros/shared/features/exams/types/studentExam.types'
+import { useRouter } from 'expo-router'
+import { useCallback, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   FlatList,
@@ -16,6 +20,7 @@ import {
 import { getApiErrorMessage } from '@aros/shared/api/apiError'
 
 import { ClassroomStrip } from '@/components/ClassroomStrip'
+import { ExamConfirmModal } from '@/components/ExamConfirmModal'
 import { StudentExamCard } from '@/components/StudentExamCard'
 import { useMyClasses } from '@/features/classrooms/hooks/useMyClasses'
 import { useMySubmissions } from '@/features/submissions/hooks/useMySubmissions'
@@ -24,7 +29,9 @@ import { colors } from '@/theme/colors'
 import { useOfficialExams } from '../hooks/useExams'
 
 export function ExamListScreen() {
+  const router = useRouter()
   const [selected, setSelected] = useState<ClassroomItem | null>(null)
+  const [confirmExam, setConfirmExam] = useState<StudentExamListItem | null>(null)
 
   const classesQuery = useMyClasses()
   const examsQuery = useOfficialExams(selected?.id)
@@ -45,6 +52,23 @@ export function ExamListScreen() {
   const isRefreshing =
     (classesQuery.isFetching && !classesQuery.isLoading) ||
     (examsQuery.isFetching && !examsQuery.isLoading)
+
+  const handleCardPress = useCallback(
+    (exam: StudentExamListItem) => {
+      if (!exam.canTake) return
+      setConfirmExam(exam)
+    },
+    [],
+  )
+
+  function handleConfirmTake() {
+    if (!confirmExam || !selected) return
+    setConfirmExam(null)
+    router.push({
+      pathname: '/student/take-exam',
+      params: { examId: String(confirmExam.id), classroomId: String(selected.id) },
+    })
+  }
 
   function onRefresh() {
     void classesQuery.refetch()
@@ -110,7 +134,11 @@ export function ExamListScreen() {
         keyExtractor={(item) => String(item.id)}
         renderItem={({ item }) => (
           <View style={styles.cardPadding}>
-            <StudentExamCard exam={item} purpose="EXAM" />
+            <StudentExamCard
+              exam={item}
+              purpose="EXAM"
+              onPress={item.canTake ? handleCardPress : undefined}
+            />
           </View>
         )}
         contentContainerStyle={styles.listContent}
@@ -177,6 +205,14 @@ export function ExamListScreen() {
             )
           ) : null
         }
+      />
+
+      <ExamConfirmModal
+        visible={confirmExam !== null}
+        exam={confirmExam}
+        purpose="EXAM"
+        onConfirm={handleConfirmTake}
+        onClose={() => setConfirmExam(null)}
       />
     </View>
   )

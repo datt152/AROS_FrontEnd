@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons'
-import { StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 
 import {
   STUDENT_EXAM_STATUS_LABEL,
@@ -32,6 +32,7 @@ const MY_STATUS_STYLE: Record<StudentMyStatus, { bg: string; text: string; icon:
 type StudentExamCardProps = {
   exam: StudentExamListItem
   purpose: 'EXAM' | 'PRACTICE'
+  onPress?: (exam: StudentExamListItem) => void
 }
 
 function getHintText(
@@ -52,14 +53,25 @@ function getHintText(
   return 'Vào làm bài'
 }
 
-export function StudentExamCard({ exam, purpose }: StudentExamCardProps) {
+export function StudentExamCard({ exam, purpose, onPress }: StudentExamCardProps) {
   const showScore = canShowStudentScoreOnCard(exam)
   const accent = STATUS_ACCENT[exam.examStatus]
   const myStyle = MY_STATUS_STYLE[exam.myStatus]
   const hint = getHintText(exam, purpose)
 
+  const Wrapper = onPress ? Pressable : View
+  const wrapperProps = onPress
+    ? {
+        style: ({ pressed }: { pressed: boolean }) => [
+          styles.card,
+          pressed && styles.cardPressed,
+        ],
+        onPress: () => onPress(exam),
+      }
+    : { style: styles.card }
+
   return (
-    <View style={styles.card}>
+    <Wrapper {...(wrapperProps as any)}>
       <View style={[styles.accentBar, { backgroundColor: accent }]} />
 
       <View style={styles.body}>
@@ -92,7 +104,7 @@ export function StudentExamCard({ exam, purpose }: StudentExamCardProps) {
             <MetaPill icon="list-outline" text={`${exam.totalQuestions} câu`} />
           ) : null}
           <MetaPill icon="trophy-outline" text={`${exam.maxScore} điểm`} />
-          {purpose === 'EXAM' && exam.maxAttempts != null ? (
+          {purpose === 'PRACTICE' && exam.maxAttempts != null ? (
             <MetaPill icon="repeat-outline" text={`${exam.maxAttempts} lượt`} />
           ) : null}
         </View>
@@ -125,7 +137,7 @@ export function StudentExamCard({ exam, purpose }: StudentExamCardProps) {
           ) : null}
         </View>
       </View>
-    </View>
+    </Wrapper>
   )
 }
 
@@ -149,6 +161,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
     overflow: 'hidden',
+  },
+  cardPressed: {
+    opacity: 0.85,
   },
   accentBar: {
     width: 4,
