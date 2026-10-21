@@ -165,11 +165,16 @@ export function DashboardScreen() {
   const cells = useMemo(() => getMonthDays(viewYear, viewMonth), [viewYear, viewMonth])
   const todayKey = dateKey(today)
 
-  // Selected day events
+  // Selected day events — mới nhất (giờ bắt đầu muộn nhất) lên đầu
   const selectedEvents = useMemo(() => {
     if (selectedDay === null) return []
     const key = `${viewYear}-${viewMonth}-${selectedDay}`
-    return eventsByDate.get(key) ?? []
+    const dayEvents = eventsByDate.get(key) ?? []
+    return dayEvents.slice().sort((a, b) => {
+      const ta = a.startAt ? new Date(a.startAt).getTime() : 0
+      const tb = b.startAt ? new Date(b.startAt).getTime() : 0
+      return tb - ta
+    })
   }, [selectedDay, viewYear, viewMonth, eventsByDate])
 
   function prevMonth() {

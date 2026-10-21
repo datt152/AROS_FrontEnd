@@ -134,6 +134,7 @@ type MyExamDto = {
   maxScore?: number
   startAt?: string | null
   endAt?: string | null
+  createdAt?: string | null
   examStatus?: StudentExamStatus | ExamStatus
   status?: ExamStatus | string
   myStatus?: StudentMyStatus | string
@@ -478,6 +479,7 @@ function normalizeMyExam(
     maxScore: dto.maxScore ?? 0,
     startAt: dto.startAt ?? null,
     endAt: dto.endAt ?? null,
+    createdAt: dto.createdAt ?? null,
     examStatus,
     myStatus,
     canTake,

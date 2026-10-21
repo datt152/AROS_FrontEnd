@@ -1,6 +1,9 @@
 import { Ionicons } from '@expo/vector-icons'
 import type { ClassroomItem } from '@aros/shared/features/classrooms/types/classroom.types'
-import { mergeStudentExamsWithSubmissions } from '@aros/shared/features/exams/types/studentExam.types'
+import {
+  filterAndSortStudentExams,
+  mergeStudentExamsWithSubmissions,
+} from '@aros/shared/features/exams/types/studentExam.types'
 import type { StudentExamListItem } from '@aros/shared/features/exams/types/studentExam.types'
 import { useRouter } from 'expo-router'
 import { useCallback, useMemo, useState } from 'react'
@@ -37,12 +40,16 @@ export function PracticeListScreen() {
 
   const classrooms = classesQuery.data ?? []
 
+  // Tự động sắp xếp mới nhất lên đầu (createdAt giảm dần, fallback id giảm dần)
   const practices = useMemo(
     () =>
-      mergeStudentExamsWithSubmissions(
-        examsQuery.data ?? [],
-        submissionsQuery.data ?? [],
-        'PRACTICE',
+      filterAndSortStudentExams(
+        mergeStudentExamsWithSubmissions(
+          examsQuery.data ?? [],
+          submissionsQuery.data ?? [],
+          'PRACTICE',
+        ),
+        {},
       ),
     [examsQuery.data, submissionsQuery.data],
   )

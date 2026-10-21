@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import type { ClassroomItem } from '@aros/shared/features/classrooms/types/classroom.types'
 import {
+  filterAndSortStudentExams,
   mergeStudentExamsWithSubmissions,
   type StudentExamListItem,
 } from '@aros/shared/features/exams/types/studentExam.types'
@@ -39,12 +40,16 @@ export function ExamListScreen() {
 
   const classrooms = classesQuery.data ?? []
 
+  // Tự động sắp xếp mới nhất lên đầu (createdAt giảm dần, fallback id giảm dần)
   const exams = useMemo(
     () =>
-      mergeStudentExamsWithSubmissions(
-        examsQuery.data ?? [],
-        submissionsQuery.data ?? [],
-        'EXAM',
+      filterAndSortStudentExams(
+        mergeStudentExamsWithSubmissions(
+          examsQuery.data ?? [],
+          submissionsQuery.data ?? [],
+          'EXAM',
+        ),
+        {},
       ),
     [examsQuery.data, submissionsQuery.data],
   )

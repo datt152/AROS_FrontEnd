@@ -12,6 +12,8 @@ export type StudentExamListItem = {
   maxScore: number
   startAt: string | null
   endAt: string | null
+  /** Thời gian tạo đề (nếu API trả) — dùng để sắp xếp mới nhất lên đầu */
+  createdAt?: string | null
   examStatus: StudentExamStatus
   myStatus: StudentMyStatus
   /** true chỉ khi lịch/status cho phép làm (đóng/hết hạn/DRAFT → false) */
