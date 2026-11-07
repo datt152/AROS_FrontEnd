@@ -1,4 +1,4 @@
-import { BookOpen, GraduationCap } from 'lucide-react'
+import { BookOpen } from 'lucide-react'
 import { Outlet } from 'react-router-dom'
 
 export function AuthLayout() {
@@ -20,9 +20,8 @@ export function AuthLayout() {
       <div className="relative z-10 grid h-auto w-full max-w-md overflow-hidden rounded-3xl border border-white/70 bg-white/80 shadow-2xl shadow-blue-900/5 backdrop-blur-xl sm:max-w-lg lg:min-h-[70dvh] lg:max-w-5xl lg:grid-cols-[1.05fr_1fr] xl:max-w-6xl">
         <section className="hidden min-h-full flex-col justify-between bg-linear-to-br from-blue-600 via-blue-700 to-emerald-600 p-8 text-white lg:flex xl:p-10">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25">
-              <GraduationCap className="h-5 w-5" strokeWidth={1.75} />
-            </div>
+            
+            <img src="/logo.png" alt="Logo AROS" className="h-12 w-12 object-contain" />
             <div>
               <p className="text-sm font-medium text-blue-100">Nền tảng AROS</p>
               <p className="text-base font-semibold tracking-tight">Quản lý học tập</p>

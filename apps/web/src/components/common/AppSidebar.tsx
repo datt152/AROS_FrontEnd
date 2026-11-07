@@ -49,11 +49,6 @@ const iconByLabel: Record<string, ComponentType<{ className?: string; strokeWidt
   'Quản lý bài thi': FileText,
 }
 
-const workspaceLabel: Record<Role, string> = {
-  teacher: 'Không gian giáo viên',
-  student: 'Không gian sinh viên',
-}
-
 function NavItems({ role, onNavigate }: { role: Role; onNavigate?: () => void }) {
   const { pathname } = useLocation()
 
@@ -152,15 +147,15 @@ export function AppSidebar({
         </div>
       ) : (
         <aside className="hidden h-svh w-64 shrink-0 border-r border-slate-200 bg-white/90 backdrop-blur-xl lg:flex lg:flex-col">
-          <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200 px-4">
-            <div>
-              <p className="text-sm font-semibold tracking-tight text-slate-900">AROS</p>
-              <p className="text-xs text-slate-500">{workspaceLabel[role]}</p>
+          <div className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-4">
+            <div className="flex min-w-0 items-center gap-2">
+              <img src="/logo.png" alt="Logo AROS" className="h-8 w-8 shrink-0 object-contain" />
+              <img src="/aros.png" alt="AROS" className="h-5   w-auto object-contain" />
             </div>
             <button
               type="button"
               onClick={onToggleDesktop}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:text-slate-900"
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:text-slate-900"
               aria-label="Thu gọn thanh bên"
             >
               <PanelRight className="h-4.5 w-4.5" strokeWidth={1.75} />
@@ -182,9 +177,9 @@ export function AppSidebar({
         }`}
       >
         <div className="flex h-14 items-center justify-between border-b border-slate-200 px-4">
-          <div>
-            <p className="text-sm font-semibold tracking-tight text-slate-900">AROS</p>
-            <p className="text-xs text-slate-500">{workspaceLabel[role]}</p>
+          <div className="flex min-w-0 items-center gap-2">
+            <img src="/logo.png" alt="Logo AROS" className="h-8 w-8 shrink-0 object-contain" />
+            <img src="/aros.png" alt="AROS" className="h-5 w-auto object-contain" />
           </div>
           <button
             type="button"

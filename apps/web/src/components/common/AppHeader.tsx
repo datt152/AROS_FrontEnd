@@ -1,4 +1,3 @@
-  import { GraduationCap } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { ROUTES } from '../../routes/routes.config'
@@ -8,13 +7,8 @@ export function AppHeader() {
     <header className="sticky top-0 z-20 border-b border-white/60 bg-white/70 backdrop-blur-xl">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
         <Link to={ROUTES.home} className="flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-blue-600 to-emerald-600 text-white shadow-sm shadow-blue-600/20">
-            <GraduationCap className="h-5 w-5" strokeWidth={1.75} />
-          </span>
-          <span>
-            <span className="block text-sm font-semibold tracking-tight text-slate-900">AROS</span>
-            <span className="block text-[11px] font-medium text-slate-500">Nền tảng học tập</span>
-          </span>
+          <img src="/logo.png" alt="Logo AROS" className="h-8 w-8 shrink-0 object-contain" />
+          <img src="/aros.png" alt="AROS" className="h-5 w-auto object-contain" />
         </Link>
 
         <nav className="flex items-center gap-2 sm:gap-3">

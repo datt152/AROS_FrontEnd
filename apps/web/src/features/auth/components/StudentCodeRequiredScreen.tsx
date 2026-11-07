@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { GraduationCap, LogOut } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 
 import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
@@ -44,9 +44,7 @@ export function StudentCodeRequiredScreen() {
     <div className="relative isolate flex min-h-dvh w-full items-center justify-center overflow-x-hidden bg-linear-to-br from-slate-50 via-blue-50/70 to-emerald-50/50 px-4 py-8">
       <div className="relative z-10 w-full max-w-md rounded-3xl border border-white/70 bg-white/90 p-6 shadow-2xl shadow-blue-900/5 backdrop-blur-xl sm:p-8">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 ring-1 ring-blue-100">
-            <GraduationCap className="h-5 w-5" strokeWidth={1.75} />
-          </div>
+          <img src="/logo.png" alt="Logo AROS" className="h-11 w-11 shrink-0 object-contain" />
           <div>
             <p className="text-xs font-medium uppercase tracking-wider text-blue-600">Hoàn tất hồ sơ</p>
             <h1 className="text-lg font-semibold text-slate-900">Nhập mã sinh viên</h1>

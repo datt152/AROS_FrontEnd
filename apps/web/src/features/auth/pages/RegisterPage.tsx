@@ -1,4 +1,3 @@
-import { GraduationCap } from 'lucide-react'
 
 import { RegisterForm } from '../components/RegisterForm'
 
@@ -7,9 +6,8 @@ export function RegisterPage() {
     <>
       <div className="mb-6 lg:hidden">
         <div className="mb-3 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white">
-            <GraduationCap className="h-5 w-5" strokeWidth={1.75} />
-          </div>
+        <img src="/logo.png" alt="Logo AROS" className="h-12 w-12 object-contain" />
+
           <div>
             <p className="text-xs font-medium uppercase tracking-wider text-blue-600">Nền tảng AROS</p>
             <p className="text-base font-semibold text-slate-900">Tạo tài khoản</p>
