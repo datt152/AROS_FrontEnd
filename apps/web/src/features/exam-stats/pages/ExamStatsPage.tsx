@@ -9,6 +9,7 @@ import { ROUTES } from '../../../routes/routes.config'
 import { useClassrooms } from '../../classrooms/hooks/useClassrooms'
 import { useExams } from '../../exams/hooks/useExams'
 import { useSubjects } from '../../subjects/hooks/useSubjects'
+import { ClassAnalysisAgentPanel } from '../components/ClassAnalysisAgentPanel'
 import { ExamStatsFilterBar } from '../components/ExamStatsFilterBar'
 import { ExamStatsSummary } from '../components/ExamStatsSummary'
 import { QuestionStatsTable } from '../components/QuestionStatsTable'
@@ -56,13 +57,12 @@ export function ExamStatsPage() {
 
   const exams = useMemo(
     () =>
-      (examsQuery.data?.items ?? [])
-        .filter((item) => item.examMode === 'ONLINE')
-        .map((item) => ({
+      (examsQuery.data?.items ?? []).map((item) => ({
         id: item.id,
         title: item.title,
         status: item.status,
         maxScore: item.maxScore,
+        examMode: item.examMode,
         classroomIds: item.classroomIds ?? [],
       })),
     [examsQuery.data],
@@ -116,7 +116,7 @@ export function ExamStatsPage() {
           <p className="mt-1 text-sm text-slate-500">
             {subtitleParts.length > 0
               ? subtitleParts.join(' · ')
-              : 'Chọn môn → lớp → đề thi trực tuyến để xem tỉ lệ nộp, điểm và độ khó từng câu.'}
+              : 'Chọn môn → lớp → đề thi (Online hoặc OMR) để xem tỉ lệ nộp, điểm và độ khó từng câu.'}
           </p>
 
           <nav aria-label="Breadcrumb" className="mt-3 flex flex-wrap items-center gap-1.5 text-sm text-slate-500">
@@ -221,8 +221,8 @@ export function ExamStatsPage() {
 
       {examsEmpty ? (
         <EmptyState
-          title="Lớp chưa có đề thi trực tuyến"
-          description="Chưa có đề thi online nào được giao cho lớp này. Đề OMR không hiện ở thống kê này."
+          title="Lớp chưa có đề thi"
+          description="Chưa có đề thi (Online hoặc OMR) nào được giao cho lớp này."
         />
       ) : null}
 
@@ -256,6 +256,13 @@ export function ExamStatsPage() {
           {!statsQuery.isLoading && !statsQuery.isError && stats && stats.totalStudents > 0 ? (
             <div className="space-y-5">
               <ExamStatsSummary stats={stats} />
+              {typeof examId === 'number' && typeof classroomId === 'number' ? (
+                <ClassAnalysisAgentPanel
+                  examId={examId}
+                  classroomId={classroomId}
+                  submittedCount={stats.submittedCount}
+                />
+              ) : null}
               <ScoreDistributionChart
                 buckets={stats.scoreDistribution}
                 submittedCount={stats.submittedCount}

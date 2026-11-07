@@ -39,6 +39,7 @@ type QuestionStatItemDto = {
 type ExamStatsDto = {
   examId?: number
   examTitle?: string
+  examMode?: string | null
   maxScore?: number
   classroomId?: number | null
   classroomName?: string | null
@@ -94,6 +95,7 @@ function normalizeExamStats(dto: ExamStatsDto): ExamStats | null {
   return {
     examId: dto.examId,
     examTitle: dto.examTitle ?? '',
+    examMode: dto.examMode ?? null,
     maxScore: dto.maxScore ?? 0,
     classroomId: dto.classroomId ?? null,
     classroomName: dto.classroomName ?? null,

@@ -85,6 +85,7 @@ export function ExamStatsFilterBar({
           <option value="">{classroomId ? 'Chọn đề thi' : 'Chọn lớp trước'}</option>
           {exams.map((exam) => (
             <option key={exam.id} value={exam.id}>
+              {exam.examMode === 'OMR_PAPER' ? '[OMR] ' : exam.examMode === 'ONLINE' ? '[Online] ' : ''}
               {exam.title}
             </option>
           ))}

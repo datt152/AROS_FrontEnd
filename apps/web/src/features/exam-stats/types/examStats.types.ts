@@ -16,6 +16,7 @@ export type ExamStatsExamOption = {
   title: string
   status: string
   maxScore: number
+  examMode?: string
   classroomIds: number[]
 }
 
@@ -40,6 +41,7 @@ export type QuestionStatItem = {
 export type ExamStats = {
   examId: number
   examTitle: string
+  examMode: string | null
   maxScore: number
   classroomId: number | null
   classroomName: string | null
