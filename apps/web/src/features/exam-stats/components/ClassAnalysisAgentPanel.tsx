@@ -9,11 +9,7 @@ import {
   useStartClassAnalysisAgent,
   classAnalysisAgentKeys,
 } from '../hooks/useClassAnalysisAgent'
-import {
-  parseInsightReport,
-  toolLabel,
-  type AgentRunStatus,
-} from '../types/classAnalysisAgent.types'
+import { parseInsightReport, type AgentRunStatus } from '../types/classAnalysisAgent.types'
 import { useQueryClient } from '@tanstack/react-query'
 
 type ClassAnalysisAgentPanelProps = {
