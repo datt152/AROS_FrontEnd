@@ -110,7 +110,7 @@ export function SubjectForm({
               onChange={(event) => updateField('isActive', event.target.checked)}
               className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-100"
             />
-            Môn đang hiển thị
+            Hiển thị môn học
           </label>
           {!values.isActive ? (
             <p className="text-xs text-slate-500">Bật lại để khôi phục môn đã ẩn.</p>

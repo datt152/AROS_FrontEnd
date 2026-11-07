@@ -369,7 +369,7 @@ export function ExamDetailPanel({
               onClick={onSaveAsTemplate}
             >
               <BookmarkPlus className="h-4 w-4" strokeWidth={1.75} />
-              {isSavingAsTemplate ? 'Đang lưu...' : 'Lưu thành template'}
+              {isSavingAsTemplate ? 'Đang lưu...' : 'Lưu thành đề mẫu'}
             </Button>
             {saveAsTemplateError ? (
               <p className="text-center text-xs text-red-600">{saveAsTemplateError}</p>
@@ -385,7 +385,7 @@ export function ExamDetailPanel({
               onClick={onSaveAsTemplate}
             >
               <BookmarkPlus className="h-4 w-4" strokeWidth={1.75} />
-              {isSavingAsTemplate ? 'Đang lưu...' : 'Lưu thành template'}
+              {isSavingAsTemplate ? 'Đang lưu...' : 'Lưu thành đề mẫu'}
             </Button>
             {saveAsTemplateError ? (
               <p className="text-center text-xs text-red-600">{saveAsTemplateError}</p>

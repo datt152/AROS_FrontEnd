@@ -70,7 +70,7 @@ export function ExamOpenModal({
       setErrors({})
       await onSubmit({
         status: 'ONGOING',
-        startAt: new Date().toISOString(),
+        startAt: toLocalInputValue(new Date()),
         endAt: '',
       })
       return
@@ -109,8 +109,8 @@ export function ExamOpenModal({
 
     await onSubmit({
       status: 'UPCOMING',
-      startAt: new Date(values.startAt).toISOString(),
-      endAt: new Date(values.endAt).toISOString(),
+      startAt: values.startAt,
+      endAt: values.endAt,
     })
   }
 

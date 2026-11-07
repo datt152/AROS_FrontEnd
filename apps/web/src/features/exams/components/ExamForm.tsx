@@ -981,7 +981,7 @@ export function ExamForm({
           </label>
 
           <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-            Giao lớp sau khi tạo — dùng “Chọn lớp” ở chi tiết đề hoặc danh sách.
+          Đề thi sẽ được lưu ở bản nháp. Vui lòng vào phần chi tiết để chọn lớp, mã đề và thời gian mở kỳ thi.
           </p>
         </div>
       ) : null}

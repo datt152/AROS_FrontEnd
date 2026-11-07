@@ -793,7 +793,7 @@ export function ClassroomStudentsPanel({
 
       {/* Import / manual add result modal */}
       {isImportResultOpen ? (
-        <ModalShell title="Kết quả import danh sách" onClose={closeImportResultModal} busy={isImporting}>
+        <ModalShell title="Kết quả thêm sinh viên" onClose={closeImportResultModal} busy={isImporting}>
           <div className="space-y-3">
             {manualLocalError || importError ? (
               <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">

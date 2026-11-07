@@ -445,7 +445,7 @@ export function ClassroomListPage() {
 
           <p className="mt-1 text-sm text-slate-500">
 
-            Tạo lớp học, gán môn học và quản lý ghi danh sinh viên.
+          Quản lý lớp học và thêm sinh viên
 
           </p>
 

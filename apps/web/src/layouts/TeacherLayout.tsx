@@ -1,14 +1,16 @@
 import { useState } from 'react'
-import { PanelLeft } from 'lucide-react'
+import { Hand, PanelLeft } from 'lucide-react'
 import { Outlet } from 'react-router-dom'
 
 import { AppFooter } from '../components/common/AppFooter'
 import { AppSidebar } from '../components/common/AppSidebar'
+import { useMe } from '../features/auth/hooks/useMe'
 
 export function TeacherLayout() {
   const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
-
+  const meQuery = useMe()
+  const user = meQuery.data
   return (
     <div className="flex h-svh overflow-hidden bg-slate-50 text-slate-900">
       <AppSidebar
@@ -19,22 +21,29 @@ export function TeacherLayout() {
         onCloseMobile={() => setIsMobileOpen(false)}
       />
       <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
-        <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center border-b border-slate-200/80 bg-white/85 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setIsMobileOpen(true)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:text-slate-900 lg:hidden"
-              aria-label="Mở thanh bên"
-            >
-              <PanelLeft className="h-4.5 w-4.5" strokeWidth={1.75} />
-            </button>
+      <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center border-b border-slate-200/80 bg-white/85 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
+        <div className="flex flex-1 items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setIsMobileOpen(true)}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:text-slate-900 lg:hidden"
+            aria-label="Mở thanh bên"
+          >
+            <PanelLeft className="h-4.5 w-4.5" strokeWidth={1.75} />
+          </button>
+          <div className="flex flex-1 items-center">
             <div>
               <p className="text-sm font-semibold tracking-tight text-slate-900">Không gian giáo viên</p>
               <p className="text-xs text-slate-500">Quản lý lớp học, bài thi và chấm điểm</p>
             </div>
+            <p className="ml-auto flex items-center gap-1.5 text-sm text-slate-600">
+              <Hand className="h-4 w-4 text-amber-500" strokeWidth={1.75} />
+              <span>Xin chào,</span>
+              <span className="font-semibold text-[#2FAAF0]">{user?.fullName}</span>
+            </p>
           </div>
-        </header>
+        </div>
+      </header>
         <section className="flex-1 p-4 sm:p-6 lg:p-8">
           <Outlet />
         </section>

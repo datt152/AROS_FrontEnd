@@ -184,8 +184,8 @@ export function QuestionForm({
       if (values.type === 'SINGLE_CHOICE' && correctCount !== 1) {
         nextErrors.options = 'Câu hỏi một đáp án phải có đúng 1 đáp án đúng'
       }
-      if (values.type === 'MULTIPLE_CHOICE' && correctCount < 1) {
-        nextErrors.options = 'Câu hỏi nhiều đáp án phải có ít nhất 1 đáp án đúng'
+      if (values.type === 'MULTIPLE_CHOICE' && correctCount < 2) {
+        nextErrors.options = 'Câu hỏi nhiều đáp án phải có ít nhất 2 đáp án đúng'
       }
     }
 

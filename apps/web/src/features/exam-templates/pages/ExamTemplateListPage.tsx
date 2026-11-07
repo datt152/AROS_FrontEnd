@@ -203,9 +203,6 @@ export function ExamTemplateListPage() {
         <div>
           <p className="text-xs font-medium uppercase tracking-wider text-blue-600">Thư viện đề</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">Thư viện đề</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Chỉ cần tiêu đề, môn và câu hỏi. Khi tạo kỳ thi / luyện tập chọn “Theo bộ đề” để dùng lại.
-          </p>
         </div>
         <Button onClick={openCreate} className="w-full sm:w-auto">
           <Plus className="h-4 w-4" strokeWidth={2} />

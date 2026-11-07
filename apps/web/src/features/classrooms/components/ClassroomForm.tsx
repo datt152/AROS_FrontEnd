@@ -219,7 +219,7 @@ export function ClassroomForm({
           onChange={(event) => updateField('isActive', event.target.checked)}
           className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-100"
         />
-        Lớp đang hoạt động
+        Hiển thị lớp học
       </label>
       {mode === 'edit' && !values.isActive ? (
         <p className="text-xs text-slate-500">Bật lại để khôi phục lớp đã ẩn.</p>

@@ -113,10 +113,7 @@ function buildUpdatePayload(
 
 export function ExamListPage({ examMode }: ExamListPageProps) {
   const isOnline = examMode === 'ONLINE'
-  const pageTitle = isOnline ? 'Kỳ thi trực tuyến' : 'Đề thi OMR'
-  const pageSubtitle = isOnline
-    ? 'Tạo nháp → giao lớp → sinh mã đề → mở thi.'
-    : 'Tạo đề giấy → giao lớp → sinh mã đề → phiên chấm OMR.'
+  const pageTitle = isOnline ? 'Kỳ thi online' : 'Đề thi OMR'
 
   const [searchParams, setSearchParams] = useSearchParams()
   const [subjectFilter, setSubjectFilter] = useState<number | ''>('')
@@ -518,7 +515,7 @@ export function ExamListPage({ examMode }: ExamListPageProps) {
   return (
     <section className="space-y-5">
       {toast ? (
-        <div className="fixed right-4 top-4 z-[80] rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-lg">
+        <div className="fixed right-4 top-4 z-[80] rounded-xl border border-slate-200 bg-white px-4 py-3 text-lg text-slate-700 shadow-lg">
           {toast}{' '}
           <Link to={ROUTES.teacher.examTemplates} className="font-medium text-blue-600 hover:text-blue-700">
             Mở thư viện
@@ -530,7 +527,6 @@ export function ExamListPage({ examMode }: ExamListPageProps) {
         <div>
           <p className="text-xs font-medium uppercase tracking-wider text-blue-600">Đề thi</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">{pageTitle}</h1>
-          <p className="mt-1 text-sm text-slate-500">{pageSubtitle}</p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
           {!isOnline ? <OmrAnswerSheetDownloadLink className="w-full sm:w-auto" /> : null}
@@ -817,6 +813,7 @@ export function ExamListPage({ examMode }: ExamListPageProps) {
             if (!isOnline) return
             setOpenError(null)
             setOpenExam(detailExam)
+            setDetailExamId(null) // Đóng modal chi tiết khi bấm nút mở thi
           }}
           onPreviewVersion={(versionCode) => setPreviewCode(versionCode)}
           onSaveAsTemplate={() => {
@@ -824,10 +821,10 @@ export function ExamListPage({ examMode }: ExamListPageProps) {
             void saveAsTemplate
               .mutateAsync(detailExam.id)
               .then(() => {
-                setToast('Đã lưu thành template — xem Thư viện đề')
+                setToast('Đã lưu đề mẫu — xem Thư viện đề')
               })
               .catch((error) => {
-                setSaveAsTemplateError(getApiErrorMessage(error, 'Không thể lưu thành template'))
+                setSaveAsTemplateError(getApiErrorMessage(error, 'Không thể lưu thành đề mẫu'))
               })
           }}
         />
