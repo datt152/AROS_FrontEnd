@@ -86,9 +86,7 @@ export function getStudentTakeBlockReason(
     return mode === 'PRACTICE' ? 'Bạn đã hết lượt làm lại' : 'Bạn đã nộp bài'
   }
   if (exam.myStatus === 'EXPIRED') {
-    return mode === 'PRACTICE'
-      ? 'Lượt trước đã hết giờ và không còn lượt làm lại'
-      : 'Đã hết thời gian làm bài'
+    return 'Đã hết thời gian làm bài'
   }
   if (exam.examStatus === 'UPCOMING') return 'Chưa đến giờ mở đề'
   if (exam.examStatus === 'CLOSED') return 'Đề đã đóng'

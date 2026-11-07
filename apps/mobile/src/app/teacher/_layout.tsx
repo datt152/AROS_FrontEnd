@@ -1,16 +1,16 @@
-import { Tabs } from 'expo-router'
-
-import { tabIcon } from '@/components/TabIcon'
-import { colors } from '@/theme/colors'
+import { Stack } from 'expo-router'
 
 export default function TeacherLayout() {
   return (
-    <Tabs screenOptions={{ tabBarActiveTintColor: colors.primary }}>
-      <Tabs.Screen name="index" options={{ title: 'Chấm OMR', tabBarIcon: tabIcon('scan-outline') }} />
-      <Tabs.Screen
-        name="account"
-        options={{ title: 'Tài khoản', tabBarIcon: tabIcon('person-circle-outline') }}
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="sessions" options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="workspace" options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen
+        name="scan"
+        options={{ animation: 'slide_from_bottom', gestureEnabled: false }}
       />
-    </Tabs>
+      <Stack.Screen name="sheet" options={{ animation: 'slide_from_right' }} />
+    </Stack>
   )
 }

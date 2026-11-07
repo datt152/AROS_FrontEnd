@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons'
-import type { ClassroomItem } from '@aros/shared/features/classrooms/types/classroom.types'
 import {
   filterAndSortStudentExams,
   mergeStudentExamsWithSubmissions,
@@ -20,7 +19,7 @@ import {
 
 import { getApiErrorMessage } from '@aros/shared/api/apiError'
 
-import { ClassroomStrip } from '@/components/ClassroomStrip'
+import { ClassroomStrip, type ClassroomStripItem } from '@/components/ClassroomStrip'
 import { ExamConfirmModal } from '@/components/ExamConfirmModal'
 import { StudentExamCard } from '@/components/StudentExamCard'
 import { useMyClasses } from '@/features/classrooms/hooks/useMyClasses'
@@ -31,7 +30,7 @@ import { usePracticeExams } from '../hooks/usePractice'
 
 export function PracticeListScreen() {
   const router = useRouter()
-  const [selected, setSelected] = useState<ClassroomItem | null>(null)
+  const [selected, setSelected] = useState<ClassroomStripItem | null>(null)
   const [confirmExam, setConfirmExam] = useState<StudentExamListItem | null>(null)
 
   const classesQuery = useMyClasses()

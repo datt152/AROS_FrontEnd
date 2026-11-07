@@ -25,7 +25,13 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "AROS cần dùng camera để quét phiếu trả lời OMR."
+        }
+      ]
     ]
   }
 }

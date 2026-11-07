@@ -6,10 +6,15 @@ import { colors } from '@/theme/colors'
 
 export type { ClassroomItem }
 
+/** Chỉ cần 3 field này để hiển thị chip — dùng được cho cả lớp của SV và lớp đã giao cho đề */
+export type ClassroomStripItem = Pick<ClassroomItem, 'id' | 'className'> & {
+  subjectName?: string
+}
+
 type ClassroomChipProps = {
-  item: ClassroomItem
+  item: ClassroomStripItem
   selected: boolean
-  onPress: (item: ClassroomItem) => void
+  onPress: (item: ClassroomStripItem) => void
 }
 
 function ClassroomChip({ item, selected, onPress }: ClassroomChipProps) {
@@ -44,9 +49,9 @@ export function ClassroomStrip({
   selectedId,
   onSelect,
 }: {
-  classrooms: ClassroomItem[]
+  classrooms: ClassroomStripItem[]
   selectedId: number | undefined
-  onSelect: (item: ClassroomItem) => void
+  onSelect: (item: ClassroomStripItem) => void
 }) {
   return (
     <FlatList
