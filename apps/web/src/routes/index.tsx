@@ -21,6 +21,8 @@ import { StudentLayout } from '../layouts/StudentLayout'
 import { TeacherLayout } from '../layouts/TeacherLayout'
 import { HomePage } from '../pages/HomePage'
 import { NotFoundPage } from '../pages/NotFoundPage'
+import { PrivacyPolicyPage } from '../pages/PrivacyPolicyPage'
+import { TermsOfServicePage } from '../pages/TermsOfServicePage'
 import { UnauthorizedPage } from '../pages/UnauthorizedPage'
 import { ExamStatsPage } from '../features/exam-stats/pages/ExamStatsPage'
 import { GradingPage } from '../features/grading/pages/GradingPage'
@@ -75,7 +77,11 @@ export const router = createBrowserRouter([
     children: [
       {
         element: <PublicLayout />,
-        children: [{ path: ROUTES.home, element: <HomePage /> }],
+        children: [
+          { path: ROUTES.home, element: <HomePage /> },
+          { path: ROUTES.privacy, element: <PrivacyPolicyPage /> },
+          { path: ROUTES.terms, element: <TermsOfServicePage /> },
+        ],
       },
       {
         element: <GuestRoute />,

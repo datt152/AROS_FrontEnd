@@ -13,6 +13,8 @@ export const ROUTES = {
   register: '/register',
   forgotPassword: '/forgot-password',
   resetPassword: '/reset-password',
+  privacy: '/privacy',
+  terms: '/terms',
   unauthorized: '/unauthorized',
 
   student: {
